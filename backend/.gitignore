@@ -1,0 +1,63 @@
+# Dependencias
+node_modules/
+**/node_modules
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Variables de entorno (IMPORTANTE)
+.env
+.env.local
+.env.*.local
+.env.production
+.env.development
+
+# Archivos de uploads (si son temporales o generados)
+uploads/
+temp/
+tmp/
+
+# Cache
+.cache/
+*.local
+
+# Archivos del sistema operativo
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# IDEs y editores
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# Cobertura de tests
+coverage/
+*.lcov
+.nyc_output/
+
+# Build / Dist
+dist/
+build/
+out/
+
+# Base de datos local (SQLite, etc.)
+*.sqlite
+*.sqlite3
+*.db
+
+# Archivos temporales
+*.tmp
+*.temp
+.pid
+*.seed

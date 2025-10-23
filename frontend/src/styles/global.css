@@ -1,0 +1,188 @@
+/* =========================================
+   🌐 GLOBAL VARIABLES
+========================================= */
+:root {
+  --font-main: "Poppins", "Roboto", "Segoe UI", sans-serif;
+
+  /* 🎨 Colores base */
+  --color-text: #333;
+  --color-bg: #f5f6fa;
+
+  /* 🎨 Colores principales */
+  --color-primary: #2196f3;
+  --color-primary-dark: #1976d2;
+
+  /* 🎨 Colores de estado */
+  --color-danger: #e53935;
+  --color-success: #2e7d32;
+
+  /* 🔤 Tamaños base */
+  --font-size-base: 0.95rem;
+  --radius-base: 10px;
+  --transition-base: all 0.25s ease;
+}
+
+/* =========================================
+   🔄 RESET & BASE
+========================================= */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font-main);
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  line-height: 1.5;
+}
+
+/* =========================================
+   📐 LAYOUT HELPERS
+========================================= */
+.layout-center {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.flex-between {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* =========================================
+   🧱 CONTAINERS
+========================================= */
+.container-card {
+  max-width: 420px;
+  margin: 90px auto;
+  background: #fff;
+  padding: 2.5rem 2rem;
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  transition: var(--transition-base);
+}
+
+.container-card:hover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+/* =========================================
+   🧾 TITLES
+========================================= */
+.container-card h2 {
+  text-align: center;
+  margin-bottom: 1.5rem;
+  color: #222;
+  font-weight: 600;
+}
+
+/* =========================================
+   🧩 INPUTS
+========================================= */
+.input {
+  width: 100%;
+  padding: 12px 14px;
+  margin-top: 12px;
+  border: 1px solid #ccc;
+  border-radius: var(--radius-base);
+  outline: none;
+  font-size: var(--font-size-base);
+  transition: var(--transition-base);
+}
+
+.input:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.15);
+}
+
+/* =========================================
+   🔘 BUTTONS
+========================================= */
+.btn {
+  width: 100%;
+  margin-top: 18px;
+  padding: 12px;
+  border: none;
+  border-radius: var(--radius-base);
+  font-weight: 600;
+  font-size: var(--font-size-base);
+  cursor: pointer;
+  transition: background 0.25s ease, box-shadow 0.25s ease;
+}
+
+/* 🟦 Primary */
+.btn-primary {
+  background-color: var(--color-primary);
+  color: #fff;
+}
+
+.btn-primary:hover {
+  background-color: var(--color-primary-dark);
+  box-shadow: 0 3px 10px rgba(33, 150, 243, 0.3);
+}
+
+/* ⚪ Outline */
+.btn-outline {
+  background: #fff;
+  color: #333;
+  border: 1px solid #ccc;
+}
+
+.btn-outline:hover {
+  background: #f0f0f0;
+  color: #000;
+}
+
+/* =========================================
+   ⚠️ ALERTS
+========================================= */
+.alert {
+  padding: 10px;
+  border-radius: 8px;
+  margin-top: 10px;
+  text-align: center;
+  font-size: 0.9rem;
+}
+
+.alert-error {
+  color: var(--color-danger);
+  background-color: #ffebee;
+}
+
+.alert-success {
+  color: var(--color-success);
+  background-color: #e8f5e9;
+}
+
+/* =========================================
+   🔗 LINKS
+========================================= */
+a {
+  color: var(--color-primary);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+a:hover {
+  color: var(--color-primary-dark);
+}
+
+/* =========================================
+   📱 RESPONSIVE
+========================================= */
+@media (max-width: 480px) {
+  .container-card {
+    margin: 60px 20px;
+    padding: 1.8rem 1.5rem;
+  }
+
+  .input,
+  .btn {
+    font-size: 0.9rem;
+  }
+}

@@ -1,0 +1,64 @@
+/* ======== LOGIN PAGE ======== */
+.login-container {
+  text-align: center;
+  max-width: 420px;
+}
+
+.login-title {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+  color: var(--color-primary);
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.login-links {
+  margin-top: 1.2rem;
+  text-align: center;
+}
+
+.login-links p {
+  margin: 6px 0;
+  font-size: 0.9rem;
+  color: #555;
+}
+
+.login-links a {
+  color: var(--color-primary);
+  font-weight: 500;
+}
+
+.login-links a:hover {
+  color: var(--color-primary-dark);
+}
+
+/* ===== LOGIN HEADER ===== */
+.login-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.login-icon {
+  color: #333; /* Azul de marca, puedes usar otro si prefieres */
+  margin-bottom: 8px;
+}
+
+.login-title {
+  font-size: 1.8rem;
+  font-weight: 600;
+  color: #333;
+  margin: 0;
+}
+
+.login-subtitle {
+  font-size: 1rem;
+  color: #666;
+  margin-top: 4px;
+}
