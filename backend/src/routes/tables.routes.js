@@ -2,14 +2,12 @@
 
 import express from "express";
 import {
-  // Zonas
   getZones,
   getZone,
   addZone,
   editZone,
   patchZone,
   removeZone,
-  // Mesas
   getTables,
   getTable,
   addTable,
@@ -18,13 +16,9 @@ import {
   removeTable,
 } from "../controllers/tables.controller.js";
 import { authenticate, authorizeRoles } from "../middleware/auth.middleware.js";
-import { upload } from "../config/multer.js"; // ✅ IMPORTAR
+import { upload } from "../config/multer.js";
 
 const router = express.Router();
-
-// ==========================================================
-// 🗂️ RUTAS DE ZONAS
-// ==========================================================
 
 router.get("/zones", authenticate, authorizeRoles("admin", "customer"), getZones);
 router.get("/zones/:id", authenticate, authorizeRoles("admin", "customer"), getZone);
@@ -33,7 +27,6 @@ router.put("/zones/:id", authenticate, authorizeRoles("admin"), editZone);
 router.patch("/zones/:id", authenticate, authorizeRoles("admin"), patchZone);
 router.delete("/zones/:id", authenticate, authorizeRoles("admin"), removeZone);
 
-// ✅ NUEVA RUTA PARA SUBIR IMAGEN DE ZONA
 router.post(
   "/zones/upload",
   authenticate,
@@ -65,10 +58,6 @@ router.post(
     }
   }
 );
-
-// ==========================================================
-// 🪑 RUTAS DE MESAS
-// ==========================================================
 
 router.get("/", authenticate, authorizeRoles("admin", "customer"), getTables);
 router.get("/:id", authenticate, authorizeRoles("admin", "customer"), getTable);

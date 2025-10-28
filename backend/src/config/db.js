@@ -6,7 +6,6 @@ dotenv.config();
 
 const { Pool } = pg;
 
-// 🧩 Configuración del pool de PostgreSQL
 export const pool = new Pool({
   user: process.env.DB_USER,
   host: process.env.DB_HOST,
@@ -17,28 +16,26 @@ export const pool = new Pool({
     process.env.NODE_ENV === "production"
       ? { rejectUnauthorized: false }
       : false,
-  max: 10, // número máximo de conexiones simultáneas
-  idleTimeoutMillis: 30000, // desconecta conexiones inactivas
-  connectionTimeoutMillis: 5000, // tiempo máximo de espera de conexión
+  max: 10,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 5000,
 });
 
-// 🧠 Asegurar codificación UTF-8 (soluciona acentos y caracteres especiales)
+// Asegurar codificación UTF-8
 pool.on("connect", (client) => {
   client.query("SET client_encoding TO 'UTF8'");
 });
 
-// 🧠 Verificar conexión
 export const connectDB = async () => {
   try {
     const { rows } = await pool.query("SELECT NOW()");
-    console.log("🟢 Conectado a PostgreSQL:", rows[0].now);
+    console.log("Conectado a PostgreSQL:", rows[0].now);
   } catch (err) {
-    console.error("❌ Error conectando a PostgreSQL:", err.message);
+    console.error("Error conectando a PostgreSQL:", err.message);
     throw err;
   }
 };
 
-// 🔁 Manejar errores globales de conexión
 pool.on("error", (err) => {
-  console.error("⚠️ Error inesperado en el cliente PostgreSQL:", err.message);
+  console.error("Error inesperado en el cliente PostgreSQL:", err.message);
 });
