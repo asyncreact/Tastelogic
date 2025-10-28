@@ -1,734 +1,317 @@
-/* pages/admin/MenuAdmin.css */
+/* MenuAdmin.css */
 
-/* ============================================================ */
-/* 📱 CONTENEDOR PRINCIPAL */
-/* ============================================================ */
-
-.menu-admin {
-  padding: 2rem;
-  max-width: 1400px;
-  margin: 0 auto;
-  min-height: 100vh;
-  background-color: #f8f9fa;
-}
-
-/* ============================================================ */
-/* 🎯 HEADER Y TABS */
-/* ============================================================ */
-
-.menu-admin-header {
-  margin-bottom: 2rem;
-}
-
-.menu-admin-header h1 {
-  margin: 0 0 1.5rem 0;
-  color: #2c3e50;
-  font-size: 2rem;
-  font-weight: 700;
-}
-
-.menu-tabs {
-  display: flex;
-  gap: 1rem;
-  border-bottom: 2px solid #e0e0e0;
-  padding-bottom: 0;
-}
-
-.tab-btn {
-  padding: 0.75rem 1.5rem;
-  background: none;
-  border: none;
-  border-bottom: 3px solid transparent;
-  cursor: pointer;
-  font-size: 1rem;
-  font-weight: 500;
-  color: #666;
-  transition: all 0.3s ease;
-  position: relative;
-  top: 2px;
-}
-
-.tab-btn.active {
-  color: #ff6b35;
-  border-bottom-color: #ff6b35;
-}
-
-.tab-btn:hover:not(.active) {
-  color: #ff8c5a;
-}
-
-/* ============================================================ */
-/* 📋 SECCIÓN DE CONTENIDO */
-/* ============================================================ */
-
-.menu-section {
-  background: white;
-  border-radius: 12px;
-  padding: 2rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-}
-
-.section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 2rem;
-}
-
-.section-header h2 {
-  color: #2c3e50;
-  margin: 0;
-  font-size: 1.5rem;
-}
-
-/* ============================================================ */
-/* 🔘 BOTONES */
-/* ============================================================ */
-
-.btn-add {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
-  background-color: #ff6b35;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 500;
-  font-size: 1rem;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 4px rgba(255, 107, 53, 0.2);
-}
-
-.btn-add:hover {
-  background-color: #e55a2b;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(255, 107, 53, 0.3);
-}
-
-.btn-add:active {
-  transform: translateY(0);
-}
-
-.btn-edit,
-.btn-delete {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 0.875rem;
-  transition: all 0.3s ease;
-  flex: 1;
-  justify-content: center;
-  font-weight: 500;
-}
-
-.btn-edit {
-  background-color: #007bff;
-  color: white;
-}
-
-.btn-edit:hover {
-  background-color: #0056b3;
-  transform: translateY(-1px);
-}
-
-.btn-delete {
-  background-color: #dc3545;
-  color: white;
-}
-
-.btn-delete:hover {
-  background-color: #c82333;
-  transform: translateY(-1px);
-}
-
-/* ============================================================ */
-/* 🍽️ GRID DE PLATOS */
-/* ============================================================ */
-
-.items-grid {
+/* Contenedor principal - CENTRADO */
+.menuadmin-container {
+  padding: 20px;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 1.5rem;
+  gap: 20px;
+  max-width: 1400px;
+  margin: 0 auto; /* Centra el contenedor */
 }
 
-.item-card {
-  background: white;
-  border: 1px solid #e9ecef;
-  border-radius: 12px;
-  padding: 0; /* ✅ Cambio: padding 0 para que la imagen ocupe todo el ancho */
-  overflow: hidden; /* ✅ NUEVO: Para que la imagen respete el border-radius */
-  transition: all 0.3s ease;
-}
-
-.item-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
-  border-color: #ff6b35;
-}
-
-/* ✅ NUEVO: Estilos para la imagen dentro de la card */
-.item-image-preview {
-  width: 100%;
-  height: 180px;
-  overflow: hidden;
-  background: #f8f9fa;
+/* Header principal */
+.menuadmin-header {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
 }
 
-.item-image-preview img {
+.menuadmin-header h1 {
+  margin: 0;
+  font-size: 1.4rem;
+}
+
+/* Tabs - CENTRADO */
+.menuadmin-tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center; /* Centra los tabs */
+}
+
+.menuadmin-tabs .menuadmin-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+/* Secciones */
+.menuadmin-section {
+  display: grid;
+  gap: 16px;
+}
+
+.menuadmin-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.menuadmin-section-header h2 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.menuadmin-btn-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+/* Grids - CENTRADO */
+.menuadmin-items-grid {
+  display: grid;
+  grid-template-columns: repeat( auto-fill, minmax(260px, 1fr) );
+  gap: 14px;
+  justify-items: center; /* Centra las tarjetas */
+}
+
+.menuadmin-categories-list {
+  display: grid;
+  grid-template-columns: repeat( auto-fill, minmax(300px, 1fr) );
+  gap: 14px;
+  justify-items: center; /* Centra las tarjetas */
+}
+
+/* Item Card */
+.menuadmin-item-card {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
   width: 100%;
-  height: 100%;
+  max-width: 300px; /* Limita el ancho */
+}
+
+.menuadmin-item-image-preview img {
+  width: 100%;
+  height: 160px;
   object-fit: cover;
 }
 
-/* ✅ Ajustar padding del contenido */
-.item-card > *:not(.item-image-preview) {
-  padding-left: 1.5rem;
-  padding-right: 1.5rem;
-}
-
-.item-card > .item-header {
-  padding-top: 1rem;
-}
-
-.item-card > .item-actions {
-  padding-bottom: 1.5rem;
-}
-
-.item-header {
+.menuadmin-item-header {
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 0.75rem;
-  gap: 1rem;
+  gap: 8px;
 }
 
-.item-header h3 {
-  color: #2c3e50;
+.menuadmin-item-header h3 {
   margin: 0;
-  font-size: 1.25rem;
-  flex: 1;
-  line-height: 1.3;
+  font-size: 1rem;
 }
 
-.badge {
-  display: flex;
+.menuadmin-badge {
+  display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  padding: 0.35rem 0.75rem;
-  border-radius: 20px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  white-space: nowrap;
-  flex-shrink: 0;
+  gap: 6px;
+  font-size: 0.8rem;
+  padding: 4px 8px;
 }
 
-.badge.active {
-  background-color: #d4edda;
-  color: #155724;
-}
-
-.badge.inactive {
-  background-color: #f8d7da;
-  color: #721c24;
-}
-
-.item-category {
-  color: #ff6b35;
-  font-size: 0.875rem;
-  font-weight: 600;
-  margin: 0 0 0.5rem 0;
-}
-
-.item-description {
-  color: #6c757d;
-  font-size: 0.875rem;
-  margin: 0 0 1rem 0;
-  line-height: 1.5;
-}
-
-.item-price {
-  color: #2c3e50;
-  font-size: 1.75rem;
-  font-weight: 700;
-  margin: 0 0 0.75rem 0;
-}
-
-.item-allergens {
-  margin-bottom: 1rem;
-  padding-top: 0.75rem;
-  border-top: 1px solid #e9ecef;
-}
-
-.item-allergens small {
-  color: #999;
-  font-size: 0.75rem;
-}
-
-.item-actions {
-  display: flex;
-  gap: 0.5rem;
-  margin-top: 1rem;
-}
-
-/* ============================================================ */
-/* 📂 LISTA DE CATEGORÍAS */
-/* ============================================================ */
-
-.categories-list {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.category-card {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: white;
-  border: 1px solid #e9ecef;
-  border-radius: 12px;
-  padding: 1.5rem;
-  transition: all 0.3s ease;
-}
-
-.category-card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  border-color: #ff6b35;
-}
-
-.category-info {
-  flex: 1;
-}
-
-.category-info h3 {
-  color: #2c3e50;
-  margin: 0 0 0.5rem 0;
-  font-size: 1.25rem;
-}
-
-.category-info p {
-  color: #6c757d;
-  margin: 0 0 0.75rem 0;
-  font-size: 0.875rem;
-}
-
-.category-actions {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.category-actions .btn-edit,
-.category-actions .btn-delete {
-  padding: 0.5rem;
-  min-width: 40px;
-  flex: none;
-}
-
-/* ============================================================ */
-/* 🚫 ESTADO VACÍO */
-/* ============================================================ */
-
-.empty-state {
-  text-align: center;
-  padding: 4rem 2rem;
-  color: #999;
-}
-
-.empty-state p {
-  font-size: 1.125rem;
-  margin-bottom: 1.5rem;
-}
-
-.empty-state button {
-  margin-top: 1rem;
-}
-
-/* ============================================================ */
-/* ⏳ LOADING */
-/* ============================================================ */
-
-.loading {
-  text-align: center;
-  padding: 4rem;
-  font-size: 1.25rem;
-  color: #666;
-}
-
-/* ============================================================ */
-/* 🎭 MODAL */
-/* ============================================================ */
-
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.6);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-  padding: 1rem;
-  animation: fadeIn 0.3s ease;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-.modal-content {
-  background: white;
-  border-radius: 16px;
-  padding: 0;
-  max-width: 600px;
-  width: 100%;
-  max-height: 90vh;
-  overflow-y: auto;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-  animation: slideUp 0.3s ease;
-}
-
-@keyframes slideUp {
-  from {
-    transform: translateY(30px);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1.5rem 2rem;
-  border-bottom: 1px solid #e9ecef;
-  background-color: #f8f9fa;
-  border-radius: 16px 16px 0 0;
-}
-
-.modal-header h2 {
+.menuadmin-item-category,
+.menuadmin-item-description,
+.menuadmin-item-price {
   margin: 0;
-  color: #2c3e50;
-  font-size: 1.5rem;
-  font-weight: 700;
+  font-size: 0.92rem;
 }
 
-.btn-close {
-  background: none;
-  border: none;
-  font-size: 1.5rem;
-  color: #6c757d;
+.menuadmin-item-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center; /* Centra los botones */
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.menuadmin-item-actions .menuadmin-btn-edit,
+.menuadmin-item-actions .menuadmin-btn-delete {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
   cursor: pointer;
-  padding: 0.25rem;
-  width: 32px;
-  height: 32px;
+}
+
+/* Category Card */
+.menuadmin-category-card {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  align-items: start;
+  padding: 12px;
+  width: 100%;
+  max-width: 400px; /* Limita el ancho */
+}
+
+.menuadmin-category-info h3 {
+  margin: 0 0 4px;
+  font-size: 1rem;
+}
+
+.menuadmin-category-info p {
+  margin: 0 0 8px;
+  font-size: 0.92rem;
+}
+
+.menuadmin-category-actions {
   display: flex;
   align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  transition: all 0.3s ease;
+  gap: 8px;
 }
 
-.btn-close:hover {
-  background-color: #f0f0f0;
-  color: #dc3545;
+.menuadmin-category-actions .menuadmin-btn-edit,
+.menuadmin-category-actions .menuadmin-btn-delete {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  cursor: pointer;
 }
 
-/* ============================================================ */
-/* 📝 FORMULARIOS */
-/* ============================================================ */
-
-.modal-form {
-  padding: 2rem;
+/* Empty State */
+.menuadmin-empty-state {
+  display: grid;
+  place-items: center;
+  gap: 10px;
+  padding: 24px;
+  text-align: center;
 }
 
-.form-group {
-  margin-bottom: 1.5rem;
+.menuadmin-empty-state .menuadmin-empty-icon {
+  font-size: 28px;
 }
 
-.form-group label {
-  display: block;
-  margin-bottom: 0.5rem;
-  color: #2c3e50;
-  font-weight: 600;
-  font-size: 0.875rem;
+/* Loading */
+.menuadmin-loading {
+  display: grid;
+  place-items: center;
+  gap: 8px;
+  padding: 32px;
 }
 
-.form-group input,
-.form-group select,
-.form-group textarea {
+.menuadmin-spinner {
+  width: 36px;
+  height: 36px;
+  animation: menuadmin-spin 0.9s linear infinite;
+}
+
+@keyframes menuadmin-spin { 
+  to { transform: rotate(360deg); } 
+}
+
+/* Modal overlay */
+.menuadmin-modal-overlay {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  padding: 16px;
+}
+
+/* Modal content */
+.menuadmin-modal-content {
   width: 100%;
-  padding: 0.75rem;
-  border: 1px solid #ced4da;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  transition: all 0.3s ease;
-  font-family: inherit;
+  max-width: 680px;
+  background: #ffffff;
+  overflow: hidden;
 }
 
-.form-group input:focus,
-.form-group select:focus,
-.form-group textarea:focus {
-  outline: none;
-  border-color: #ff6b35;
-  box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
+/* Modal header/body/actions */
+.menuadmin-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
 }
 
-.form-group input.error,
-.form-group select.error {
-  border-color: #dc3545;
+.menuadmin-modal-header h2,
+.menuadmin-modal-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
 }
 
-.form-group input.error:focus,
-.form-group select.error:focus {
-  box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.1);
+.menuadmin-modal-body {
+  padding: 14px;
+  display: grid;
+  gap: 12px;
 }
 
-.form-group textarea {
-  resize: vertical;
-  min-height: 80px;
+.menuadmin-modal-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 14px;
 }
 
-.error-message {
-  display: block;
-  color: #dc3545;
-  font-size: 0.75rem;
-  margin-top: 0.5rem;
-  font-weight: 500;
+/* Modal confirm variante */
+.menuadmin-modal-content.menuadmin-modal-confirm {
+  max-width: 460px;
 }
 
-.form-row {
+/* Formulario dentro del modal */
+.menuadmin-modal-form {
+  display: grid;
+  gap: 12px;
+}
+
+.menuadmin-form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 1rem;
+  gap: 12px;
 }
 
-.form-group-checkbox {
-  margin-bottom: 1.5rem;
+.menuadmin-form-group {
+  display: grid;
+  gap: 6px;
 }
 
-.form-group-checkbox label {
-  display: flex;
+.menuadmin-form-group .menuadmin-form-helper {
+  font-size: 0.82rem;
+}
+
+.menuadmin-input,
+.menuadmin-textarea,
+.menuadmin-select {
+  width: 100%;
+  padding: 10px 12px;
+  font-size: 0.95rem;
+  outline: none;
+}
+
+.menuadmin-textarea {
+  resize: vertical;
+  min-height: 90px;
+}
+
+.menuadmin-checkbox-wrapper {
+  display: inline-flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 8px;
+}
+
+.menuadmin-btn-close,
+.menuadmin-btn-cancel,
+.menuadmin-btn-submit {
+  padding: 8px 12px;
   cursor: pointer;
-  color: #2c3e50;
-  font-weight: 500;
 }
 
-.form-group-checkbox input[type="checkbox"] {
-  width: 20px;
-  height: 20px;
-  cursor: pointer;
-  accent-color: #ff6b35;
+/* Imagen preview */
+.menuadmin-image-preview img {
+  width: 100%;
+  max-height: 220px;
+  object-fit: cover;
 }
 
-.form-group-checkbox span {
-  font-size: 0.875rem;
-}
-
-/* ============================================================ */
-/* 🎬 ACCIONES DEL MODAL */
-/* ============================================================ */
-
-.modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 1rem;
-  padding-top: 1.5rem;
-  border-top: 1px solid #e9ecef;
-  margin-top: 1rem;
-}
-
-.btn-cancel,
-.btn-submit {
-  padding: 0.75rem 1.5rem;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 600;
-  font-size: 0.875rem;
-  transition: all 0.3s ease;
-}
-
-.btn-cancel {
-  background-color: #f8f9fa;
-  color: #6c757d;
-  border: 1px solid #dee2e6;
-}
-
-.btn-cancel:hover {
-  background-color: #e9ecef;
-  color: #495057;
-}
-
-.btn-submit {
-  background-color: #ff6b35;
-  color: white;
-  box-shadow: 0 2px 4px rgba(255, 107, 53, 0.2);
-}
-
-.btn-submit:hover:not(:disabled) {
-  background-color: #e55a2b;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(255, 107, 53, 0.3);
-}
-
-.btn-submit:disabled {
-  background-color: #cccccc;
-  cursor: not-allowed;
-  opacity: 0.6;
-}
-
-/* ============================================================ */
-/* 📱 RESPONSIVE DESIGN */
-/* ============================================================ */
-
-@media screen and (max-width: 768px) {
-  .menu-admin {
-    padding: 1rem;
-  }
-
-  .menu-admin-header h1 {
-    font-size: 1.5rem;
-  }
-
-  .menu-tabs {
-    overflow-x: auto;
-  }
-
-  .tab-btn {
-    padding: 0.5rem 1rem;
-    font-size: 0.875rem;
-    white-space: nowrap;
-  }
-
-  .menu-section {
-    padding: 1rem;
-  }
-
-  .section-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 1rem;
-  }
-
-  .section-header h2 {
-    font-size: 1.25rem;
-  }
-
-  .btn-add {
-    width: 100%;
-    justify-content: center;
-  }
-
-  .items-grid {
-    grid-template-columns: 1fr;
-    gap: 1rem;
-  }
-
-  .item-header {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .badge {
-    align-self: flex-start;
-  }
-
-  .category-card {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 1rem;
-  }
-
-  .category-actions {
-    width: 100%;
-  }
-
-  .category-actions .btn-edit,
-  .category-actions .btn-delete {
-    flex: 1;
-  }
-
-  .modal-content {
-    max-width: 95%;
-    max-height: 95vh;
-  }
-
-  .modal-header {
-    padding: 1rem;
-  }
-
-  .modal-header h2 {
-    font-size: 1.25rem;
-  }
-
-  .modal-form {
-    padding: 1rem;
-  }
-
-  .form-row {
-    grid-template-columns: 1fr;
-  }
-
-  .modal-actions {
-    flex-direction: column-reverse;
-  }
-
-  .btn-cancel,
-  .btn-submit {
-    width: 100%;
-  }
-}
-
-@media screen and (max-width: 480px) {
-  .item-actions {
-    flex-direction: column;
-  }
-
-  .btn-edit,
-  .btn-delete {
-    width: 100%;
-  }
-}
-
-/* ============================================================ */
-/* 🎨 SCROLLBAR PERSONALIZADO */
-/* ============================================================ */
-
-.modal-content::-webkit-scrollbar {
-  width: 8px;
-}
-
-.modal-content::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 10px;
-}
-
-.modal-content::-webkit-scrollbar-thumb {
-  background: #ccc;
-  border-radius: 10px;
-}
-
-.modal-content::-webkit-scrollbar-thumb:hover {
-  background: #999;
+/* Responsive */
+@media (max-width: 720px) {
+  .menuadmin-modal-content { max-width: 92vw; }
+  .menuadmin-form-row { grid-template-columns: 1fr; }
 }

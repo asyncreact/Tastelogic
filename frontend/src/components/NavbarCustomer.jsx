@@ -24,6 +24,7 @@ export default function NavbarCustomer() {
       {/* 🔹 Enlaces del cliente */}
       <nav className="navbar-links">
         <Link to="/customer/menu">Menú</Link>
+        <Link to="/customer/tables">Mesas</Link>
       </nav>
 
       {/* 🔹 Usuario */}

@@ -1,6 +1,5 @@
 // pages/admin/MenuAdmin.jsx
-
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import AdminLayout from "../../layouts/AdminLayout";
 import { useMenu } from "../../hooks/useMenu";
 import { useAuth } from "../../hooks/useAuth";
@@ -21,35 +20,103 @@ import {
   FaTrash, 
   FaEye, 
   FaEyeSlash,
-  FaTimes
+  FaTimes,
+  FaUtensils,
+  FaList,
+  FaImage,
 } from "react-icons/fa";
+import MessageModal from "../../components/MessageModal";
 import "./MenuAdmin.css";
+
+// Constantes
+const MODAL_TYPES = {
+  ADD_ITEM: "addItem",
+  EDIT_ITEM: "editItem",
+  ADD_CATEGORY: "addCategory",
+  EDIT_CATEGORY: "editCategory",
+};
+
+const TAB_TYPES = {
+  ITEMS: "items",
+  CATEGORIES: "categories",
+};
+
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
 
 export default function MenuAdmin() {
   const { user } = useAuth();
   const { refreshMenu } = useMenu();
+  const token = user?.token || localStorage.getItem("token");
+
+  // Estados de UI
   const [categories, setCategories] = useState([]);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("items");
-  const [showModal, setShowModal] = useState(false);
-  const [modalType, setModalType] = useState("");
+  const [activeTab, setActiveTab] = useState(TAB_TYPES.ITEMS);
+
+  // Estados de Modal
+  const [modal, setModal] = useState({
+    isOpen: false,
+    type: "",
+    isSubmitting: false,
+    isUploadingImage: false,
+  });
+
   const [formData, setFormData] = useState({});
   const [formErrors, setFormErrors] = useState({});
-  const [submitting, setSubmitting] = useState(false);
-  
-  // Estados para manejo de imágenes
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
-  const [uploading, setUploading] = useState(false);
 
-  const token = localStorage.getItem("token");
+  // Estado para MessageModal
+  const [messageModal, setMessageModal] = useState({
+    isOpen: false,
+    type: "info",
+    message: "",
+    details: [],
+  });
+
+  // Estados para confirmación
+  const [confirmModal, setConfirmModal] = useState({
+    isOpen: false,
+    message: "",
+    onConfirm: null,
+  });
+
+  // ============================================================
+  // EFECTOS
+  // ============================================================
 
   useEffect(() => {
-    fetchMenuData();
+    if (token) {
+      fetchMenuData();
+    }
+  }, [token]);
+
+  // ============================================================
+  // FUNCIONES DE MENSAJE
+  // ============================================================
+
+  const showMessage = useCallback((type, message, details = []) => {
+    setMessageModal({ isOpen: true, type, message, details });
   }, []);
 
-  const fetchMenuData = async () => {
+  const closeMessage = useCallback(() => {
+    setMessageModal({ isOpen: false, type: "info", message: "", details: [] });
+  }, []);
+
+  const showConfirm = useCallback((message, onConfirm) => {
+    setConfirmModal({ isOpen: true, message, onConfirm });
+  }, []);
+
+  const closeConfirm = useCallback(() => {
+    setConfirmModal({ isOpen: false, message: "", onConfirm: null });
+  }, []);
+
+  // ============================================================
+  // FUNCIONES DE CARGA DE DATOS
+  // ============================================================
+
+  const fetchMenuData = useCallback(async () => {
     try {
       setLoading(true);
       const [categoriesRes, itemsRes] = await Promise.all([
@@ -61,18 +128,19 @@ export default function MenuAdmin() {
       setItems(itemsRes.data.data?.items || itemsRes.data.items || []);
     } catch (error) {
       console.error("Error al cargar el menú:", error);
-      alert("Error al cargar el menú");
+      showMessage("error", "Error al cargar el menú");
     } finally {
       setLoading(false);
     }
-  };
+  }, [token, showMessage]);
 
-  const openModal = (type, item = null) => {
-    setModalType(type);
-    setFormErrors({});
-    
-    if (type === "addItem") {
-      setFormData({
+  // ============================================================
+  // FUNCIONES DE MODAL
+  // ============================================================
+
+  const getInitialFormData = useCallback((type, item) => {
+    const formDataMap = {
+      [MODAL_TYPES.ADD_ITEM]: {
         name: "",
         description: "",
         price: "",
@@ -80,102 +148,85 @@ export default function MenuAdmin() {
         image_url: "",
         is_available: true,
         ingredients: "",
-      });
-      setImagePreview(null);
-      setImageFile(null);
-    } else if (type === "editItem") {
-      setFormData({
+      },
+      [MODAL_TYPES.EDIT_ITEM]: {
         ...item,
         ingredients: item.ingredients || "",
-      });
-      setImagePreview(item.image_url || null);
-      setImageFile(null);
-    } else if (type === "addCategory") {
-      setFormData({
+      },
+      [MODAL_TYPES.ADD_CATEGORY]: {
         name: "",
         description: "",
         is_active: true,
-      });
-    } else if (type === "editCategory") {
-      setFormData(item);
-    }
-    
-    setShowModal(true);
-  };
+      },
+      [MODAL_TYPES.EDIT_CATEGORY]: item,
+    };
 
-  const closeModal = () => {
-    setShowModal(false);
+    return formDataMap[type] || {};
+  }, []);
+
+  const openModal = useCallback(
+    (type, item = null) => {
+      setModal({ isOpen: true, type, isSubmitting: false, isUploadingImage: false });
+      setFormErrors({});
+      setImageFile(null);
+      setImagePreview(item?.image_url || null);
+      setFormData(getInitialFormData(type, item));
+    },
+    [getInitialFormData]
+  );
+
+  const closeModal = useCallback(() => {
+    setModal({ isOpen: false, type: "", isSubmitting: false, isUploadingImage: false });
     setFormData({});
     setFormErrors({});
-    setModalType("");
     setImageFile(null);
     setImagePreview(null);
-  };
+  }, []);
 
-  const handleInputChange = (e) => {
+  // ============================================================
+  // MANEJO DE INPUTS
+  // ============================================================
+
+  const handleInputChange = useCallback((e) => {
     const { name, value, type, checked } = e.target;
-    setFormData({
-      ...formData,
+    setFormData((prev) => ({
+      ...prev,
       [name]: type === "checkbox" ? checked : value,
-    });
-    if (formErrors[name]) {
-      setFormErrors({
-        ...formErrors,
-        [name]: "",
-      });
-    }
-  };
+    }));
 
-  const handleImageChange = (e) => {
+    setFormErrors((prev) => ({ ...prev, [name]: "" }));
+  }, []);
+
+  const handleImageChange = useCallback((e) => {
     const file = e.target.files[0];
-    if (file) {
-      // Validar tamaño (5MB máximo)
-      if (file.size > 5 * 1024 * 1024) {
-        alert("La imagen no debe superar los 5MB");
-        return;
-      }
+    if (!file) return;
 
-      // Validar tipo
-      const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
-      if (!validTypes.includes(file.type)) {
-        alert("Solo se permiten imágenes JPG, PNG, GIF o WEBP");
-        return;
-      }
-
-      setImageFile(file);
-      
-      // Crear preview
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result);
-      };
-      reader.readAsDataURL(file);
+    if (file.size > MAX_IMAGE_SIZE) {
+      showMessage("error", "La imagen no debe superar los 5MB");
+      return;
     }
-  };
 
-  const handleUploadImage = async () => {
-    if (!imageFile) return null;
-    
-    setUploading(true);
-    try {
-      const response = await uploadImage(imageFile, token);
-      // ✅ CORREGIDO: Quitar /api de la URL
-      const baseUrl = import.meta.env.VITE_API_URL.replace('/api', '');
-      const imageUrl = `${baseUrl}${response.data.url}`;
-      setUploading(false);
-      return imageUrl;
-    } catch (error) {
-      console.error("Error al subir imagen:", error);
-      alert("Error al subir la imagen");
-      setUploading(false);
-      return null;
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      showMessage("error", "Solo se permiten imágenes JPG, PNG, GIF o WEBP");
+      return;
     }
-  };
 
-  const validateItemForm = () => {
+    setImageFile(file);
+
+    const reader = new FileReader();
+    reader.onloadend = () => setImagePreview(reader.result);
+    reader.readAsDataURL(file);
+  }, [showMessage]);
+
+  // ============================================================
+  // VALIDACIONES
+  // ============================================================
+
+  const validateItemForm = useCallback(() => {
     const errors = {};
     
-    if (!formData.name || formData.name.trim() === "") {
+    if (!formData.name?.trim()) {
       errors.name = "El nombre es requerido";
     }
     
@@ -189,133 +240,261 @@ export default function MenuAdmin() {
     
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
-  };
+  }, [formData]);
 
-  const validateCategoryForm = () => {
+  const validateCategoryForm = useCallback(() => {
     const errors = {};
     
-    if (!formData.name || formData.name.trim() === "") {
+    if (!formData.name?.trim()) {
       errors.name = "El nombre es requerido";
     }
     
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
-  };
+  }, [formData]);
 
-  const handleSubmitItem = async (e) => {
-    e.preventDefault();
-    
-    if (!validateItemForm()) return;
-    
-    setSubmitting(true);
+  // ============================================================
+  // SUBIR IMAGEN
+  // ============================================================
+
+  const handleUploadImage = useCallback(async () => {
+    if (!imageFile) return formData.image_url || null;
     
     try {
-      let imageUrl = formData.image_url;
-      
-      // Si hay una nueva imagen, subirla primero
-      if (imageFile) {
-        imageUrl = await handleUploadImage();
-        if (!imageUrl) {
-          setSubmitting(false);
-          return;
+      setModal((prev) => ({ ...prev, isUploadingImage: true }));
+      const response = await uploadImage(imageFile, token);
+      const baseUrl = import.meta.env.VITE_API_URL.replace('/api', '');
+      const imageUrl = `${baseUrl}${response.data.url}`;
+      return imageUrl;
+    } catch (error) {
+      console.error("Error al subir imagen:", error);
+      showMessage("error", "Error al subir la imagen");
+      return null;
+    } finally {
+      setModal((prev) => ({ ...prev, isUploadingImage: false }));
+    }
+  }, [imageFile, formData.image_url, token, showMessage]);
+
+  // ============================================================
+  // SUBMIT FORMS
+  // ============================================================
+
+  const handleSubmitItem = useCallback(
+    async (e) => {
+      e.preventDefault();
+      if (!validateItemForm()) return;
+
+      setModal((prev) => ({ ...prev, isSubmitting: true }));
+
+      try {
+        let imageUrl = formData.image_url;
+        
+        if (imageFile) {
+          imageUrl = await handleUploadImage();
+          if (!imageUrl && imageFile) {
+            setModal((prev) => ({ ...prev, isSubmitting: false }));
+            return;
+          }
         }
+
+        const itemData = {
+          name: formData.name.trim(),
+          description: formData.description?.trim() || null,
+          price: parseFloat(formData.price),
+          category_id: parseInt(formData.category_id),
+          image_url: imageUrl || null,
+          is_available: Boolean(formData.is_available),
+          ingredients: formData.ingredients?.trim() || null,
+        };
+        
+        if (modal.type === MODAL_TYPES.ADD_ITEM) {
+          await createItem(itemData, token);
+          showMessage("success", "Plato creado exitosamente");
+        } else {
+          await updateItem(formData.id, itemData, token);
+          showMessage("success", "Plato actualizado exitosamente");
+        }
+        
+        await fetchMenuData();
+        await refreshMenu();
+        closeModal();
+      } catch (error) {
+        console.error("Error al guardar el plato:", error);
+        showMessage("error", error.response?.data?.message || "Error al guardar el plato");
+      } finally {
+        setModal((prev) => ({ ...prev, isSubmitting: false }));
       }
+    },
+    [validateItemForm, formData, imageFile, modal.type, token, handleUploadImage, fetchMenuData, refreshMenu, closeModal, showMessage]
+  );
 
-      const itemData = {
-        name: formData.name,
-        description: formData.description || null,
-        price: parseFloat(formData.price),
-        category_id: parseInt(formData.category_id),
-        image_url: imageUrl,
-        is_available: Boolean(formData.is_available),
-        ingredients: formData.ingredients || null,
-      };
-      
-      if (modalType === "addItem") {
-        await createItem(itemData, token);
-        alert("Plato creado exitosamente");
-      } else {
-        await updateItem(formData.id, itemData, token);
-        alert("Plato actualizado exitosamente");
+  const handleSubmitCategory = useCallback(
+    async (e) => {
+      e.preventDefault();
+      if (!validateCategoryForm()) return;
+
+      setModal((prev) => ({ ...prev, isSubmitting: true }));
+
+      try {
+        const categoryData = {
+          name: formData.name.trim(),
+          description: formData.description?.trim() || null,
+          is_active: Boolean(formData.is_active),
+        };
+        
+        if (modal.type === MODAL_TYPES.ADD_CATEGORY) {
+          await createCategory(categoryData, token);
+          showMessage("success", "Categoría creada exitosamente");
+        } else {
+          await updateCategory(formData.id, categoryData, token);
+          showMessage("success", "Categoría actualizada exitosamente");
+        }
+        
+        await fetchMenuData();
+        await refreshMenu();
+        closeModal();
+      } catch (error) {
+        console.error("Error al guardar la categoría:", error);
+        showMessage("error", error.response?.data?.message || "Error al guardar la categoría");
+      } finally {
+        setModal((prev) => ({ ...prev, isSubmitting: false }));
       }
-      
-      await fetchMenuData();
-      await refreshMenu();
-      closeModal();
-    } catch (error) {
-      console.error("Error al guardar el plato:", error);
-      alert(error.response?.data?.message || "Error al guardar el plato");
-    } finally {
-      setSubmitting(false);
-    }
-  };
+    },
+    [validateCategoryForm, formData, modal.type, token, fetchMenuData, refreshMenu, closeModal, showMessage]
+  );
 
-  const handleSubmitCategory = async (e) => {
-    e.preventDefault();
+  // ============================================================
+  // DELETE
+  // ============================================================
+
+  const handleDeleteItem = useCallback(
+    async (id) => {
+      showConfirm("¿Estás seguro de eliminar este plato?", async () => {
+        try {
+          await deleteItem(id, token);
+          await fetchMenuData();
+          await refreshMenu();
+          showMessage("success", "Plato eliminado exitosamente");
+        } catch (error) {
+          console.error("Error al eliminar el plato:", error);
+          showMessage("error", error.response?.data?.message || "Error al eliminar el plato");
+        } finally {
+          closeConfirm();
+        }
+      });
+    },
+    [token, fetchMenuData, refreshMenu, showMessage, showConfirm, closeConfirm]
+  );
+
+  const handleDeleteCategory = useCallback(
+    async (id) => {
+      showConfirm(
+        "¿Estás seguro de eliminar esta categoría? Los platos asociados quedarán sin categoría.",
+        async () => {
+          try {
+            await deleteCategory(id, token);
+            await fetchMenuData();
+            await refreshMenu();
+            showMessage("success", "Categoría eliminada exitosamente");
+          } catch (error) {
+            console.error("Error al eliminar la categoría:", error);
+            showMessage("error", error.response?.data?.message || "Error al eliminar la categoría");
+          } finally {
+            closeConfirm();
+          }
+        }
+      );
+    },
+    [token, fetchMenuData, refreshMenu, showMessage, showConfirm, closeConfirm]
+  );
+
+  // ============================================================
+  // COMPONENTES AUXILIARES
+  // ============================================================
+
+  const ItemCard = ({ item }) => {
+    const category = categories.find((cat) => cat.id === item.category_id);
     
-    if (!validateCategoryForm()) return;
-    
-    setSubmitting(true);
-    
-    try {
-      const categoryData = {
-        name: formData.name,
-        description: formData.description || null,
-        is_active: Boolean(formData.is_active),
-      };
-      
-      if (modalType === "addCategory") {
-        await createCategory(categoryData, token);
-        alert("Categoría creada exitosamente");
-      } else {
-        await updateCategory(formData.id, categoryData, token);
-        alert("Categoría actualizada exitosamente");
-      }
-      
-      await fetchMenuData();
-      await refreshMenu();
-      closeModal();
-    } catch (error) {
-      console.error("Error al guardar la categoría:", error);
-      alert(error.response?.data?.message || "Error al guardar la categoría");
-    } finally {
-      setSubmitting(false);
-    }
+    return (
+      <div className="menuadmin-item-card">
+        {item.image_url && (
+          <div className="menuadmin-item-image-preview">
+            <img src={item.image_url} alt={item.name} />
+          </div>
+        )}
+        
+        <div className="menuadmin-item-header">
+          <h3>{item.name}</h3>
+          <span className={`menuadmin-badge ${item.is_available ? "active" : "inactive"}`}>
+            {item.is_available ? <FaEye /> : <FaEyeSlash />}
+            {item.is_available ? "Disponible" : "No disponible"}
+          </span>
+        </div>
+        
+        <p className="menuadmin-item-category">{category?.name || "Sin categoría"}</p>
+        <p className="menuadmin-item-description">{item.description}</p>
+        <p className="menuadmin-item-price">${item.price}</p>
+        
+        {item.ingredients && (
+          <div className="item-allergens">
+            <small>Ingredientes: {item.ingredients}</small>
+          </div>
+        )}
+
+        <div className="menuadmin-item-actions">
+          <button className="menuadmin-btn-edit" onClick={() => openModal(MODAL_TYPES.EDIT_ITEM, item)}>
+            <FaEdit /> Editar
+          </button>
+          <button className="menuadmin-btn-delete" onClick={() => handleDeleteItem(item.id)}>
+            <FaTrash /> Eliminar
+          </button>
+        </div>
+      </div>
+    );
   };
 
-  const handleDeleteItem = async (id) => {
-    if (!window.confirm("¿Estás seguro de eliminar este plato?")) return;
+  const CategoryCard = ({ category }) => (
+    <div className="menuadmin-category-card">
+      <div className="menuadmin-category-info">
+        <h3>{category.name}</h3>
+        <p>{category.description}</p>
+        <span className={`menuadmin-badge ${category.is_active ? "active" : "inactive"}`}>
+          {category.is_active ? "Activa" : "Inactiva"}
+        </span>
+      </div>
+      <div className="menuadmin-category-actions">
+        <button className="menuadmin-btn-edit" onClick={() => openModal(MODAL_TYPES.EDIT_CATEGORY, category)}>
+          <FaEdit />
+        </button>
+        <button className="menuadmin-btn-delete" onClick={() => handleDeleteCategory(category.id)}>
+          <FaTrash />
+        </button>
+      </div>
+    </div>
+  );
 
-    try {
-      await deleteItem(id, token);
-      await fetchMenuData();
-      await refreshMenu();
-      alert("Plato eliminado exitosamente");
-    } catch (error) {
-      console.error("Error al eliminar el plato:", error);
-      alert(error.response?.data?.message || "Error al eliminar el plato");
-    }
-  };
+  const EmptyState = ({ icon: Icon, message, buttonText, onButtonClick }) => (
+    <div className="menuadmin-empty-state">
+      <Icon className="menuadmin-empty-icon" />
+      <p>{message}</p>
+      <button className="menuadmin-btn-add" onClick={onButtonClick}>
+        <FaPlus /> {buttonText}
+      </button>
+    </div>
+  );
 
-  const handleDeleteCategory = async (id) => {
-    if (!window.confirm("¿Estás seguro de eliminar esta categoría?")) return;
-
-    try {
-      await deleteCategory(id, token);
-      await fetchMenuData();
-      await refreshMenu();
-      alert("Categoría eliminada exitosamente");
-    } catch (error) {
-      console.error("Error al eliminar la categoría:", error);
-      alert(error.response?.data?.message || "Error al eliminar la categoría");
-    }
-  };
+  // ============================================================
+  // RENDER
+  // ============================================================
 
   if (loading) {
     return (
       <AdminLayout>
-        <div className="menu-admin">
-          <div className="loading">Cargando menú...</div>
+        <div className="menuadmin-container">
+          <div className="menuadmin-loading">
+            <div className="menuadmin-spinner"></div>
+            <span>Cargando menú...</span>
+          </div>
         </div>
       </AdminLayout>
     );
@@ -323,330 +502,324 @@ export default function MenuAdmin() {
 
   return (
     <AdminLayout>
-      <div className="menu-admin">
-        <div className="menu-admin-header">
+      <div className="menuadmin-container">
+        <div className="menuadmin-header">
           <h1>Gestión de Menú</h1>
-          <div className="menu-tabs">
-            <button
-              className={`tab-btn ${activeTab === "items" ? "active" : ""}`}
-              onClick={() => setActiveTab("items")}
-            >
-              Platos ({items.length})
-            </button>
-            <button
-              className={`tab-btn ${activeTab === "categories" ? "active" : ""}`}
-              onClick={() => setActiveTab("categories")}
-            >
-              Categorías ({categories.length})
-            </button>
-          </div>
         </div>
 
-        {activeTab === "items" && (
-          <div className="menu-section">
-            <div className="section-header">
+        <div className="menuadmin-tabs">
+          <button
+            className={`menuadmin-tab-btn ${activeTab === TAB_TYPES.ITEMS ? "active" : ""}`}
+            onClick={() => setActiveTab(TAB_TYPES.ITEMS)}
+          >
+            <FaUtensils />
+            Platos ({items.length})
+          </button>
+          <button
+            className={`menuadmin-tab-btn ${activeTab === TAB_TYPES.CATEGORIES ? "active" : ""}`}
+            onClick={() => setActiveTab(TAB_TYPES.CATEGORIES)}
+          >
+            <FaList />
+            Categorías ({categories.length})
+          </button>
+        </div>
+
+        {activeTab === TAB_TYPES.ITEMS && (
+          <div className="menuadmin-section">
+            <div className="menuadmin-section-header">
               <h2>Platos del Menú</h2>
-              <button className="btn-add" onClick={() => openModal("addItem")}>
+              <button className="menuadmin-btn-add" onClick={() => openModal(MODAL_TYPES.ADD_ITEM)}>
                 <FaPlus /> Agregar Plato
               </button>
             </div>
 
-            <div className="items-grid">
-              {items.map((item) => {
-                const category = categories.find((cat) => cat.id === item.category_id);
-                return (
-                  <div key={item.id} className="item-card">
-                    {item.image_url && (
-                      <div className="item-image-preview">
-                        <img src={item.image_url} alt={item.name} />
-                      </div>
-                    )}
-                    
-                    <div className="item-header">
-                      <h3>{item.name}</h3>
-                      <span className={`badge ${item.is_available ? "active" : "inactive"}`}>
-                        {item.is_available ? <FaEye /> : <FaEyeSlash />}
-                        {item.is_available ? "Disponible" : "No disponible"}
-                      </span>
-                    </div>
-                    
-                    <p className="item-category">{category?.name || "Sin categoría"}</p>
-                    <p className="item-description">{item.description}</p>
-                    <p className="item-price">${item.price}</p>
-                    
-                    {item.ingredients && (
-                      <div className="item-allergens">
-                        <small>Ingredientes: {item.ingredients}</small>
-                      </div>
-                    )}
-
-                    <div className="item-actions">
-                      <button className="btn-edit" onClick={() => openModal("editItem", item)}>
-                        <FaEdit /> Editar
-                      </button>
-                      <button className="btn-delete" onClick={() => handleDeleteItem(item.id)}>
-                        <FaTrash /> Eliminar
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {items.length === 0 && (
-              <div className="empty-state">
-                <p>No hay platos registrados</p>
-                <button className="btn-add" onClick={() => openModal("addItem")}>
-                  Agregar primer plato
-                </button>
+            {items.length > 0 ? (
+              <div className="menuadmin-items-grid">
+                {items.map((item) => (
+                  <ItemCard key={item.id} item={item} />
+                ))}
               </div>
+            ) : (
+              <EmptyState
+                icon={FaUtensils}
+                message="No hay platos registrados"
+                buttonText="Agregar primer plato"
+                onButtonClick={() => openModal(MODAL_TYPES.ADD_ITEM)}
+              />
             )}
           </div>
         )}
 
-        {activeTab === "categories" && (
-          <div className="menu-section">
-            <div className="section-header">
+        {activeTab === TAB_TYPES.CATEGORIES && (
+          <div className="menuadmin-section">
+            <div className="menuadmin-section-header">
               <h2>Categorías</h2>
-              <button className="btn-add" onClick={() => openModal("addCategory")}>
+              <button className="menuadmin-btn-add" onClick={() => openModal(MODAL_TYPES.ADD_CATEGORY)}>
                 <FaPlus /> Agregar Categoría
               </button>
             </div>
 
-            <div className="categories-list">
-              {categories.map((category) => (
-                <div key={category.id} className="category-card">
-                  <div className="category-info">
-                    <h3>{category.name}</h3>
-                    <p>{category.description}</p>
-                    <span className={`badge ${category.is_active ? "active" : "inactive"}`}>
-                      {category.is_active ? "Activa" : "Inactiva"}
-                    </span>
-                  </div>
-                  <div className="category-actions">
-                    <button className="btn-edit" onClick={() => openModal("editCategory", category)}>
-                      <FaEdit />
-                    </button>
-                    <button className="btn-delete" onClick={() => handleDeleteCategory(category.id)}>
-                      <FaTrash />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {categories.length === 0 && (
-              <div className="empty-state">
-                <p>No hay categorías registradas</p>
-                <button className="btn-add" onClick={() => openModal("addCategory")}>
-                  Agregar primera categoría
-                </button>
+            {categories.length > 0 ? (
+              <div className="menuadmin-categories-list">
+                {categories.map((category) => (
+                  <CategoryCard key={category.id} category={category} />
+                ))}
               </div>
+            ) : (
+              <EmptyState
+                icon={FaList}
+                message="No hay categorías registradas"
+                buttonText="Agregar primera categoría"
+                onButtonClick={() => openModal(MODAL_TYPES.ADD_CATEGORY)}
+              />
             )}
           </div>
         )}
 
-        {showModal && (
-          <div className="modal-overlay" onClick={closeModal}>
-            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-              <div className="modal-header">
+        {/* MODAL DE FORMULARIO */}
+        {modal.isOpen && (
+          <div className="menuadmin-modal-overlay" onClick={closeModal}>
+            <div className="menuadmin-modal-content" onClick={(e) => e.stopPropagation()}>
+              <div className="menuadmin-modal-header">
                 <h2>
-                  {modalType === "addItem" && "Agregar Nuevo Plato"}
-                  {modalType === "editItem" && "Editar Plato"}
-                  {modalType === "addCategory" && "Agregar Nueva Categoría"}
-                  {modalType === "editCategory" && "Editar Categoría"}
+                  {modal.type === MODAL_TYPES.ADD_ITEM && "Agregar Nuevo Plato"}
+                  {modal.type === MODAL_TYPES.EDIT_ITEM && "Editar Plato"}
+                  {modal.type === MODAL_TYPES.ADD_CATEGORY && "Agregar Nueva Categoría"}
+                  {modal.type === MODAL_TYPES.EDIT_CATEGORY && "Editar Categoría"}
                 </h2>
-                <button className="btn-close" onClick={closeModal}>
+                <button className="menuadmin-btn-close" onClick={closeModal}>
                   <FaTimes />
                 </button>
               </div>
 
-              {(modalType === "addItem" || modalType === "editItem") && (
-                <form onSubmit={handleSubmitItem} className="modal-form">
-                  <div className="form-group">
-                    <label htmlFor="name">Nombre del Plato *</label>
-                    <input
-                      type="text"
-                      id="name"
-                      name="name"
-                      value={formData.name || ""}
-                      onChange={handleInputChange}
-                      className={formErrors.name ? "error" : ""}
-                      placeholder="Ej: Pizza Margherita"
-                    />
-                    {formErrors.name && <span className="error-message">{formErrors.name}</span>}
-                  </div>
-
-                  <div className="form-group">
-                    <label htmlFor="description">Descripción</label>
-                    <textarea
-                      id="description"
-                      name="description"
-                      value={formData.description || ""}
-                      onChange={handleInputChange}
-                      rows="3"
-                      placeholder="Descripción del plato..."
-                    />
-                  </div>
-
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label htmlFor="price">Precio *</label>
+              <div className="menuadmin-modal-body">
+                {(modal.type === MODAL_TYPES.ADD_ITEM || modal.type === MODAL_TYPES.EDIT_ITEM) && (
+                  <form onSubmit={handleSubmitItem} className="menuadmin-modal-form">
+                    <div className="menuadmin-form-group">
+                      <label htmlFor="name">Nombre del Plato *</label>
                       <input
-                        type="number"
-                        id="price"
-                        name="price"
-                        value={formData.price || ""}
+                        type="text"
+                        id="name"
+                        name="name"
+                        value={formData.name || ""}
                         onChange={handleInputChange}
-                        step="0.01"
-                        min="0"
-                        className={formErrors.price ? "error" : ""}
-                        placeholder="0.00"
+                        className={formErrors.name ? "error" : ""}
+                        placeholder="Ej: Pizza Margherita"
+                        required
                       />
-                      {formErrors.price && <span className="error-message">{formErrors.price}</span>}
+                      {formErrors.name && <span className="error-message">{formErrors.name}</span>}
                     </div>
 
-                    <div className="form-group">
-                      <label htmlFor="category_id">Categoría *</label>
-                      <select
-                        id="category_id"
-                        name="category_id"
-                        value={formData.category_id || ""}
+                    <div className="menuadmin-form-group">
+                      <label htmlFor="description">Descripción</label>
+                      <textarea
+                        id="description"
+                        name="description"
+                        value={formData.description || ""}
                         onChange={handleInputChange}
-                        className={formErrors.category_id ? "error" : ""}
-                      >
-                        <option value="">Seleccionar categoría</option>
-                        {categories.map((cat) => (
-                          <option key={cat.id} value={cat.id}>
-                            {cat.name}
-                          </option>
-                        ))}
-                      </select>
-                      {formErrors.category_id && <span className="error-message">{formErrors.category_id}</span>}
+                        rows="3"
+                        placeholder="Descripción del plato..."
+                      />
                     </div>
-                  </div>
 
-                  <div className="form-group">
-                    <label htmlFor="image">Imagen del Plato</label>
-                    
-                    {imagePreview && (
-                      <div className="image-preview">
-                        <img 
-                          src={imagePreview} 
-                          alt="Preview" 
-                          style={{
-                            width: "100%",
-                            maxHeight: "200px",
-                            objectFit: "cover",
-                            borderRadius: "8px",
-                            marginBottom: "1rem"
-                          }}
+                    <div className="menuadmin-form-row">
+                      <div className="menuadmin-form-group">
+                        <label htmlFor="price">Precio *</label>
+                        <input
+                          type="number"
+                          id="price"
+                          name="price"
+                          value={formData.price || ""}
+                          onChange={handleInputChange}
+                          step="0.01"
+                          min="0"
+                          className={formErrors.price ? "error" : ""}
+                          placeholder="0.00"
+                          required
                         />
+                        {formErrors.price && <span className="error-message">{formErrors.price}</span>}
                       </div>
-                    )}
-                    
-                    <input
-                      type="file"
-                      id="image"
-                      accept="image/*"
-                      onChange={handleImageChange}
-                      style={{ marginBottom: "0.5rem" }}
-                    />
-                    
-                    <small style={{ color: "#7f8c8d", display: "block" }}>
-                      Formatos: JPG, PNG, GIF, WEBP (máx. 5MB)
-                    </small>
-                    
-                    {uploading && <p style={{ color: "#ff6b35", marginTop: "0.5rem" }}>Subiendo imagen...</p>}
-                  </div>
 
-                  <div className="form-group">
-                    <label htmlFor="ingredients">Ingredientes</label>
-                    <textarea
-                      id="ingredients"
-                      name="ingredients"
-                      value={formData.ingredients || ""}
-                      onChange={handleInputChange}
-                      rows="3"
-                      placeholder="Ej: Masa de pizza, tomate, mozzarella, albahaca..."
-                    />
-                  </div>
+                      <div className="menuadmin-form-group">
+                        <label htmlFor="category_id">Categoría *</label>
+                        <select
+                          id="category_id"
+                          name="category_id"
+                          value={formData.category_id || ""}
+                          onChange={handleInputChange}
+                          className={formErrors.category_id ? "error" : ""}
+                          required
+                        >
+                          <option value="">Seleccionar categoría</option>
+                          {categories.map((cat) => (
+                            <option key={cat.id} value={cat.id}>
+                              {cat.name}
+                            </option>
+                          ))}
+                        </select>
+                        {formErrors.category_id && <span className="error-message">{formErrors.category_id}</span>}
+                      </div>
+                    </div>
 
-                  <div className="form-group-checkbox">
-                    <label>
+                    <div className="menuadmin-form-group">
+                      <label htmlFor="image">
+                        <FaImage /> Imagen del Plato
+                      </label>
+                      
+                      {imagePreview && (
+                        <div className="menuadmin-image-preview">
+                          <img src={imagePreview} alt="Preview" />
+                        </div>
+                      )}
+                      
+                      <input
+                        type="file"
+                        id="image"
+                        accept="image/*"
+                        onChange={handleImageChange}
+                        className="input file-input"
+                      />
+                      <small className="menuadmin-form-helper">
+                        Formatos: JPG, PNG, GIF, WEBP (máx. 5MB)
+                      </small>
+                    </div>
+
+                    <div className="menuadmin-form-group">
+                      <label htmlFor="ingredients">Ingredientes</label>
+                      <textarea
+                        id="ingredients"
+                        name="ingredients"
+                        value={formData.ingredients || ""}
+                        onChange={handleInputChange}
+                        rows="3"
+                        placeholder="Ej: Masa de pizza, tomate, mozzarella, albahaca..."
+                      />
+                    </div>
+
+                    <div className="menuadmin-checkbox-wrapper">
                       <input
                         type="checkbox"
+                        id="item_is_available"
                         name="is_available"
-                        checked={formData.is_available === true}
+                        checked={formData.is_available || false}
                         onChange={handleInputChange}
                       />
-                      <span>Disponible para ordenar</span>
-                    </label>
-                  </div>
+                      <label htmlFor="item_is_available">Disponible para ordenar</label>
+                    </div>
 
-                  <div className="modal-actions">
-                    <button type="button" className="btn-cancel" onClick={closeModal}>
-                      Cancelar
-                    </button>
-                    <button type="submit" className="btn-submit" disabled={submitting || uploading}>
-                      {submitting ? "Guardando..." : modalType === "addItem" ? "Crear Plato" : "Actualizar Plato"}
-                    </button>
-                  </div>
-                </form>
-              )}
+                    <div className="menuadmin-modal-actions">
+                      <button type="button" className="menuadmin-btn-cancel" onClick={closeModal}>
+                        Cancelar
+                      </button>
+                      <button 
+                        type="submit" 
+                        className="menuadmin-btn-submit" 
+                        disabled={modal.isSubmitting || modal.isUploadingImage}
+                      >
+                        {modal.isSubmitting || modal.isUploadingImage
+                          ? modal.isUploadingImage
+                            ? "Subiendo imagen..."
+                            : "Guardando..."
+                          : modal.type === MODAL_TYPES.ADD_ITEM
+                          ? "Crear Plato"
+                          : "Actualizar Plato"}
+                      </button>
+                    </div>
+                  </form>
+                )}
 
-              {(modalType === "addCategory" || modalType === "editCategory") && (
-                <form onSubmit={handleSubmitCategory} className="modal-form">
-                  <div className="form-group">
-                    <label htmlFor="name">Nombre de la Categoría *</label>
-                    <input
-                      type="text"
-                      id="name"
-                      name="name"
-                      value={formData.name || ""}
-                      onChange={handleInputChange}
-                      className={formErrors.name ? "error" : ""}
-                      placeholder="Ej: Entradas"
-                    />
-                    {formErrors.name && <span className="error-message">{formErrors.name}</span>}
-                  </div>
+                {(modal.type === MODAL_TYPES.ADD_CATEGORY || modal.type === MODAL_TYPES.EDIT_CATEGORY) && (
+                  <form onSubmit={handleSubmitCategory} className="menuadmin-modal-form">
+                    <div className="menuadmin-form-group">
+                      <label htmlFor="name">Nombre de la Categoría *</label>
+                      <input
+                        type="text"
+                        id="name"
+                        name="name"
+                        value={formData.name || ""}
+                        onChange={handleInputChange}
+                        className={formErrors.name ? "error" : ""}
+                        placeholder="Ej: Entradas"
+                        required
+                      />
+                      {formErrors.name && <span className="error-message">{formErrors.name}</span>}
+                    </div>
 
-                  <div className="form-group">
-                    <label htmlFor="description">Descripción</label>
-                    <textarea
-                      id="description"
-                      name="description"
-                      value={formData.description || ""}
-                      onChange={handleInputChange}
-                      rows="3"
-                      placeholder="Descripción de la categoría..."
-                    />
-                  </div>
+                    <div className="menuadmin-form-group">
+                      <label htmlFor="description">Descripción</label>
+                      <textarea
+                        id="description"
+                        name="description"
+                        value={formData.description || ""}
+                        onChange={handleInputChange}
+                        rows="3"
+                        placeholder="Descripción de la categoría..."
+                      />
+                    </div>
 
-                  <div className="form-group-checkbox">
-                    <label>
+                    <div className="menuadmin-checkbox-wrapper">
                       <input
                         type="checkbox"
+                        id="category_is_active"
                         name="is_active"
-                        checked={formData.is_active === true}
+                        checked={formData.is_active || false}
                         onChange={handleInputChange}
                       />
-                      <span>Categoría activa</span>
-                    </label>
-                  </div>
+                      <label htmlFor="category_is_active">Categoría activa</label>
+                    </div>
 
-                  <div className="modal-actions">
-                    <button type="button" className="btn-cancel" onClick={closeModal}>
-                      Cancelar
-                    </button>
-                    <button type="submit" className="btn-submit" disabled={submitting}>
-                      {submitting ? "Guardando..." : modalType === "addCategory" ? "Crear Categoría" : "Actualizar Categoría"}
-                    </button>
-                  </div>
-                </form>
-              )}
+                    <div className="menuadmin-modal-actions">
+                      <button type="button" className="menuadmin-btn-cancel" onClick={closeModal}>
+                        Cancelar
+                      </button>
+                      <button type="submit" className="menuadmin-btn-submit" disabled={modal.isSubmitting}>
+                        {modal.isSubmitting
+                          ? "Guardando..."
+                          : modal.type === MODAL_TYPES.ADD_CATEGORY
+                          ? "Crear Categoría"
+                          : "Actualizar Categoría"}
+                      </button>
+                    </div>
+                  </form>
+                )}
+              </div>
             </div>
           </div>
+        )}
+
+        {/* MODAL DE CONFIRMACIÓN */}
+        {confirmModal.isOpen && (
+          <div className="menuadmin-modal-overlay" onClick={closeConfirm}>
+            <div className="menuadmin-modal-content menuadmin-modal-confirm" onClick={(e) => e.stopPropagation()}>
+              <div className="menuadmin-modal-header">
+                <h3>Confirmar Acción</h3>
+                <button className="menuadmin-btn-close" onClick={closeConfirm}>
+                  <FaTimes />
+                </button>
+              </div>
+              <div className="menuadmin-modal-body">
+                <p>{confirmModal.message}</p>
+              </div>
+              <div className="menuadmin-modal-actions">
+                <button className="menuadmin-btn-cancel" onClick={closeConfirm}>
+                  Cancelar
+                </button>
+                <button className="menuadmin-btn-submit" onClick={confirmModal.onConfirm}>
+                  Confirmar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* MESSAGE MODAL */}
+        {messageModal.isOpen && (
+          <MessageModal
+            type={messageModal.type}
+            message={messageModal.message}
+            details={messageModal.details}
+            onClose={closeMessage}
+          />
         )}
       </div>
     </AdminLayout>

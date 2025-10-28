@@ -8,6 +8,7 @@ import { fileURLToPath } from "url";
 import { connectDB, pool } from "./src/config/db.js";
 import authRoutes from "./src/routes/auth.routes.js";
 import menuRoutes from "./src/routes/menu.routes.js";
+import tablesRoutes from "./src/routes/tables.routes.js";
 import { errorHandler } from "./src/middleware/errorHandler.middleware.js";
 
 dotenv.config();
@@ -57,6 +58,9 @@ app.use("/api/auth", authRoutes);
 
 // 🍽️ Rutas del menú (con autenticación y roles incluidas)
 app.use("/api/menu", menuRoutes);
+
+// 🪑 Rutas de mesas y zonas ✅ AGREGAR ESTA LÍNEA
+app.use("/api/tables", tablesRoutes);
 
 // 🏓 Endpoint de prueba de conexión DB
 app.get("/api/ping", async (req, res, next) => {

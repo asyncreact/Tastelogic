@@ -23,10 +23,8 @@ export default function NavbarAdmin() {
 
       {/* 🔹 Enlaces del admin */}
       <nav className="navbar-links">
-        <Link to="/admin/dashboard">Dashboard</Link>
         <Link to="/admin/menu">Menú</Link>
-        <Link to="/admin/users">Usuarios</Link>
-        <Link to="/admin/reports">Reportes</Link>
+        <Link to="/admin/tables">Mesas</Link>
       </nav>
 
       {/* 🔹 Usuario */}
