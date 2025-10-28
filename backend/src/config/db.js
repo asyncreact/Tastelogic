@@ -1,4 +1,4 @@
-// src/config/db.js
+// src/config/db.jss
 import pg from "pg";
 import dotenv from "dotenv";
 
