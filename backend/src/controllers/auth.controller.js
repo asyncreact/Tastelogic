@@ -3,7 +3,7 @@ import bcrypt from "bcrypt";
 import crypto from "crypto";
 import { UserRepository } from "../repositories/user.repository.js";
 import { generateToken } from "../utils/jwt.js";
-import { sendStyledMail } from "../config/mailer.js"; // ✅ nuevo import
+import { sendStyledMail } from "../config/mailer.js";
 import {
   registerSchema,
   loginSchema,
@@ -12,9 +12,6 @@ import {
 import { successResponse } from "../utils/response.js";
 
 export class AuthController {
-  // =========================
-  // 🧾 Registro
-  // =========================
   static async register(req, res, next) {
     try {
       const { name, email, password } = registerSchema.parse(req.body);
@@ -38,7 +35,6 @@ export class AuthController {
 
       const verifyUrl = `${process.env.FRONTEND_URL}/verify/${verificationToken}`;
 
-      // ✉️ Envío de correo con plantilla profesional
       Promise.resolve(
         sendStyledMail({
           to: email,
@@ -51,7 +47,7 @@ export class AuthController {
           buttonText: "Verificar mi cuenta",
           buttonUrl: verifyUrl,
         })
-      ).catch((err) => console.error("❌ Error al enviar correo de verificación:", err));
+      ).catch((err) => console.error("Error al enviar correo de verificación:", err));
 
       return successResponse(
         res,
@@ -64,9 +60,6 @@ export class AuthController {
     }
   }
 
-  // =========================
-  // ✅ Verificación
-  // =========================
   static async verify(req, res, next) {
     try {
       const { token } = req.params;
@@ -84,9 +77,6 @@ export class AuthController {
     }
   }
 
-  // =========================
-  // 🔐 Login
-  // =========================
   static async login(req, res, next) {
     try {
       const { email, password } = loginSchema.parse(req.body);
@@ -131,9 +121,6 @@ export class AuthController {
     }
   }
 
-  // =========================
-  // 🚪 Cerrar sesión
-  // =========================
   static async logout(req, res, next) {
     try {
       const userId = req.user.id;
@@ -144,9 +131,6 @@ export class AuthController {
     }
   }
 
-  // =========================
-  // 🔑 Solicitar restablecimiento de contraseña
-  // =========================
   static async forgotPassword(req, res, next) {
     try {
       const { email } = req.body;
@@ -163,7 +147,6 @@ export class AuthController {
 
       const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
 
-      // ✉️ Envío de correo con diseño profesional
       Promise.resolve(
         sendStyledMail({
           to: email,
@@ -176,7 +159,7 @@ export class AuthController {
           buttonText: "Restablecer contraseña",
           buttonUrl: resetUrl,
         })
-      ).catch((err) => console.error("❌ Error al enviar correo de restablecimiento:", err));
+      ).catch((err) => console.error("Error al enviar correo de restablecimiento:", err));
 
       return successResponse(
         res,
@@ -189,9 +172,6 @@ export class AuthController {
     }
   }
 
-  // =========================
-  // 🔄 Restablecer contraseña
-  // =========================
   static async resetPassword(req, res, next) {
     try {
       const { token } = req.params;
@@ -207,7 +187,6 @@ export class AuthController {
       const hashed = await bcrypt.hash(password, 10);
       await UserRepository.updatePassword(user.id, hashed);
 
-      // 🧹 Limpieza manual del token (doble seguridad)
       await UserRepository.clearResetToken(user.id);
 
       return successResponse(

@@ -2,30 +2,13 @@
 
 import { pool } from "../config/db.js";
 
-// ============================================================
-// 🗂️ REPOSITORIO DE MESAS Y ZONAS
-// ============================================================
-
-// =============================
-// 🛡️ UTILIDADES Y VALIDACIÓN
-// =============================
-
-/**
- * Valida que un ID sea un número válido
- */
 const validateId = (id) => {
   const numId = Number(id);
   return isNaN(numId) || numId <= 0 ? null : numId;
 };
 
-/**
- * Campos permitidos para actualizaciones parciales de zonas
- */
 const ALLOWED_ZONE_FIELDS = ["name", "description", "image_url", "is_active"];
 
-/**
- * Campos permitidos para actualizaciones parciales de mesas
- */
 const ALLOWED_TABLE_FIELDS = [
   "zone_id",
   "table_number",
@@ -34,9 +17,6 @@ const ALLOWED_TABLE_FIELDS = [
   "is_active"
 ];
 
-/**
- * Filtra campos permitidos de un objeto de datos
- */
 const filterAllowedFields = (data, allowedFields) => {
   const filtered = {};
   Object.keys(data).forEach((key) => {
@@ -47,13 +27,6 @@ const filterAllowedFields = (data, allowedFields) => {
   return filtered;
 };
 
-// =============================
-// 🗂️ ZONAS DEL RESTAURANTE
-// =============================
-
-/**
- * Obtiene todas las zonas del restaurante
- */
 export const getAllZones = async () => {
   try {
     const result = await pool.query(`
@@ -63,14 +36,11 @@ export const getAllZones = async () => {
     `);
     return result.rows;
   } catch (error) {
-    console.error("❌ Error al obtener zonas:", error);
+    console.error("Error al obtener zonas:", error);
     throw error;
   }
 };
 
-/**
- * Obtiene una zona por su ID
- */
 export const getZoneById = async (id) => {
   try {
     const zoneId = validateId(id);
@@ -82,14 +52,11 @@ export const getZoneById = async (id) => {
     );
     return result.rows[0] || null;
   } catch (error) {
-    console.error("❌ Error al obtener zona por ID:", error);
+    console.error("Error al obtener zona por ID:", error);
     throw error;
   }
 };
 
-/**
- * Crea una nueva zona
- */
 export const createZone = async ({ name, description = null, image_url = null, is_active = true }) => {
   try {
     if (!name || typeof name !== "string" || name.trim().length === 0) {
@@ -113,14 +80,11 @@ export const createZone = async ({ name, description = null, image_url = null, i
     if (error.code === "23505") {
       throw new Error("El nombre de la zona ya existe");
     }
-    console.error("❌ Error al crear zona:", error);
+    console.error("Error al crear zona:", error);
     throw error;
   }
 };
 
-/**
- * Actualiza completamente una zona (PUT)
- */
 export const updateZone = async (id, { name, description = null, image_url = null, is_active = true }) => {
   try {
     const zoneId = validateId(id);
@@ -149,14 +113,11 @@ export const updateZone = async (id, { name, description = null, image_url = nul
     if (error.code === "23505") {
       throw new Error("El nombre de la zona ya existe");
     }
-    console.error("❌ Error al actualizar zona:", error);
+    console.error("Error al actualizar zona:", error);
     throw error;
   }
 };
 
-/**
- * Actualiza parcialmente una zona (PATCH)
- */
 export const updateZonePartial = async (id, data) => {
   try {
     const zoneId = validateId(id);
@@ -196,14 +157,11 @@ export const updateZonePartial = async (id, data) => {
     if (error.code === "23505") {
       throw new Error("El nombre de la zona ya existe");
     }
-    console.error("❌ Error al actualizar parcialmente zona:", error);
+    console.error("Error al actualizar parcialmente zona:", error);
     throw error;
   }
 };
 
-/**
- * Elimina una zona y sus mesas asociadas
- */
 export const deleteZone = async (id) => {
   const client = await pool.connect();
   try {
@@ -228,20 +186,13 @@ export const deleteZone = async (id) => {
     return { message: "Zona y mesas asociadas eliminadas correctamente" };
   } catch (error) {
     await client.query("ROLLBACK");
-    console.error("❌ Error al eliminar zona:", error);
+    console.error("Error al eliminar zona:", error);
     throw error;
   } finally {
     client.release();
   }
 };
 
-// =============================
-// 🪑 MESAS DEL RESTAURANTE
-// =============================
-
-/**
- * Obtiene todas las mesas con información de zona
- */
 export const getAllTables = async () => {
   try {
     const query = `
@@ -253,14 +204,11 @@ export const getAllTables = async () => {
     const { rows } = await pool.query(query);
     return rows;
   } catch (error) {
-    console.error("❌ Error al obtener mesas:", error);
+    console.error("Error al obtener mesas:", error);
     throw error;
   }
 };
 
-/**
- * Obtiene una mesa por su ID
- */
 export const getTableById = async (id) => {
   try {
     const tableId = validateId(id);
@@ -275,14 +223,11 @@ export const getTableById = async (id) => {
     const { rows } = await pool.query(query, [tableId]);
     return rows[0] || null;
   } catch (error) {
-    console.error("❌ Error al obtener mesa por ID:", error);
+    console.error("Error al obtener mesa por ID:", error);
     throw error;
   }
 };
 
-/**
- * Crea una nueva mesa
- */
 export const createTable = async ({
   zone_id = null,
   table_number,
@@ -325,14 +270,11 @@ export const createTable = async ({
     if (error.code === "23505") {
       throw new Error("El número de mesa ya existe en esta zona");
     }
-    console.error("❌ Error al crear mesa:", error);
+    console.error("Error al crear mesa:", error);
     throw error;
   }
 };
 
-/**
- * Actualiza completamente una mesa (PUT)
- */
 export const updateTable = async (id, data) => {
   try {
     const tableId = validateId(id);
@@ -381,14 +323,11 @@ export const updateTable = async (id, data) => {
     if (error.code === "23505") {
       throw new Error("El número de mesa ya existe en esta zona");
     }
-    console.error("❌ Error al actualizar mesa:", error);
+    console.error("Error al actualizar mesa:", error);
     throw error;
   }
 };
 
-/**
- * Actualiza parcialmente una mesa (PATCH)
- */
 export const updateTablePartial = async (id, data) => {
   try {
     const tableId = validateId(id);
@@ -443,14 +382,11 @@ export const updateTablePartial = async (id, data) => {
     if (error.code === "23505") {
       throw new Error("El número de mesa ya existe en esta zona");
     }
-    console.error("❌ Error al actualizar parcialmente mesa:", error);
+    console.error("Error al actualizar parcialmente mesa:", error);
     throw error;
   }
 };
 
-/**
- * Elimina una mesa
- */
 export const deleteTable = async (id) => {
   try {
     const tableId = validateId(id);
@@ -467,7 +403,7 @@ export const deleteTable = async (id) => {
 
     return { message: "Mesa eliminada correctamente" };
   } catch (error) {
-    console.error("❌ Error al eliminar mesa:", error);
+    console.error("Error al eliminar mesa:", error);
     throw error;
   }
 };

@@ -2,30 +2,13 @@
 
 import { pool } from "../config/db.js";
 
-// ============================================================
-// 🗂️ REPOSITORIO DE MENÚ - VERSIÓN MEJORADA
-// ============================================================
-
-// =============================
-// 🛡️ UTILIDADES Y VALIDACIÓN
-// =============================
-
-/**
- * Valida que un ID sea un número válido
- */
 const validateId = (id) => {
   const numId = Number(id);
   return isNaN(numId) || numId <= 0 ? null : numId;
 };
 
-/**
- * Campos permitidos para actualizaciones parciales de categorías
- */
 const ALLOWED_CATEGORY_FIELDS = ["name", "description", "is_active"];
 
-/**
- * Campos permitidos para actualizaciones parciales de items
- */
 const ALLOWED_ITEM_FIELDS = [
   "category_id",
   "name",
@@ -37,9 +20,6 @@ const ALLOWED_ITEM_FIELDS = [
   "is_available"
 ];
 
-/**
- * Filtra campos permitidos de un objeto de datos
- */
 const filterAllowedFields = (data, allowedFields) => {
   const filtered = {};
   Object.keys(data).forEach((key) => {
@@ -50,13 +30,6 @@ const filterAllowedFields = (data, allowedFields) => {
   return filtered;
 };
 
-// =============================
-// 🗂️ CATEGORÍAS DEL MENÚ
-// =============================
-
-/**
- * Obtiene todas las categorías del menú
- */
 export const getAllCategories = async () => {
   try {
     const result = await pool.query(`
@@ -66,14 +39,11 @@ export const getAllCategories = async () => {
     `);
     return result.rows;
   } catch (error) {
-    console.error("❌ Error al obtener categorías:", error);
+    console.error("Error al obtener categorías:", error);
     throw error;
   }
 };
 
-/**
- * Obtiene una categoría por su ID
- */
 export const getCategoryById = async (id) => {
   try {
     const categoryId = validateId(id);
@@ -85,14 +55,11 @@ export const getCategoryById = async (id) => {
     );
     return result.rows[0] || null;
   } catch (error) {
-    console.error("❌ Error al obtener categoría por ID:", error);
+    console.error("Error al obtener categoría por ID:", error);
     throw error;
   }
 };
 
-/**
- * Crea una nueva categoría
- */
 export const createCategory = async ({ name, description = null, is_active = true }) => {
   try {
     if (!name || typeof name !== "string" || name.trim().length === 0) {
@@ -114,14 +81,11 @@ export const createCategory = async ({ name, description = null, is_active = tru
     if (error.code === "23505") {
       throw new Error("El nombre de la categoría ya existe");
     }
-    console.error("❌ Error al crear categoría:", error);
+    console.error("Error al crear categoría:", error);
     throw error;
   }
 };
 
-/**
- * Actualiza completamente una categoría (PUT)
- */
 export const updateCategory = async (id, { name, description = null, is_active = true }) => {
   try {
     const categoryId = validateId(id);
@@ -148,14 +112,11 @@ export const updateCategory = async (id, { name, description = null, is_active =
     if (error.code === "23505") {
       throw new Error("El nombre de la categoría ya existe");
     }
-    console.error("❌ Error al actualizar categoría:", error);
+    console.error("Error al actualizar categoría:", error);
     throw error;
   }
 };
 
-/**
- * Actualiza parcialmente una categoría (PATCH)
- */
 export const updateCategoryPartial = async (id, data) => {
   try {
     const categoryId = validateId(id);
@@ -195,14 +156,11 @@ export const updateCategoryPartial = async (id, data) => {
     if (error.code === "23505") {
       throw new Error("El nombre de la categoría ya existe");
     }
-    console.error("❌ Error al actualizar parcialmente categoría:", error);
+    console.error("Error al actualizar parcialmente categoría:", error);
     throw error;
   }
 };
 
-/**
- * Elimina una categoría y sus platos asociados
- */
 export const deleteCategory = async (id) => {
   const client = await pool.connect();
   try {
@@ -225,20 +183,13 @@ export const deleteCategory = async (id) => {
     return { message: "Categoría y platos asociados eliminados correctamente" };
   } catch (error) {
     await client.query("ROLLBACK");
-    console.error("❌ Error al eliminar categoría:", error);
+    console.error("Error al eliminar categoría:", error);
     throw error;
   } finally {
     client.release();
   }
 };
 
-// =============================
-// 🍽️ PLATOS / PRODUCTOS DEL MENÚ
-// =============================
-
-/**
- * Obtiene todos los platos del menú con información de categoría
- */
 export const getAllItems = async () => {
   try {
     const query = `
@@ -250,14 +201,11 @@ export const getAllItems = async () => {
     const { rows } = await pool.query(query);
     return rows;
   } catch (error) {
-    console.error("❌ Error al obtener platos:", error);
+    console.error("Error al obtener platos:", error);
     throw error;
   }
 };
 
-/**
- * Obtiene un plato por su ID
- */
 export const getItemById = async (id) => {
   try {
     const itemId = validateId(id);
@@ -272,14 +220,11 @@ export const getItemById = async (id) => {
     const { rows } = await pool.query(query, [itemId]);
     return rows[0] || null;
   } catch (error) {
-    console.error("❌ Error al obtener plato por ID:", error);
+    console.error("Error al obtener plato por ID:", error);
     throw error;
   }
 };
 
-/**
- * Crea un nuevo plato en el menú
- */
 export const createItem = async ({
   category_id = null,
   name,
@@ -324,14 +269,11 @@ export const createItem = async ({
     const { rows } = await pool.query(query, values);
     return rows[0];
   } catch (error) {
-    console.error("❌ Error al crear plato:", error);
+    console.error("Error al crear plato:", error);
     throw error;
   }
 };
 
-/**
- * Actualiza completamente un plato (PUT)
- */
 export const updateItem = async (id, data) => {
   try {
     const itemId = validateId(id);
@@ -394,14 +336,11 @@ export const updateItem = async (id, data) => {
     const { rows } = await pool.query(query, values);
     return rows[0] || null;
   } catch (error) {
-    console.error("❌ Error al actualizar plato:", error);
+    console.error("Error al actualizar plato:", error);
     throw error;
   }
 };
 
-/**
- * Actualiza parcialmente un plato (PATCH)
- */
 export const updateItemPartial = async (id, data) => {
   try {
     const itemId = validateId(id);
@@ -454,14 +393,11 @@ export const updateItemPartial = async (id, data) => {
     const { rows } = await pool.query(query, [...values, itemId]);
     return rows[0] || null;
   } catch (error) {
-    console.error("❌ Error al actualizar parcialmente plato:", error);
+    console.error("Error al actualizar parcialmente plato:", error);
     throw error;
   }
 };
 
-/**
- * Elimina un plato del menú
- */
 export const deleteItem = async (id) => {
   try {
     const itemId = validateId(id);
@@ -478,7 +414,7 @@ export const deleteItem = async (id) => {
 
     return { message: "Plato eliminado correctamente" };
   } catch (error) {
-    console.error("❌ Error al eliminar plato:", error);
+    console.error("Error al eliminar plato:", error);
     throw error;
   }
 };

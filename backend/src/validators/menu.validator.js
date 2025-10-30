@@ -2,10 +2,6 @@
 
 import { z } from "zod";
 
-// ====================================================
-// 🗂️ VALIDACIÓN: CATEGORÍAS DEL MENÚ
-// ====================================================
-
 export const categorySchema = z.object({
   name: z
     .string({
@@ -25,7 +21,6 @@ export const categorySchema = z.object({
     .optional()
     .nullable(),
   
-  // ✅ AGREGADO: Validación de is_active
   is_active: z.preprocess(
     (val) => {
       if (typeof val === "string") {
@@ -40,10 +35,6 @@ export const categorySchema = z.object({
       .optional()
   ),
 });
-
-// ====================================================
-// 🍽️ VALIDACIÓN: PLATOS DEL MENÚ
-// ====================================================
 
 export const itemSchema = z.object({
   category_id: z
@@ -137,21 +128,11 @@ export const itemSchema = z.object({
   ),
 });
 
-// ====================================================
-// 🔹 FUNCIONES DE VALIDACIÓN REUTILIZABLES
-// ====================================================
-
 export const validateCategory = (data) => categorySchema.parse(data);
 export const validateItem = (data) => itemSchema.parse(data);
 
-// ====================================================
-// 🧩 VALIDACIÓN PARCIAL (para PATCH)
-// ====================================================
-
-// 🔹 Validador parcial de categorías
 export const validatePartialCategory = (data) =>
   categorySchema.partial().parse(data);
 
-// 🔹 Validador parcial de platos
 export const validatePartialItem = (data) =>
   itemSchema.partial().parse(data);

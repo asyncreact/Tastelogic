@@ -4,7 +4,6 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-// Transporte SMTP
 export const transporter = nodemailer.createTransport({
   host: process.env.EMAIL_HOST || "smtp.gmail.com",
   port: Number(process.env.EMAIL_PORT) || 587,
@@ -18,7 +17,6 @@ export const transporter = nodemailer.createTransport({
   },
 });
 
-// Paleta TasteLogic (moderna)
 const DEFAULT_THEME = {
   primary: "#E53935",
   primaryDark: "#B71C1C",
@@ -34,14 +32,12 @@ const DEFAULT_THEME = {
 };
 
 const baseStyles = (t) => `
-  /* Reset básico */
   * { box-sizing: border-box; }
   body { margin:0; padding:0; background:${t.background}; color:${t.onSurface}; }
   img { border:0; outline:none; text-decoration:none; }
   a { text-decoration:none; color:inherit; }
   table { border-collapse:collapse; }
 
-  /* Tipografía moderna */
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
   .root {
     font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
@@ -49,7 +45,6 @@ const baseStyles = (t) => `
     padding:28px 16px;
   }
 
-  /* Contenedor con efecto glass */
   .container {
     max-width: 680px;
     margin: 0 auto;
@@ -61,7 +56,6 @@ const baseStyles = (t) => `
     backdrop-filter: blur(6px);
   }
 
-  /* Header con gradiente radial suave */
   .header {
     width:100%;
     color:${t.onPrimary};
@@ -97,7 +91,6 @@ const baseStyles = (t) => `
     color:${t.onPrimary};
   }
 
-  /* Cuerpo centrado */
   .content {
     padding: 28px;
     text-align: center;
@@ -106,7 +99,6 @@ const baseStyles = (t) => `
     line-height:1.7;
   }
 
-  /* Tarjeta de mensaje con borde suave */
   .message {
     margin: 10px 0 22px;
     padding: 16px 18px;
@@ -115,7 +107,6 @@ const baseStyles = (t) => `
     background: #FFFDFC;
   }
 
-  /* Botón moderno accesible */
   .btn {
     display:inline-block;
     min-width: 184px;
@@ -144,7 +135,6 @@ const baseStyles = (t) => `
     box-shadow: 0 0 0 3px rgba(229,57,53,0.2), 0 10px 22px rgba(229,57,53,0.28);
   }
 
-  /* Etiqueta de estado */
   .badge {
     display:inline-block;
     padding: 5px 10px;
@@ -160,12 +150,10 @@ const baseStyles = (t) => `
   .badge.warning { background: rgba(244,180,0,0.22); }
   .badge.error   { background: rgba(224,49,49,0.22); }
 
-  /* Separador */
   .divider {
     height:1px; background:${t.outline}; margin: 26px 0;
   }
 
-  /* Footer limpio */
   .footer {
     padding: 18px 28px 28px;
     color: #6B7280;
@@ -176,14 +164,12 @@ const baseStyles = (t) => `
     margin-top: 8px;
   }
 
-  /* Responsive */
   @media (max-width: 480px) {
     .content, .footer { padding: 20px; }
     .title { font-size: 22px; }
     .btn { min-width: 100%; }
   }
 
-  /* Dark mode refinado */
   @media (prefers-color-scheme: dark) {
     .root { background:#0F1115; }
     .container { background:#14151A; border-color:#242634; }
@@ -195,7 +181,6 @@ const baseStyles = (t) => `
   }
 `;
 
-/* Plantilla HTML moderna y centrada (sin logo) */
 const template = ({
   theme,
   title,
@@ -203,7 +188,7 @@ const template = ({
   message,
   buttonText,
   buttonUrl,
-  status,   // "success" | "warning" | "error"
+  status,
   appName,
 }) => {
   const t = { ...DEFAULT_THEME, ...(theme || {}), appName: appName || DEFAULT_THEME.appName };
@@ -250,7 +235,6 @@ const template = ({
 `;
 };
 
-// Utilidades
 const escapeHtml = (str = "") =>
   String(str)
     .replaceAll("&", "&amp;")
@@ -265,13 +249,12 @@ const statusLabel = (s) =>
   s === "error"   ? "Se produjo un error" :
   "";
 
-// API principal
 export const sendStyledMail = async ({
   to,
   subject,
   title,
-  subtitle,   // NUEVO: texto breve bajo el título
-  message,    // HTML permitido
+  subtitle,
+  message,
   buttonText,
   buttonUrl,
   status,

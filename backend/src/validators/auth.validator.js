@@ -1,7 +1,6 @@
 import { z } from "zod";
 import validator from "validator";
 
-// Validar email usando validator.js (para mejor precisión)
 const emailValidation = z
   .string()
   .trim()
@@ -9,7 +8,6 @@ const emailValidation = z
     message: "Correo electrónico no válido",
   });
 
-// Validar contraseña fuerte
 const passwordValidation = z
   .string()
   .min(8, { message: "La contraseña debe tener al menos 8 caracteres" })
@@ -26,7 +24,6 @@ const passwordValidation = z
     message: "Debe contener al menos un carácter especial (@$!%*?&)",
   });
 
-// Validación para registro
 export const registerSchema = z.object({
   name: z
     .string()
@@ -36,13 +33,11 @@ export const registerSchema = z.object({
   password: passwordValidation,
 });
 
-// Validación para login
 export const loginSchema = z.object({
   email: emailValidation,
   password: z.string().min(1, { message: "La contraseña es obligatoria" }),
 });
 
-// Validación para restablecer contraseña
 export const resetPasswordSchema = z.object({
   password: passwordValidation,
 });
