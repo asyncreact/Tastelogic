@@ -5,7 +5,41 @@ import axios from "axios";
 const API_URL = import.meta.env.VITE_API_URL;
 
 // ============================================================
-// 🗂️ ZONAS DEL RESTAURANTE
+// ✅ RUTAS PÚBLICAS (SIN AUTENTICACIÓN)
+// ============================================================
+
+/**
+ * Obtiene todas las zonas del restaurante (público)
+ * @returns {Promise} - Respuesta con todas las zonas
+ */
+export const getPublicZones = () =>
+  axios.get(`${API_URL}/tables/public/zones`);
+
+/**
+ * Obtiene una zona específica (público)
+ * @param {number|string} id - ID de la zona
+ * @returns {Promise} - Respuesta con la zona
+ */
+export const getPublicZone = (id) =>
+  axios.get(`${API_URL}/tables/public/zones/${id}`);
+
+/**
+ * Obtiene todas las mesas del restaurante (público)
+ * @returns {Promise} - Respuesta con todas las mesas
+ */
+export const getPublicTables = () =>
+  axios.get(`${API_URL}/tables/public/tables`);
+
+/**
+ * Obtiene una mesa específica (público)
+ * @param {number|string} id - ID de la mesa
+ * @returns {Promise} - Respuesta con la mesa
+ */
+export const getPublicTable = (id) =>
+  axios.get(`${API_URL}/tables/public/tables/${id}`);
+
+// ============================================================
+// 🔒 ZONAS DEL RESTAURANTE (PROTEGIDAS)
 // ============================================================
 
 export const getZones = (token) =>
@@ -34,7 +68,7 @@ export const deleteZone = (id, token) =>
   });
 
 // ============================================================
-// 🪑 MESAS DEL RESTAURANTE
+// 🔒 MESAS DEL RESTAURANTE (PROTEGIDAS)
 // ============================================================
 
 export const getTables = (token) =>

@@ -1,6 +1,6 @@
 // router/AppRouter.jsx
 
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 // ✅ Context Providers
 import { MenuProvider } from "../context/MenuContext";
@@ -23,11 +23,11 @@ import TablesAdmin from "../pages/admin/TablesAdmin";
 
 // ✅ Customer Pages
 import MenuCustomer from "../pages/customer/MenuCustomer";
-import TablesCustomer from "../pages/customer/TablesCustomer"; // ✅ AGREGAR
+import TablesCustomer from "../pages/customer/TablesCustomer";
 
 // ✅ Route Guards
-import ProtectedRoute from "../components/ProtectedRoute";
-import PublicRoute from "../components/PublicRoute";
+import ProtectedRoute from "./ProtectedRoute";
+import PublicRoute from "./PublicRoute";
 
 // ✅ Error Pages
 import NotFound from "../pages/errors/NotFound";
@@ -39,44 +39,26 @@ export default function AppRouter() {
       <MenuProvider>
         <TablesProvider>
           <Routes>
-            {/* 🔓 Public routes (solo si NO está logueado) */}
+            {/* 🏠 RUTA PRINCIPAL - Redirige a Customer Dashboard */}
+            <Route path="/" element={<Navigate to="/customer/dashboard" replace />} />
+
+            {/* 🔓 RUTAS PÚBLICAS (solo si NO está logueado) */}
             <Route element={<PublicRoute />}>
-              <Route path="/" element={<Login />} />
+              <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               <Route path="/verify/:token" element={<VerifyAccount />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-password/:token" element={<ResetPassword />} />
             </Route>
 
-            {/* 👤 Customer Dashboard */}
-            <Route
-              path="/customer/dashboard"
-              element={
-                <ProtectedRoute allowedRoles={["customer"]}>
-                  <CustomerDashboard />
-                </ProtectedRoute>
-              }
-            />
+            {/* 👤 Customer Dashboard - PÚBLICO */}
+            <Route path="/customer/dashboard" element={<CustomerDashboard />} />
 
-            {/* 🍽️ Customer - Menú */}
-            <Route
-              path="/customer/menu"
-              element={
-                <ProtectedRoute allowedRoles={["customer"]}>
-                  <MenuCustomer />
-                </ProtectedRoute>
-              }
-            />
+            {/* 🍽️ Customer - Menú - PÚBLICO */}
+            <Route path="/customer/menu" element={<MenuCustomer />} />
 
-            {/* 🪑 Customer - Ver Mesas y Zonas ✅ AGREGAR ESTA RUTA */}
-            <Route
-              path="/customer/tables"
-              element={
-                <ProtectedRoute allowedRoles={["customer"]}>
-                  <TablesCustomer />
-                </ProtectedRoute>
-              }
-            />
+            {/* 🪑 Customer - Ver Mesas y Zonas - PÚBLICO */}
+            <Route path="/customer/tables" element={<TablesCustomer />} />
 
             {/* 🛠️ Admin Dashboard */}
             <Route

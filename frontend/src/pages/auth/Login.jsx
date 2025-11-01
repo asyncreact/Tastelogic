@@ -1,134 +1,135 @@
-import { useState, useEffect } from "react";
+// pages/auth/Login.jsx
+import { useState } from "react";
 import { loginUser } from "../../api/auth";
-import { useNavigate, Link } from "react-router-dom";
-import { useAuth } from "../../hooks/useAuth";
+import { Link, useNavigate } from "react-router-dom";
 import { IoRestaurantOutline } from "react-icons/io5";
 import MessageModal from "../../components/MessageModal";
 import Loader from "../../components/Loader";
 import PasswordInput from "../../components/PasswordInput";
+import { useAuth } from "../../hooks/useAuth";
 import "./Login.css";
 
 export default function Login() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [modal, setModal] = useState({ 
-    show: false, 
-    type: "", 
+  const [form, setForm] = useState({ email: "", password: "" });
+  const [modal, setModal] = useState({
+    show: false,
+    type: "",
     message: "",
-    details: []
+    details: [],
   });
-  const [redirectTo, setRedirectTo] = useState(null);
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login: updateAuth } = useAuth();
+
+  // ============================================================
+  // HANDLERS
+  // ============================================================
+
+  const handleChange = (e) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      const res = await loginUser({ email, password });
-      localStorage.setItem("token", res.data.token);
-      login(res.data.user);
-      const role = res.data.user.role?.toLowerCase();
+      const res = await loginUser(form);
 
-      setModal({ 
-        show: true, 
-        type: "success", 
-        message: res.data.message,
-        details: [] 
+      // ✅ GUARDAR TOKEN EN LOCALSTORAGE
+      localStorage.setItem("token", res.data.token);
+
+      // ✅ ACTUALIZAR CONTEXTO DE AUTENTICACIÓN
+      updateAuth(res.data.user);
+
+      setModal({
+        show: true,
+        type: "success",
+        message: res.data.message || "Inicio de sesión exitoso",
+        details: [],
       });
 
-      if (role === "admin") setRedirectTo("/admin/dashboard");
-      else if (role === "customer") setRedirectTo("/customer/dashboard");
+      // ✅ REDIRIGE SEGÚN EL ROL DEL USUARIO
+      const redirectPath =
+        res.data.user?.role === "admin"
+          ? "/admin/dashboard"
+          : "/customer/dashboard";
+
+      setTimeout(() => navigate(redirectPath, { replace: true }), 1500);
     } catch (err) {
       const data = err.response?.data;
       setModal({
         show: true,
         type: "error",
         message: data?.message || "Error al iniciar sesión",
-        details: data?.details || []
+        details: data?.details || [],
       });
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    if (modal.show && modal.type === "success" && redirectTo) {
-      const timer = setTimeout(() => navigate(redirectTo, { replace: true }), 2500);
-      return () => clearTimeout(timer);
-    }
-  }, [modal, redirectTo, navigate]);
-
   const handleCloseModal = () => {
     setModal({ show: false, type: "", message: "", details: [] });
-    if (redirectTo) navigate(redirectTo, { replace: true });
   };
+
+  // ============================================================
+  // RENDER
+  // ============================================================
 
   return (
     <>
       {loading && <Loader />}
+      <MessageModal
+        show={modal.show}
+        type={modal.type}
+        message={modal.message}
+        details={modal.details}
+        onClose={handleCloseModal}
+      />
 
       <div className="login-container">
-        <div className="login-card">
-          <div className="login-header">
-            <IoRestaurantOutline className="login-icon" />
-            <h1>Iniciar sesión</h1>
-          </div>
+        <div className="login-box">
+          <IoRestaurantOutline className="logo-icon" />
+          <h1>Bienvenido</h1>
 
-          <form onSubmit={handleSubmit} className="login-form">
-            <div className="login-form-group">
-              <label htmlFor="login-email">Correo electrónico</label>
+          <form onSubmit={handleSubmit}>
+            <div className="form-group">
+              <label>Correo Electrónico</label>
               <input
-                id="login-email"
-                name="email"
                 type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                name="email"
+                value={form.email}
+                onChange={handleChange}
+                required
                 placeholder="ejemplo@correo.com"
-                autoComplete="email"
-                required
               />
             </div>
 
-            <div className="login-form-group">
-              <label htmlFor="login-password">Contraseña</label>
+            <div className="form-group">
+              <label>Contraseña</label>
               <PasswordInput
-                id="login-password"
-                name="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Ingresa tu contraseña"
-                autoComplete="current-password"
-                required
+                value={form.password}
+                onChange={(e) =>
+                  setForm({ ...form, password: e.target.value })
+                }
               />
             </div>
 
-            <button type="submit" className="login-btn login-btn-primary" disabled={loading}>
-              {loading ? "Iniciando sesión..." : "Iniciar sesión"}
+            <button type="submit" className="login-btn" disabled={loading}>
+              Iniciar Sesión
             </button>
           </form>
 
-          <div className="login-footer">
+          <div className="links">
+            <Link to="/forgot-password">¿Olvidaste tu contraseña?</Link>
             <p>
-              ¿No tienes cuenta? <Link to="/register">Regístrate</Link>
-            </p>
-            <p>
-              <Link to="/forgot-password">¿Olvidaste tu contraseña?</Link>
+              ¿No tienes cuenta?{" "}
+              <Link to="/register">Crear cuenta</Link>
             </p>
           </div>
         </div>
       </div>
-
-      {modal.show && (
-        <MessageModal
-          type={modal.type}
-          message={modal.message}
-          details={modal.details}
-          onClose={handleCloseModal}
-        />
-      )}
     </>
   );
 }

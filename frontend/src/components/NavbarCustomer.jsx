@@ -2,41 +2,63 @@
 
 import { IoRestaurantOutline } from "react-icons/io5";
 import { FaPowerOff } from "react-icons/fa6";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import "./Navbar.css";
 
 export default function NavbarCustomer() {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
 
-  const handleLogout = () => logout();
+  // ============================================================
+  // HANDLERS
+  // ============================================================
+
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
+  };
+
+  // ============================================================
+  // RENDER
+  // ============================================================
 
   return (
     <header className="navbar">
-      {/* 🔹 Logo / título */}
-      <div className="navbar-logo">
-        <span className="navbar-icon">
-          <IoRestaurantOutline size={20} />
-        </span>
-        <span className="navbar-title">TasteLogic</span>
+      {/* Logo/Brand - Lado izquierdo */}
+      <div className="navbar-brand">
+        <IoRestaurantOutline className="navbar-logo" />
+        <Link to="/customer/dashboard" className="navbar-brand-link">
+          TasteLogic
+        </Link>
       </div>
 
-      {/* 🔹 Enlaces del cliente */}
-      <nav className="navbar-links">
-        <Link to="/customer/menu">Menú</Link>
-        <Link to="/customer/tables">Mesas</Link>
+      {/* Navigation - Centro */}
+      <nav className="navbar-nav">
+        <Link to="/customer/dashboard" className="navbar-link">
+          Inicio
+        </Link>
+        <Link to="/customer/menu" className="navbar-link">
+          Menú
+        </Link>
+        <Link to="/customer/tables" className="navbar-link">
+          Mesas
+        </Link>
       </nav>
 
-      {/* 🔹 Usuario */}
+      {/* User Info - Lado derecho */}
       <div className="navbar-user">
         <div className="navbar-user-info">
           <div className="navbar-user-name">{user?.name}</div>
           <div className="navbar-user-role">{user?.role}</div>
         </div>
 
-        {/* 🔴 Botón de logout con ícono */}
-        <button className="navbar-logout" onClick={handleLogout}>
-          <FaPowerOff size={18} />
+        <button 
+          className="navbar-logout" 
+          onClick={handleLogout}
+          aria-label="Cerrar sesión"
+        >
+          <FaPowerOff />
         </button>
       </div>
     </header>

@@ -1,3 +1,4 @@
+// pages/auth/Register.jsx
 import { useState, useEffect } from "react";
 import { registerUser } from "../../api/auth";
 import { Link, useNavigate } from "react-router-dom";
@@ -19,19 +20,30 @@ export default function Register() {
   const [redirectTo, setRedirectTo] = useState(null);
   const navigate = useNavigate();
 
+  // ============================================================
+  // HANDLERS
+  // ============================================================
+
+  const handleChange = (e) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
 
     try {
       const res = await registerUser(form);
+
       setModal({
         show: true,
         type: "success",
-        message: res.data.message,
+        message: res.data.message || "Registro exitoso",
         details: [],
       });
-      setRedirectTo("/");
+
+      // Redirige a login después de registro exitoso
+      setRedirectTo("/login");
     } catch (err) {
       const data = err.response?.data;
       setModal({
@@ -45,92 +57,93 @@ export default function Register() {
     }
   };
 
-  useEffect(() => {
-    if (modal.show && modal.type === "success" && redirectTo) {
-      const timer = setTimeout(() => navigate(redirectTo, { replace: true }), 2500);
-      return () => clearTimeout(timer);
-    }
-  }, [modal, redirectTo, navigate]);
-
   const handleCloseModal = () => {
     setModal({ show: false, type: "", message: "", details: [] });
     if (redirectTo) navigate(redirectTo, { replace: true });
   };
 
+  // ============================================================
+  // EFECTOS
+  // ============================================================
+
+  useEffect(() => {
+    if (modal.show && modal.type === "success" && redirectTo) {
+      const timer = setTimeout(
+        () => navigate(redirectTo, { replace: true }),
+        2500
+      );
+      return () => clearTimeout(timer);
+    }
+  }, [modal, redirectTo, navigate]);
+
+  // ============================================================
+  // RENDER
+  // ============================================================
+
   return (
     <>
       {loading && <Loader />}
+      <MessageModal
+        show={modal.show}
+        type={modal.type}
+        message={modal.message}
+        details={modal.details}
+        onClose={handleCloseModal}
+      />
 
       <div className="register-container">
-        <div className="register-card">
-          <div className="register-header">
-            <IoRestaurantOutline className="register-icon" />
-            <h1>Crear cuenta</h1>
-          </div>
+        <div className="register-box">
+          <IoRestaurantOutline className="logo-icon" />
+          <h1>Crear Cuenta</h1>
 
-          <form onSubmit={handleSubmit} className="register-form">
-            <div className="register-form-group">
-              <label htmlFor="register-name">Nombre completo</label>
+          <form onSubmit={handleSubmit}>
+            <div className="form-group">
+              <label>Nombre Completo</label>
               <input
-                id="register-name"
-                name="name"
                 type="text"
+                name="name"
                 value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
-                placeholder="Tu nombre"
-                autoComplete="name"
+                onChange={handleChange}
                 required
+                placeholder="Tu nombre completo"
               />
             </div>
 
-            <div className="register-form-group">
-              <label htmlFor="register-email">Correo electrónico</label>
+            <div className="form-group">
+              <label>Correo Electrónico</label>
               <input
-                id="register-email"
-                name="email"
                 type="email"
+                name="email"
                 value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                onChange={handleChange}
+                required
                 placeholder="ejemplo@correo.com"
-                autoComplete="email"
-                required
               />
             </div>
 
-            <div className="register-form-group">
-              <label htmlFor="register-password">Contraseña</label>
+            <div className="form-group">
+              <label>Contraseña</label>
               <PasswordInput
-                id="register-password"
-                name="password"
                 value={form.password}
-                onChange={(e) => setForm({ ...form, password: e.target.value })}
-                placeholder="Crea una contraseña segura"
-                autoComplete="new-password"
-                required
+                onChange={(e) =>
+                  setForm({ ...form, password: e.target.value })
+                }
               />
             </div>
 
-            <button type="submit" className="register-btn register-btn-primary" disabled={loading}>
-              {loading ? "Creando cuenta..." : "Registrarse"}
+            <button type="submit" className="register-btn" disabled={loading}>
+              Registrarse
             </button>
           </form>
 
-          <div className="register-footer">
+          <div className="links">
             <p>
-              ¿Ya tienes cuenta? <Link to="/">Inicia sesión</Link>
+              ¿Ya tienes cuenta?{" "}
+              <Link to="/login">Inicia sesión</Link>
             </p>
           </div>
         </div>
       </div>
-
-      {modal.show && (
-        <MessageModal
-          type={modal.type}
-          message={modal.message}
-          details={modal.details}
-          onClose={handleCloseModal}
-        />
-      )}
     </>
   );
 }

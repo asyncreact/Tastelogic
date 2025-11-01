@@ -1,3 +1,4 @@
+// pages/auth/ResetPassword.jsx
 import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { resetPassword } from "../../api/auth";
@@ -13,23 +14,28 @@ export default function ResetPassword() {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
-  const [modal, setModal] = useState({ 
-    show: false, 
-    type: "", 
+  const [modal, setModal] = useState({
+    show: false,
+    type: "",
     message: "",
-    details: []
+    details: [],
   });
   const [redirectTo, setRedirectTo] = useState(null);
+
+  // ============================================================
+  // HANDLERS
+  // ============================================================
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // Validar que las contraseñas coincidan
     if (password !== confirm) {
       setModal({
         show: true,
         type: "error",
         message: "Las contraseñas no coinciden",
-        details: []
+        details: [],
       });
       return;
     }
@@ -38,97 +44,101 @@ export default function ResetPassword() {
 
     try {
       const res = await resetPassword(token, { password });
-      setModal({ 
-        show: true, 
-        type: "success", 
-        message: res.data.message,
-        details: []
+
+      setModal({
+        show: true,
+        type: "success",
+        message:
+          res.data.message || "Contraseña restablecida exitosamente",
+        details: [],
       });
-      setRedirectTo("/");
+
+      // Redirige a login después de restablecer contraseña
+      setRedirectTo("/login");
     } catch (err) {
       const data = err.response?.data;
       setModal({
         show: true,
         type: "error",
-        message: data?.message || "Error al restablecer la contraseña",
-        details: data?.details || []
+        message:
+          data?.message || "Error al restablecer la contraseña",
+        details: data?.details || [],
       });
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    if (modal.show && modal.type === "success" && redirectTo) {
-      const timer = setTimeout(() => navigate(redirectTo, { replace: true }), 2500);
-      return () => clearTimeout(timer);
-    }
-  }, [modal, redirectTo, navigate]);
-
   const handleCloseModal = () => {
     setModal({ show: false, type: "", message: "", details: [] });
     if (redirectTo) navigate(redirectTo, { replace: true });
   };
 
+  // ============================================================
+  // EFECTOS
+  // ============================================================
+
+  useEffect(() => {
+    if (modal.show && modal.type === "success" && redirectTo) {
+      const timer = setTimeout(
+        () => navigate(redirectTo, { replace: true }),
+        2500
+      );
+      return () => clearTimeout(timer);
+    }
+  }, [modal, redirectTo, navigate]);
+
+  // ============================================================
+  // RENDER
+  // ============================================================
+
   return (
     <>
       {loading && <Loader />}
+      <MessageModal
+        show={modal.show}
+        type={modal.type}
+        message={modal.message}
+        details={modal.details}
+        onClose={handleCloseModal}
+      />
 
-      <div className="reset-container">
-        <div className="reset-card">
-          <div className="reset-header">
-            <IoRestaurantOutline className="reset-icon" />
-            <h1>Restablecer contraseña</h1>
-          </div>
+      <div className="reset-password-container">
+        <div className="reset-password-box">
+          <IoRestaurantOutline className="logo-icon" />
+          <h1>Restablecer Contraseña</h1>
 
-          <form onSubmit={handleSubmit} className="reset-form">
+          <form onSubmit={handleSubmit}>
             <div className="form-group">
-              <label htmlFor="reset-password">Nueva contraseña</label>
+              <label>Nueva Contraseña</label>
               <PasswordInput
-                id="reset-password"
-                name="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Ingresa tu nueva contraseña"
-                autoComplete="new-password"
-                required
               />
             </div>
 
             <div className="form-group">
-              <label htmlFor="reset-confirm">Confirmar contraseña</label>
+              <label>Confirmar Contraseña</label>
               <PasswordInput
-                id="reset-confirm"
-                name="confirm_password"
                 value={confirm}
                 onChange={(e) => setConfirm(e.target.value)}
-                placeholder="Confirma tu nueva contraseña"
-                autoComplete="new-password"
-                required
               />
             </div>
 
-            <button type="submit" className="btn btn-primary" disabled={loading}>
-              {loading ? "Restableciendo..." : "Restablecer contraseña"}
+            <button
+              type="submit"
+              className="reset-btn"
+              disabled={loading}
+            >
+              Restablecer Contraseña
             </button>
           </form>
 
-          <div className="reset-footer">
-            <p>
-              <Link to="/">Volver al inicio de sesión</Link>
-            </p>
+          <div className="links">
+            <Link to="/login">Volver al inicio de sesión</Link>
           </div>
         </div>
       </div>
-
-      {modal.show && (
-        <MessageModal
-          type={modal.type}
-          message={modal.message}
-          details={modal.details}
-          onClose={handleCloseModal}
-        />
-      )}
     </>
   );
 }

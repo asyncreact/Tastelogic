@@ -1,13 +1,27 @@
+// api/auth.js
 import axios from "axios";
+
 const API_URL = import.meta.env.VITE_API_URL;
 
-export const registerUser = (data) => axios.post(`${API_URL}/auth/register`, data);
-export const loginUser = (data) => axios.post(`${API_URL}/auth/login`, data);
-export const verifyAccount = (token) => axios.get(`${API_URL}/auth/verify/${token}`);
-export const forgotPassword = (data) => axios.post(`${API_URL}/auth/forgot-password`, data);
+// ✅ Crear instancia con configuración
+const api = axios.create({
+  baseURL: API_URL,
+});
+
+// ✅ Interceptor para agregar token automáticamente
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem("token");
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+export const registerUser = (data) => api.post("/auth/register", data);
+export const loginUser = (data) => api.post("/auth/login", data);
+export const verifyAccount = (token) => api.get(`/auth/verify/${token}`);
+export const forgotPassword = (data) => api.post("/auth/forgot-password", data);
 export const resetPassword = (token, data) =>
-  axios.post(`${API_URL}/auth/reset-password/${token}`, data);
-export const getProfile = (token) =>
-  axios.get(`${API_URL}/auth/me`, { headers: { Authorization: `Bearer ${token}` } });
-export const logoutUser = (token) =>
-  axios.post(`${API_URL}/auth/logout`, {}, { headers: { Authorization: `Bearer ${token}` } });
+  api.post(`/auth/reset-password/${token}`, data);
+export const getProfile = () => api.get("/auth/me");
+export const logoutUser = () => api.post("/auth/logout");

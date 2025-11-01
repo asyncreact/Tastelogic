@@ -20,6 +20,13 @@ import { upload } from "../config/multer.js";
 
 const router = express.Router();
 
+// ✅ RUTAS PÚBLICAS (sin autenticación) - NUEVAS
+router.get("/public/zones", getZones);
+router.get("/public/zones/:id", getZone);
+router.get("/public/tables", getTables);
+router.get("/public/tables/:id", getTable);
+
+// 🔒 RUTAS PROTEGIDAS - Zonas
 router.get("/zones", authenticate, authorizeRoles("admin", "customer"), getZones);
 router.get("/zones/:id", authenticate, authorizeRoles("admin", "customer"), getZone);
 router.post("/zones", authenticate, authorizeRoles("admin"), addZone);
@@ -42,7 +49,6 @@ router.post(
       }
 
       const imageUrl = `${process.env.BACKEND_URL || "http://localhost:4000"}/uploads/zones/${req.file.filename}`;
-
       res.json({
         success: true,
         message: "Imagen subida correctamente",
@@ -59,6 +65,7 @@ router.post(
   }
 );
 
+// 🔒 RUTAS PROTEGIDAS - Mesas
 router.get("/", authenticate, authorizeRoles("admin", "customer"), getTables);
 router.get("/:id", authenticate, authorizeRoles("admin", "customer"), getTable);
 router.post("/", authenticate, authorizeRoles("admin"), addTable);

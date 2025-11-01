@@ -1,7 +1,8 @@
 // pages/customer/MenuCustomer.jsx
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import CustomerLayout from "../../layouts/CustomerLayout";
-import { useMenu } from "../../hooks/useMenu";
+import AuthOverlay from "../../components/AuthOverlay";
+import { getPublicItems, getPublicCategories } from "../../api/menu";
 import {
   MdSearch,
   MdRestaurantMenu,
@@ -14,11 +15,48 @@ import "./MenuCustomer.css";
 const FILTER_ALL = "all";
 
 export default function MenuCustomer() {
-  const { items, categories, loading, getAvailableItems } = useMenu();
-
   // Estados
+  const [items, setItems] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState(FILTER_ALL);
   const [searchTerm, setSearchTerm] = useState("");
+
+  // ============================================================
+  // EFECTOS
+  // ============================================================
+
+  useEffect(() => {
+    fetchMenuData();
+  }, []);
+
+  // ============================================================
+  // FUNCIONES DE CARGA DE DATOS
+  // ============================================================
+
+  const fetchMenuData = async () => {
+    try {
+      setLoading(true);
+
+      // Usar funciones públicas de tu api/menu.js
+      const [itemsRes, categoriesRes] = await Promise.all([
+        getPublicItems(),
+        getPublicCategories(),
+      ]);
+
+      const itemsData = itemsRes.data.data?.items || itemsRes.data.items || [];
+      const categoriesData = categoriesRes.data.data?.categories || categoriesRes.data.categories || [];
+
+      setItems(itemsData);
+      setCategories(categoriesData);
+    } catch (error) {
+      console.error("Error al cargar menú:", error);
+      setItems([]);
+      setCategories([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // ============================================================
   // HANDLERS
@@ -36,7 +74,9 @@ export default function MenuCustomer() {
   // CÁLCULOS Y FILTROS (MEMOIZADOS)
   // ============================================================
 
-  const availableItems = useMemo(() => getAvailableItems(), [getAvailableItems]);
+  const availableItems = useMemo(() => {
+    return items.filter((item) => item.is_available);
+  }, [items]);
 
   const filteredByCategory = useMemo(() => {
     if (selectedCategory === FILTER_ALL) return availableItems;
@@ -153,33 +193,35 @@ export default function MenuCustomer() {
 
   return (
     <CustomerLayout>
-      <div className="menucustomer-container">
-        {/* Header del menú */}
-        <div className="menucustomer-header">
-          <h1>Nuestro Menú</h1>
-          <p>Descubre nuestros deliciosos platillos</p>
-        </div>
+      <AuthOverlay>
+        <div className="menucustomer-container">
+          {/* Header del menú */}
+          <div className="menucustomer-header">
+            <h1>Nuestro Menú</h1>
+            <p>Descubre nuestros deliciosos platillos</p>
+          </div>
 
-        {/* Barra de búsqueda y filtros */}
-        <div className="menucustomer-filters">
-          <SearchBar />
-          <CategoryFilter />
-        </div>
+          {/* Barra de búsqueda y filtros */}
+          <div className="menucustomer-filters">
+            <SearchBar />
+            <CategoryFilter />
+          </div>
 
-        {/* Grid de items */}
-        <div className="menucustomer-menu-grid">
-          {filteredItems.length > 0 ? (
-            filteredItems.map((item) => (
-              <MenuItemCard key={item.id} item={item} />
-            ))
-          ) : (
-            <EmptyState
-              icon={MdOutlineFastfood}
-              message="No se encontraron platillos"
-            />
-          )}
+          {/* Grid de items */}
+          <div className="menucustomer-menu-grid">
+            {filteredItems.length > 0 ? (
+              filteredItems.map((item) => (
+                <MenuItemCard key={item.id} item={item} />
+              ))
+            ) : (
+              <EmptyState
+                icon={MdOutlineFastfood}
+                message="No se encontraron platillos"
+              />
+            )}
+          </div>
         </div>
-      </div>
+      </AuthOverlay>
     </CustomerLayout>
   );
 }

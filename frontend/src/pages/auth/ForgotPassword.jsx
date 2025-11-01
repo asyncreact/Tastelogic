@@ -1,3 +1,4 @@
+// pages/auth/ForgotPassword.jsx
 import { useState, useEffect } from "react";
 import { forgotPassword } from "../../api/auth";
 import { Link, useNavigate } from "react-router-dom";
@@ -9,14 +10,18 @@ import "./ForgotPassword.css";
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
-  const [modal, setModal] = useState({ 
-    show: false, 
-    type: "", 
+  const [modal, setModal] = useState({
+    show: false,
+    type: "",
     message: "",
-    details: []
+    details: [],
   });
   const [redirectTo, setRedirectTo] = useState(null);
   const navigate = useNavigate();
+
+  // ============================================================
+  // HANDLERS
+  // ============================================================
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -24,89 +29,102 @@ export default function ForgotPassword() {
 
     try {
       const res = await forgotPassword({ email });
-      setModal({ 
-        show: true, 
-        type: "success", 
-        message: res.data.message,
-        details: []
+
+      setModal({
+        show: true,
+        type: "success",
+        message:
+          res.data.message ||
+          "Revisa tu correo para las instrucciones de recuperación",
+        details: [],
       });
-      setRedirectTo("/");
+
+      // Redirige a login después de enviar instrucciones
+      setRedirectTo("/login");
     } catch (err) {
       const data = err.response?.data;
       setModal({
         show: true,
         type: "error",
-        message: data?.message || "Error al enviar el correo de recuperación",
-        details: data?.details || []
+        message:
+          data?.message || "Error al enviar el correo de recuperación",
+        details: data?.details || [],
       });
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    if (modal.show && modal.type === "success" && redirectTo) {
-      const timer = setTimeout(() => navigate(redirectTo, { replace: true }), 2500);
-      return () => clearTimeout(timer);
-    }
-  }, [modal, redirectTo, navigate]);
-
   const handleCloseModal = () => {
     setModal({ show: false, type: "", message: "", details: [] });
     if (redirectTo) navigate(redirectTo, { replace: true });
   };
 
+  // ============================================================
+  // EFECTOS
+  // ============================================================
+
+  useEffect(() => {
+    if (modal.show && modal.type === "success" && redirectTo) {
+      const timer = setTimeout(
+        () => navigate(redirectTo, { replace: true }),
+        2500
+      );
+      return () => clearTimeout(timer);
+    }
+  }, [modal, redirectTo, navigate]);
+
+  // ============================================================
+  // RENDER
+  // ============================================================
+
   return (
     <>
       {loading && <Loader />}
+      <MessageModal
+        show={modal.show}
+        type={modal.type}
+        message={modal.message}
+        details={modal.details}
+        onClose={handleCloseModal}
+      />
 
-      <div className="forgot-container">
-        <div className="forgot-card">
-          <div className="forgot-header">
-            <IoRestaurantOutline className="forgot-icon" />
-            <h1>Recuperar contraseña</h1>
-          </div>
+      <div className="forgot-password-container">
+        <div className="forgot-password-box">
+          <IoRestaurantOutline className="logo-icon" />
+          <h1>Recuperar Contraseña</h1>
 
-          <p className="forgot-description">
-            Ingresa tu correo electrónico y te enviaremos las instrucciones para restablecer tu contraseña.
+          <p className="description">
+            Ingresa tu correo electrónico y te enviaremos las
+            instrucciones para restablecer tu contraseña.
           </p>
 
-          <form onSubmit={handleSubmit} className="forgot-form">
+          <form onSubmit={handleSubmit}>
             <div className="form-group">
-              <label htmlFor="forgot-email">Correo electrónico</label>
+              <label>Correo Electrónico</label>
               <input
-                id="forgot-email"
-                name="email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="ejemplo@correo.com"
-                autoComplete="email"
                 required
+                placeholder="ejemplo@correo.com"
               />
             </div>
 
-            <button type="submit" className="btn btn-primary" disabled={loading}>
-              {loading ? "Enviando..." : "Enviar instrucciones"}
+            <button
+              type="submit"
+              className="forgot-btn"
+              disabled={loading}
+            >
+              Enviar Instrucciones
             </button>
           </form>
 
-          <div className="forgot-footer">
-            <p>
-              <Link to="/">Volver al inicio de sesión</Link>
-            </p>
+          <div className="links">
+            <Link to="/login">Volver al inicio de sesión</Link>
           </div>
         </div>
       </div>
-
-      {modal.show && (
-        <MessageModal
-          type={modal.type}
-          message={modal.message}
-          details={modal.details}
-          onClose={handleCloseModal}
-        />
-      )}
     </>
   );
 }
