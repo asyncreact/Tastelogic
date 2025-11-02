@@ -2,17 +2,20 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import CustomerLayout from "../../layouts/CustomerLayout";
 import AuthOverlay from "../../components/AuthOverlay";
-import { getPublicItems, getPublicCategories } from "../../api/menu";
+import { getPublicItems, getPublicCategories, getPublicItemPrepTime } from "../../api/menu";
 import {
   MdSearch,
   MdRestaurantMenu,
   MdCategory,
   MdOutlineFastfood,
 } from "react-icons/md";
+import { FaClock } from "react-icons/fa";
 import "./MenuCustomer.css";
+
 
 // Constantes
 const FILTER_ALL = "all";
+
 
 export default function MenuCustomer() {
   // Estados
@@ -21,18 +24,39 @@ export default function MenuCustomer() {
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState(FILTER_ALL);
   const [searchTerm, setSearchTerm] = useState("");
+  
+  // 🆕 Estado para tiempos de preparación
+  const [prepTimeData, setPrepTimeData] = useState({});
+  const [prepTimeLoading, setPrepTimeLoading] = useState(false);
+
 
   // ============================================================
   // EFECTOS
   // ============================================================
 
+
   useEffect(() => {
     fetchMenuData();
   }, []);
 
+
+  // 🆕 Cargar tiempos de preparación después de cargar los items
+  useEffect(() => {
+    if (items.length > 0) {
+      const loadPrepTimes = async () => {
+        for (const item of items) {
+          await fetchItemPrepTime(item.id);
+        }
+      };
+      loadPrepTimes();
+    }
+  }, [items]);
+
+
   // ============================================================
   // FUNCIONES DE CARGA DE DATOS
   // ============================================================
+
 
   const fetchMenuData = async () => {
     try {
@@ -58,25 +82,48 @@ export default function MenuCustomer() {
     }
   };
 
+
+  // 🆕 Función para cargar el tiempo de preparación de un item (pública)
+  const fetchItemPrepTime = useCallback(async (itemId) => {
+    try {
+      setPrepTimeLoading(true);
+      const response = await getPublicItemPrepTime(itemId);
+      const data = response.data.data || response.data;
+      setPrepTimeData(prev => ({ ...prev, [itemId]: data }));
+      return data;
+    } catch (error) {
+      console.warn(`No se pudo cargar tiempo de preparación para ${itemId}:`, error);
+      return null;
+    } finally {
+      setPrepTimeLoading(false);
+    }
+  }, []);
+
+
   // ============================================================
   // HANDLERS
   // ============================================================
+
 
   const handleCategoryChange = useCallback((categoryId) => {
     setSelectedCategory(categoryId);
   }, []);
 
+
   const handleSearchChange = useCallback((e) => {
     setSearchTerm(e.target.value);
   }, []);
+
 
   // ============================================================
   // CÁLCULOS Y FILTROS (MEMOIZADOS)
   // ============================================================
 
+
   const availableItems = useMemo(() => {
     return items.filter((item) => item.is_available);
   }, [items]);
+
 
   const filteredByCategory = useMemo(() => {
     if (selectedCategory === FILTER_ALL) return availableItems;
@@ -84,6 +131,7 @@ export default function MenuCustomer() {
       (item) => item.category_id === parseInt(selectedCategory)
     );
   }, [availableItems, selectedCategory]);
+
 
   const filteredItems = useMemo(() => {
     const searchLower = searchTerm.toLowerCase();
@@ -94,9 +142,11 @@ export default function MenuCustomer() {
     );
   }, [filteredByCategory, searchTerm]);
 
+
   // ============================================================
   // COMPONENTES AUXILIARES
   // ============================================================
+
 
   const SearchBar = () => (
     <div className="menucustomer-search-box">
@@ -109,6 +159,7 @@ export default function MenuCustomer() {
       />
     </div>
   );
+
 
   const CategoryFilter = () => (
     <div className="menucustomer-category-filters">
@@ -132,10 +183,15 @@ export default function MenuCustomer() {
     </div>
   );
 
+
   const MenuItemCard = ({ item }) => {
     const category = categories.find((cat) => cat.id === item.category_id);
     const itemPrice =
       typeof item.price === "string" ? parseFloat(item.price) : item.price;
+    
+    // 🆕 Obtener el tiempo de preparación
+    const itemPrepTime = prepTimeData[item.id];
+
 
     return (
       <div className="menucustomer-menu-item-card">
@@ -145,19 +201,31 @@ export default function MenuCustomer() {
           </div>
         )}
 
+
         <div className="menucustomer-item-content">
           <div className="menucustomer-item-header">
             <h3>{item.name}</h3>
             <span className="menucustomer-item-category">{category?.name}</span>
           </div>
 
+
           <p className="menucustomer-item-description">{item.description}</p>
+
 
           {item.ingredients && (
             <p className="menucustomer-item-ingredients">
               <small>Ingredientes: {item.ingredients}</small>
             </p>
           )}
+
+
+          {/* 🆕 MOSTRAR TIEMPO DE PREPARACIÓN */}
+          {itemPrepTime && (
+            <div className="menucustomer-item-prep-time">
+              <FaClock /> {itemPrepTime.estimated_prep_time} min
+            </div>
+          )}
+
 
           <div className="menucustomer-item-footer">
             <span className="menucustomer-item-price">${itemPrice.toFixed(2)}</span>
@@ -167,6 +235,7 @@ export default function MenuCustomer() {
     );
   };
 
+
   const EmptyState = ({ icon: Icon, message }) => (
     <div className="menucustomer-no-results">
       <Icon className="menucustomer-empty-icon" />
@@ -174,9 +243,11 @@ export default function MenuCustomer() {
     </div>
   );
 
+
   // ============================================================
   // RENDER
   // ============================================================
+
 
   if (loading) {
     return (
@@ -191,6 +262,7 @@ export default function MenuCustomer() {
     );
   }
 
+
   return (
     <CustomerLayout>
       <AuthOverlay>
@@ -201,11 +273,13 @@ export default function MenuCustomer() {
             <p>Descubre nuestros deliciosos platillos</p>
           </div>
 
+
           {/* Barra de búsqueda y filtros */}
           <div className="menucustomer-filters">
             <SearchBar />
             <CategoryFilter />
           </div>
+
 
           {/* Grid de items */}
           <div className="menucustomer-menu-grid">

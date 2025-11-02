@@ -13,6 +13,7 @@ import {
   updateItem,
   deleteItem,
   uploadImage,
+  getItemPrepTime,
 } from "../../api/menu";
 import { 
   FaPlus, 
@@ -24,9 +25,11 @@ import {
   FaUtensils,
   FaList,
   FaImage,
+  FaClock,
 } from "react-icons/fa";
 import MessageModal from "../../components/MessageModal";
 import "./MenuAdmin.css";
+
 
 // Constantes
 const MODAL_TYPES = {
@@ -36,23 +39,28 @@ const MODAL_TYPES = {
   EDIT_CATEGORY: "editCategory",
 };
 
+
 const TAB_TYPES = {
   ITEMS: "items",
   CATEGORIES: "categories",
 };
 
+
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
+
 
 export default function MenuAdmin() {
   const { user } = useAuth();
   const { refreshMenu } = useMenu();
   const token = user?.token || localStorage.getItem("token");
 
+
   // Estados de UI
   const [categories, setCategories] = useState([]);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState(TAB_TYPES.ITEMS);
+
 
   // Estados de Modal
   const [modal, setModal] = useState({
@@ -62,10 +70,17 @@ export default function MenuAdmin() {
     isUploadingImage: false,
   });
 
+
   const [formData, setFormData] = useState({});
   const [formErrors, setFormErrors] = useState({});
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
+
+
+  // Estado para tiempos de preparación
+  const [prepTimeData, setPrepTimeData] = useState({});
+  const [prepTimeLoading, setPrepTimeLoading] = useState(false);
+
 
   // Estado para MessageModal
   const [messageModal, setMessageModal] = useState({
@@ -75,6 +90,7 @@ export default function MenuAdmin() {
     details: [],
   });
 
+
   // Estados para confirmación
   const [confirmModal, setConfirmModal] = useState({
     isOpen: false,
@@ -82,9 +98,11 @@ export default function MenuAdmin() {
     onConfirm: null,
   });
 
+
   // ============================================================
   // EFECTOS
   // ============================================================
+
 
   useEffect(() => {
     if (token) {
@@ -92,29 +110,49 @@ export default function MenuAdmin() {
     }
   }, [token]);
 
+
+  // 🆕 Cargar tiempos de preparación después de cargar los items
+  useEffect(() => {
+    if (items.length > 0 && token) {
+      const loadPrepTimes = async () => {
+        for (const item of items) {
+          await fetchItemPrepTime(item.id);
+        }
+      };
+      loadPrepTimes();
+    }
+  }, [items, token]);
+
+
   // ============================================================
   // FUNCIONES DE MENSAJE
   // ============================================================
+
 
   const showMessage = useCallback((type, message, details = []) => {
     setMessageModal({ isOpen: true, type, message, details });
   }, []);
 
+
   const closeMessage = useCallback(() => {
     setMessageModal({ isOpen: false, type: "info", message: "", details: [] });
   }, []);
+
 
   const showConfirm = useCallback((message, onConfirm) => {
     setConfirmModal({ isOpen: true, message, onConfirm });
   }, []);
 
+
   const closeConfirm = useCallback(() => {
     setConfirmModal({ isOpen: false, message: "", onConfirm: null });
   }, []);
 
+
   // ============================================================
   // FUNCIONES DE CARGA DE DATOS
   // ============================================================
+
 
   const fetchMenuData = useCallback(async () => {
     try {
@@ -134,9 +172,28 @@ export default function MenuAdmin() {
     }
   }, [token, showMessage]);
 
+
+  // Función para cargar el tiempo de preparación de un item
+  const fetchItemPrepTime = useCallback(async (itemId) => {
+    try {
+      setPrepTimeLoading(true);
+      const response = await getItemPrepTime(itemId, token);
+      const data = response.data.data || response.data;
+      setPrepTimeData(prev => ({ ...prev, [itemId]: data }));
+      return data;
+    } catch (error) {
+      console.error(`Error al cargar tiempo de preparación para ${itemId}:`, error);
+      return null;
+    } finally {
+      setPrepTimeLoading(false);
+    }
+  }, [token]);
+
+
   // ============================================================
   // FUNCIONES DE MODAL
   // ============================================================
+
 
   const getInitialFormData = useCallback((type, item) => {
     const formDataMap = {
@@ -148,10 +205,12 @@ export default function MenuAdmin() {
         image_url: "",
         is_available: true,
         ingredients: "",
+        prep_time_minutes: 30,
       },
       [MODAL_TYPES.EDIT_ITEM]: {
         ...item,
         ingredients: item.ingredients || "",
+        prep_time_minutes: item.estimated_prep_time || 30,
       },
       [MODAL_TYPES.ADD_CATEGORY]: {
         name: "",
@@ -164,6 +223,7 @@ export default function MenuAdmin() {
     return formDataMap[type] || {};
   }, []);
 
+
   const openModal = useCallback(
     (type, item = null) => {
       setModal({ isOpen: true, type, isSubmitting: false, isUploadingImage: false });
@@ -175,6 +235,7 @@ export default function MenuAdmin() {
     [getInitialFormData]
   );
 
+
   const closeModal = useCallback(() => {
     setModal({ isOpen: false, type: "", isSubmitting: false, isUploadingImage: false });
     setFormData({});
@@ -183,19 +244,44 @@ export default function MenuAdmin() {
     setImagePreview(null);
   }, []);
 
+
   // ============================================================
   // MANEJO DE INPUTS
   // ============================================================
 
+
+  // 🆕 Manejo mejorado de inputs con conversión de tipos
   const handleInputChange = useCallback((e) => {
     const { name, value, type, checked } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: type === "checkbox" ? checked : value,
-    }));
+    setFormData((prev) => {
+      let newValue = value;
+      
+      // 🆕 Convertir prep_time_minutes a número
+      if (name === "prep_time_minutes") {
+        newValue = value ? parseInt(value, 10) : "";
+      }
+      // Convertir price a número también
+      else if (name === "price") {
+        newValue = value ? parseFloat(value) : "";
+      }
+      // Convertir category_id a número
+      else if (name === "category_id") {
+        newValue = value ? parseInt(value, 10) : "";
+      }
+      // Para checkboxes
+      else if (type === "checkbox") {
+        newValue = checked;
+      }
+      
+      return {
+        ...prev,
+        [name]: newValue,
+      };
+    });
 
     setFormErrors((prev) => ({ ...prev, [name]: "" }));
   }, []);
+
 
   const handleImageChange = useCallback((e) => {
     const file = e.target.files[0];
@@ -219,10 +305,13 @@ export default function MenuAdmin() {
     reader.readAsDataURL(file);
   }, [showMessage]);
 
+
   // ============================================================
   // VALIDACIONES
   // ============================================================
 
+
+  // 🆕 Validación mejorada
   const validateItemForm = useCallback(() => {
     const errors = {};
     
@@ -237,10 +326,16 @@ export default function MenuAdmin() {
     if (!formData.category_id) {
       errors.category_id = "Debe seleccionar una categoría";
     }
+
+    // 🆕 Validar prep_time_minutes como número
+    if (!formData.prep_time_minutes || formData.prep_time_minutes <= 0) {
+      errors.prep_time_minutes = "El tiempo debe ser mayor a 0";
+    }
     
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   }, [formData]);
+
 
   const validateCategoryForm = useCallback(() => {
     const errors = {};
@@ -253,9 +348,11 @@ export default function MenuAdmin() {
     return Object.keys(errors).length === 0;
   }, [formData]);
 
+
   // ============================================================
   // SUBIR IMAGEN
   // ============================================================
+
 
   const handleUploadImage = useCallback(async () => {
     if (!imageFile) return formData.image_url || null;
@@ -275,10 +372,13 @@ export default function MenuAdmin() {
     }
   }, [imageFile, formData.image_url, token, showMessage]);
 
+
   // ============================================================
   // SUBMIT FORMS
   // ============================================================
 
+
+  // 🆕 ACTUALIZADO - Incluir estimated_prep_time al crear item
   const handleSubmitItem = useCallback(
     async (e) => {
       e.preventDefault();
@@ -297,6 +397,7 @@ export default function MenuAdmin() {
           }
         }
 
+        // 🆕 INCLUIR estimated_prep_time aquí
         const itemData = {
           name: formData.name.trim(),
           description: formData.description?.trim() || null,
@@ -305,15 +406,21 @@ export default function MenuAdmin() {
           image_url: imageUrl || null,
           is_available: Boolean(formData.is_available),
           ingredients: formData.ingredients?.trim() || null,
+          estimated_prep_time: formData.prep_time_minutes || 30, // 🆕 AGREGAR
         };
         
+        let createdItemId = formData.id;
+
         if (modal.type === MODAL_TYPES.ADD_ITEM) {
-          await createItem(itemData, token);
+          const createResponse = await createItem(itemData, token);
+          createdItemId = createResponse.data.data?.id || createResponse.data.id;
           showMessage("success", "Plato creado exitosamente");
         } else {
           await updateItem(formData.id, itemData, token);
           showMessage("success", "Plato actualizado exitosamente");
         }
+        
+        // 🆕 YA NO NECESITAS ESTO - se guarda en la creación del item
         
         await fetchMenuData();
         await refreshMenu();
@@ -327,6 +434,7 @@ export default function MenuAdmin() {
     },
     [validateItemForm, formData, imageFile, modal.type, token, handleUploadImage, fetchMenuData, refreshMenu, closeModal, showMessage]
   );
+
 
   const handleSubmitCategory = useCallback(
     async (e) => {
@@ -363,9 +471,11 @@ export default function MenuAdmin() {
     [validateCategoryForm, formData, modal.type, token, fetchMenuData, refreshMenu, closeModal, showMessage]
   );
 
+
   // ============================================================
   // DELETE
   // ============================================================
+
 
   const handleDeleteItem = useCallback(
     async (id) => {
@@ -385,6 +495,7 @@ export default function MenuAdmin() {
     },
     [token, fetchMenuData, refreshMenu, showMessage, showConfirm, closeConfirm]
   );
+
 
   const handleDeleteCategory = useCallback(
     async (id) => {
@@ -408,12 +519,15 @@ export default function MenuAdmin() {
     [token, fetchMenuData, refreshMenu, showMessage, showConfirm, closeConfirm]
   );
 
+
   // ============================================================
   // COMPONENTES AUXILIARES
   // ============================================================
 
+
   const ItemCard = ({ item }) => {
     const category = categories.find((cat) => cat.id === item.category_id);
+    const itemPrepTime = prepTimeData[item.id];
     
     return (
       <div className="menuadmin-item-card">
@@ -441,6 +555,12 @@ export default function MenuAdmin() {
           </div>
         )}
 
+        {itemPrepTime && (
+          <div className="menuadmin-prep-time-info">
+            <FaClock /> {itemPrepTime.estimated_prep_time} min
+          </div>
+        )}
+
         <div className="menuadmin-item-actions">
           <button className="menuadmin-btn-edit" onClick={() => openModal(MODAL_TYPES.EDIT_ITEM, item)}>
             <FaEdit /> Editar
@@ -452,6 +572,7 @@ export default function MenuAdmin() {
       </div>
     );
   };
+
 
   const CategoryCard = ({ category }) => (
     <div className="menuadmin-category-card">
@@ -473,6 +594,7 @@ export default function MenuAdmin() {
     </div>
   );
 
+
   const EmptyState = ({ icon: Icon, message, buttonText, onButtonClick }) => (
     <div className="menuadmin-empty-state">
       <Icon className="menuadmin-empty-icon" />
@@ -483,9 +605,11 @@ export default function MenuAdmin() {
     </div>
   );
 
+
   // ============================================================
   // RENDER
   // ============================================================
+
 
   if (loading) {
     return (
@@ -499,6 +623,7 @@ export default function MenuAdmin() {
       </AdminLayout>
     );
   }
+
 
   return (
     <AdminLayout>
@@ -658,6 +783,26 @@ export default function MenuAdmin() {
                           ))}
                         </select>
                         {formErrors.category_id && <span className="error-message">{formErrors.category_id}</span>}
+                      </div>
+                    </div>
+
+                    <div className="menuadmin-form-row">
+                      <div className="menuadmin-form-group">
+                        <label htmlFor="prep_time_minutes">
+                          <FaClock /> Tiempo de Preparación (min) *
+                        </label>
+                        <input
+                          type="number"
+                          id="prep_time_minutes"
+                          name="prep_time_minutes"
+                          value={formData.prep_time_minutes || ""}
+                          onChange={handleInputChange}
+                          min="1"
+                          className={formErrors.prep_time_minutes ? "error" : ""}
+                          placeholder="Ej: 30"
+                          required
+                        />
+                        {formErrors.prep_time_minutes && <span className="error-message">{formErrors.prep_time_minutes}</span>}
                       </div>
                     </div>
 
