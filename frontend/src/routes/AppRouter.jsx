@@ -4,7 +4,6 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 // ✅ Context Providers
 import { MenuProvider } from "../context/MenuContext";
-import { TablesProvider } from "../context/TablesContext";
 
 // ✅ Auth Pages
 import Login from "../pages/auth/Login";
@@ -19,11 +18,9 @@ import CustomerDashboard from "../pages/customer/Dashboard";
 
 // ✅ Admin Pages
 import MenuAdmin from "../pages/admin/MenuAdmin";
-import TablesAdmin from "../pages/admin/TablesAdmin";
 
 // ✅ Customer Pages
 import MenuCustomer from "../pages/customer/MenuCustomer";
-import TablesCustomer from "../pages/customer/TablesCustomer";
 
 // ✅ Route Guards
 import ProtectedRoute from "./ProtectedRoute";
@@ -37,66 +34,57 @@ export default function AppRouter() {
   return (
     <BrowserRouter>
       <MenuProvider>
-        <TablesProvider>
-          <Routes>
-            {/* 🏠 RUTA PRINCIPAL - Redirige a Customer Dashboard */}
-            <Route path="/" element={<Navigate to="/customer/dashboard" replace />} />
+        <Routes>
+          {/* 🏠 RUTA PRINCIPAL - Redirige a Customer Dashboard */}
+          <Route
+            path="/"
+            element={<Navigate to="/customer/dashboard" replace />}
+          />
 
-            {/* 🔓 RUTAS PÚBLICAS (solo si NO está logueado) */}
-            <Route element={<PublicRoute />}>
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route path="/verify/:token" element={<VerifyAccount />} />
-              <Route path="/forgot-password" element={<ForgotPassword />} />
-              <Route path="/reset-password/:token" element={<ResetPassword />} />
-            </Route>
-
-            {/* 👤 Customer Dashboard - PÚBLICO */}
-            <Route path="/customer/dashboard" element={<CustomerDashboard />} />
-
-            {/* 🍽️ Customer - Menú - PÚBLICO */}
-            <Route path="/customer/menu" element={<MenuCustomer />} />
-
-            {/* 🪑 Customer - Ver Mesas y Zonas - PÚBLICO */}
-            <Route path="/customer/tables" element={<TablesCustomer />} />
-
-            {/* 🛠️ Admin Dashboard */}
+          {/* 🔓 RUTAS PÚBLICAS (solo si NO está logueado) */}
+          <Route element={<PublicRoute />}>
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/verify/:token" element={<VerifyAccount />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route
-              path="/admin/dashboard"
-              element={
-                <ProtectedRoute allowedRoles={["admin"]}>
-                  <AdminDashboard />
-                </ProtectedRoute>
-              }
+              path="/reset-password/:token"
+              element={<ResetPassword />}
             />
+          </Route>
 
-            {/* 📋 Admin - Gestión de Menú */}
-            <Route
-              path="/admin/menu"
-              element={
-                <ProtectedRoute allowedRoles={["admin"]}>
-                  <MenuAdmin />
-                </ProtectedRoute>
-              }
-            />
+          {/* 👤 Customer Dashboard - PÚBLICO */}
+          <Route path="/customer/dashboard" element={<CustomerDashboard />} />
 
-            {/* 🪑 Admin - Gestión de Mesas y Zonas */}
-            <Route
-              path="/admin/tables"
-              element={
-                <ProtectedRoute allowedRoles={["admin"]}>
-                  <TablesAdmin />
-                </ProtectedRoute>
-              }
-            />
+          {/* 🍽️ Customer - Menú - PÚBLICO */}
+          <Route path="/customer/menu" element={<MenuCustomer />} />
 
-            {/* 🚫 Acceso no autorizado */}
-            <Route path="/unauthorized" element={<Unauthorized />} />
+          {/* 🛠️ Admin Dashboard */}
+          <Route
+            path="/admin/dashboard"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <AdminDashboard />
+              </ProtectedRoute>
+            }
+          />
 
-            {/* ❌ Página no encontrada */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </TablesProvider>
+          {/* 📋 Admin - Gestión de Menú */}
+          <Route
+            path="/admin/menu"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <MenuAdmin />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* 🚫 Acceso no autorizado */}
+          <Route path="/unauthorized" element={<Unauthorized />} />
+
+          {/* ❌ Página no encontrada */}
+          <Route path="*" element={<NotFound />} />
+        </Routes>
       </MenuProvider>
     </BrowserRouter>
   );
