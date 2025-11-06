@@ -2,15 +2,13 @@
 
 import { pool } from "../config/db.js";
 
-/* UTILIDADES Y VALIDADORES */
-
-/* Valida que un ID sea un número positivo válido */
+// Valida que un ID sea un número positivo válido
 const validateId = (id) => {
   const numId = Number(id);
   return isNaN(numId) || numId <= 0 ? null : numId;
 };
 
-/* Valida que un string sea válido y no esté vacío */
+// Valida que un string sea válido y no esté vacío
 const validateString = (value, fieldName) => {
   if (!value || typeof value !== "string" || value.trim().length === 0) {
     throw new Error(`${fieldName} es requerido y no puede estar vacío`);
@@ -18,7 +16,7 @@ const validateString = (value, fieldName) => {
   return value.trim();
 };
 
-/* Valida que un número sea válido y no negativo */
+// Valida que un número sea válido y no negativo
 const validateNumber = (value, fieldName, allowNegative = false) => {
   const num = Number(value);
   if (isNaN(num) || (!allowNegative && num < 0)) {
@@ -29,7 +27,7 @@ const validateNumber = (value, fieldName, allowNegative = false) => {
   return num;
 };
 
-/* Filtra solo los campos permitidos de un objeto */
+// Filtra solo los campos permitidos de un objeto
 const filterAllowedFields = (data, allowedFields) => {
   const filtered = {};
   Object.keys(data).forEach((key) => {
@@ -40,7 +38,7 @@ const filterAllowedFields = (data, allowedFields) => {
   return filtered;
 };
 
-/* Valida campos específicos según su tipo */
+// Valida campos específicos según su tipo
 const validateFields = (data, fieldValidators) => {
   const validated = { ...data };
   Object.entries(fieldValidators).forEach(([field, validator]) => {
@@ -51,7 +49,7 @@ const validateFields = (data, fieldValidators) => {
   return validated;
 };
 
-/* Construye una query UPDATE dinámica con validación de campos */
+// Construye una query UPDATE dinámica con validación de campos
 const buildUpdateQuery = (data, allowedFields, tableName, whereId) => {
   const filteredData = filterAllowedFields(data, allowedFields);
   const keys = Object.keys(filteredData);
@@ -70,7 +68,7 @@ const buildUpdateQuery = (data, allowedFields, tableName, whereId) => {
   return { query, values: [...values, whereId] };
 };
 
-/* Maneja errores comunes de PostgreSQL */
+// Maneja errores comunes de PostgreSQL
 const handleDatabaseError = (error) => {
   if (error.code === "23505") {
     throw new Error("Este registro ya existe (violación de unicidad)");
@@ -81,7 +79,7 @@ const handleDatabaseError = (error) => {
   throw error;
 };
 
-/* Campos permitidos para actualizar mesas */
+// Campos permitidos para actualizar mesas
 const ALLOWED_TABLE_FIELDS = [
   "zone_id",
   "table_number",
@@ -90,12 +88,12 @@ const ALLOWED_TABLE_FIELDS = [
   "is_active",
 ];
 
-/* Validadores para campos de mesas */
+// Validadores para campos de mesas
 const TABLE_VALIDATORS = {
   table_number: (value) => validateString(value, "El número de mesa"),
   capacity: (value) => validateNumber(value, "La capacidad"),
   status: (value) => {
-    const validStatuses = ["available", "occupied", "reserved"];
+    const validStatuses = ["available", "reserved"];
     if (!validStatuses.includes(value)) {
       throw new Error(
         `Estado inválido: ${value}. Debe ser uno de: ${validStatuses.join(", ")}`
@@ -106,7 +104,7 @@ const TABLE_VALIDATORS = {
   is_active: (value) => Boolean(value),
 };
 
-/* Función auxiliar interna: Generar prefijo automático de mesa */
+// Genera prefijo automático de mesa basado en la zona
 const generateTableNumber = async (zone_id) => {
   try {
     if (!zone_id) throw new Error("zone_id es requerido");
@@ -138,9 +136,7 @@ const generateTableNumber = async (zone_id) => {
   }
 };
 
-/* CRUD BÁSICO - MESAS */
-
-/* Obtiene mesas con filtros opcionales (zone_id, status, is_active) */
+// Obtiene todas las mesas con filtros opcionales
 export const getTables = async (filters = {}) => {
   try {
     let query = `
@@ -161,7 +157,7 @@ export const getTables = async (filters = {}) => {
     }
 
     if (filters.status) {
-      const validStatuses = ["available", "occupied", "reserved"];
+      const validStatuses = ["available", "reserved"];
       if (!validStatuses.includes(filters.status)) {
         throw new Error(
           `Estado inválido: ${filters.status}. Debe ser uno de: ${validStatuses.join(", ")}`
@@ -188,7 +184,7 @@ export const getTables = async (filters = {}) => {
   }
 };
 
-/* Obtiene una mesa específica por su ID */
+// Obtiene una mesa específica por su ID
 export const getTableById = async (id) => {
   try {
     const table_id = validateId(id);
@@ -208,7 +204,7 @@ export const getTableById = async (id) => {
   }
 };
 
-/* Crea una nueva mesa */
+// Crea una nueva mesa
 export const createTable = async ({
   zone_id,
   table_number = null,
@@ -225,14 +221,12 @@ export const createTable = async ({
       is_active,
     });
 
-    /* Generar table_number automáticamente si no se proporciona */
     let finalTableNumber = table_number;
     if (!finalTableNumber && zone_id) {
       finalTableNumber = await generateTableNumber(zone_id);
       console.log("✅ table_number generado:", finalTableNumber);
     }
 
-    /* Validar campos requeridos */
     validateNumber(zone_id, "zone_id");
     validateString(finalTableNumber, "table_number");
     validateNumber(capacity, "capacity");
@@ -268,7 +262,7 @@ export const createTable = async ({
   }
 };
 
-/* Actualiza una mesa (completa o parcial, incluyendo estado) */
+// Actualiza una mesa
 export const updateTable = async (id, data) => {
   try {
     const table_id = validateId(id);
@@ -294,7 +288,7 @@ export const updateTable = async (id, data) => {
   }
 };
 
-/* Elimina una mesa */
+// Elimina una mesa
 export const deleteTable = async (id) => {
   try {
     const table_id = validateId(id);
@@ -318,50 +312,20 @@ export const deleteTable = async (id) => {
   }
 };
 
-/* FUNCIONES AVANZADAS */
-
-/* Obtiene una mesa con su orden actual (información completa) */
-export const getTableWithCurrentOrder = async (table_id) => {
-  try {
-    const valid_table_id = validateId(table_id);
-    if (!valid_table_id) throw new Error("ID de mesa inválido");
-
-    const query = `
-      SELECT
-        t.*,
-        z.name AS zone_name,
-        o.id AS order_id,
-        o.status AS order_status,
-        COUNT(oi.id) AS items_count,
-        SUM(oi.quantity) AS total_items
-      FROM public.tables t
-      LEFT JOIN public.zones z ON t.zone_id = z.id
-      LEFT JOIN public.orders o ON t.id = o.table_id AND o.status IN ('pending', 'preparing', 'ready')
-      LEFT JOIN public.order_items oi ON o.id = oi.order_id
-      WHERE t.id = $1
-      GROUP BY t.id, z.id, o.id;
-    `;
-
-    const { rows } = await pool.query(query, [valid_table_id]);
-    return rows[0] || null;
-  } catch (error) {
-    console.error("Error al obtener mesa con orden:", error);
-    throw error;
-  }
-};
-
-/* Obtiene estadísticas generales de mesas (para dashboards/reportes) */
+// Obtiene estadísticas generales de mesas
 export const getTableStatistics = async () => {
   try {
     const query = `
       SELECT
         COUNT(*) as total_tables,
         COUNT(CASE WHEN status = 'available' THEN 1 END) as available_count,
-        COUNT(CASE WHEN status = 'occupied' THEN 1 END) as occupied_count,
         COUNT(CASE WHEN status = 'reserved' THEN 1 END) as reserved_count,
-        AVG(capacity) as avg_capacity,
-        SUM(capacity) as total_capacity
-      FROM public.tables;
+        AVG(capacity)::INTEGER as avg_capacity,
+        SUM(capacity) as total_capacity,
+        MIN(capacity) as min_capacity,
+        MAX(capacity) as max_capacity
+      FROM public.tables
+      WHERE is_active = true;
     `;
 
     const { rows } = await pool.query(query);

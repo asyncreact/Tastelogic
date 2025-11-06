@@ -2,8 +2,7 @@
 
 import { z } from "zod";
 
-/* ESQUEMAS DE VALIDACIÓN */
-
+// Esquema para crear una mesa
 export const tableCreateSchema = z.object({
   zone_id: z
     .preprocess(
@@ -45,9 +44,9 @@ export const tableCreateSchema = z.object({
       .max(20, "La capacidad máxima es 20 personas")
   ),
   status: z
-    .enum(["available", "occupied", "reserved"], {
+    .enum(["available", "reserved"], {
       errorMap: () => ({
-        message: "El estado debe ser: available, occupied o reserved",
+        message: "El estado debe ser: available o reserved",
       }),
     })
     .optional(),
@@ -64,15 +63,16 @@ export const tableCreateSchema = z.object({
   ).optional(),
 });
 
+// Esquema para actualizar una mesa (todos los campos opcionales)
 export const tableUpdateSchema = tableCreateSchema.partial();
 
-/* FUNCIONES DE VALIDACIÓN */
-
+// Función para validar creación
 export const validateCreate = (data) => tableCreateSchema.parse(data);
+
+// Función para validar actualización
 export const validateUpdate = (data) => tableUpdateSchema.parse(data);
 
-/* MIDDLEWARES DE VALIDACIÓN */
-
+// Middleware para validar creación de mesa
 export const validateTableCreate = (req, res, next) => {
   try {
     req.body = validateCreate(req.body);
@@ -82,6 +82,7 @@ export const validateTableCreate = (req, res, next) => {
   }
 };
 
+// Middleware para validar actualización de mesa
 export const validateTableUpdate = (req, res, next) => {
   try {
     req.body = validateUpdate(req.body);

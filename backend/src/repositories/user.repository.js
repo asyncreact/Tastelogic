@@ -4,13 +4,13 @@ import { pool } from "../config/db.js";
 
 /* UTILIDADES Y VALIDADORES */
 
-/* Valida que un ID sea un número positivo válido */
+// Valida que un ID sea un número positivo válido
 const validateId = (id) => {
   const numId = Number(id);
   return isNaN(numId) || numId <= 0 ? null : numId;
 };
 
-/* Valida que un email sea válido */
+// Valida que un email sea válido
 const validateEmail = (email) => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!email || !emailRegex.test(email)) {
@@ -19,7 +19,7 @@ const validateEmail = (email) => {
   return email.toLowerCase();
 };
 
-/* Maneja errores comunes de PostgreSQL */
+// Maneja errores comunes de PostgreSQL
 const handleDatabaseError = (error) => {
   if (error.code === "23505") {
     throw new Error("Este registro ya existe (violación de unicidad)");
@@ -32,7 +32,27 @@ const handleDatabaseError = (error) => {
 
 /* BÚSQUEDA Y AUTENTICACIÓN */
 
-/* Busca un usuario por email */
+// Busca un usuario por ID
+export const getUserById = async (id) => {
+  try {
+    const user_id = validateId(id);
+    if (!user_id) throw new Error("ID de usuario inválido");
+
+    const query = `
+      SELECT id, name, email, role, is_verified
+      FROM users
+      WHERE id = $1;
+    `;
+    
+    const result = await pool.query(query, [user_id]);
+    return result.rows[0] || null;
+  } catch (error) {
+    console.error("Error al buscar usuario por ID:", error);
+    throw error;
+  }
+};
+
+// Busca un usuario por email
 export const getUserByEmail = async (email) => {
   try {
     validateEmail(email);
@@ -47,13 +67,12 @@ export const getUserByEmail = async (email) => {
   }
 };
 
-/* Busca un usuario por token de verificación */
+// Busca un usuario por token de verificación
 export const getUserByToken = async (token) => {
   try {
     if (!token || typeof token !== "string") {
       throw new Error("Token inválido");
     }
-
     const result = await pool.query(
       "SELECT * FROM users WHERE verification_token = $1",
       [token]
@@ -65,18 +84,18 @@ export const getUserByToken = async (token) => {
   }
 };
 
-/* Busca un usuario por token de reseteo de contraseña */
+// Busca un usuario por token de reseteo de contraseña
 export const getUserByResetToken = async (token) => {
   try {
     if (!token || typeof token !== "string") {
       throw new Error("Token inválido");
     }
 
-    /* Limpiar tokens expirados */
+    // Limpiar tokens expirados
     await pool.query(`
       UPDATE users
       SET reset_token = NULL,
-          reset_token_expires_at = NULL
+      reset_token_expires_at = NULL
       WHERE reset_token_expires_at < NOW();
     `);
 
@@ -84,8 +103,9 @@ export const getUserByResetToken = async (token) => {
       SELECT *
       FROM users
       WHERE reset_token = $1
-        AND reset_token_expires_at > NOW();
+      AND reset_token_expires_at > NOW();
     `;
+    
     const result = await pool.query(query, [token]);
     return result.rows[0] || null;
   } catch (error) {
@@ -96,7 +116,7 @@ export const getUserByResetToken = async (token) => {
 
 /* CREAR USUARIO */
 
-/* Crea un nuevo usuario */
+// Crea un nuevo usuario
 export const createUser = async ({
   name,
   email,
@@ -120,6 +140,7 @@ export const createUser = async ({
       VALUES ($1, $2, $3, $4, NOW() + INTERVAL '24 HOURS')
       RETURNING id, name, email, role, is_verified;
     `;
+    
     const result = await pool.query(query, [
       name.trim(),
       email,
@@ -135,30 +156,31 @@ export const createUser = async ({
 
 /* VERIFICACIÓN DE CUENTA */
 
-/* Verifica la cuenta de un usuario usando su token */
+// Verifica la cuenta de un usuario usando su token
 export const verifyUserAccount = async (token) => {
   try {
     if (!token || typeof token !== "string") {
       throw new Error("Token inválido");
     }
 
-    /* Limpiar tokens expirados */
+    // Limpiar tokens expirados
     await pool.query(`
       UPDATE users
       SET verification_token = NULL,
-          verification_expires_at = NULL
+      verification_expires_at = NULL
       WHERE verification_expires_at < NOW();
     `);
 
     const query = `
       UPDATE users
       SET is_verified = TRUE,
-          verification_token = NULL,
-          verification_expires_at = NULL
+      verification_token = NULL,
+      verification_expires_at = NULL
       WHERE verification_token = $1
-        AND verification_expires_at > NOW()
+      AND verification_expires_at > NOW()
       RETURNING id, name, email, role, is_verified;
     `;
+    
     const result = await pool.query(query, [token]);
     return result.rows[0] || null;
   } catch (error) {
@@ -169,7 +191,7 @@ export const verifyUserAccount = async (token) => {
 
 /* RESET DE CONTRASEÑA */
 
-/* Establece un token de reseteo de contraseña */
+// Establece un token de reseteo de contraseña
 export const setResetToken = async (userId, token) => {
   try {
     const user_id = validateId(userId);
@@ -181,9 +203,10 @@ export const setResetToken = async (userId, token) => {
     const query = `
       UPDATE users
       SET reset_token = $1,
-          reset_token_expires_at = NOW() + INTERVAL '1 HOUR'
+      reset_token_expires_at = NOW() + INTERVAL '1 HOUR'
       WHERE id = $2;
     `;
+    
     await pool.query(query, [token, user_id]);
   } catch (error) {
     console.error("Error al establecer reset token:", error);
@@ -191,7 +214,7 @@ export const setResetToken = async (userId, token) => {
   }
 };
 
-/* Limpia el token de reseteo de contraseña */
+// Limpia el token de reseteo de contraseña
 export const clearResetToken = async (userId) => {
   try {
     const user_id = validateId(userId);
@@ -200,9 +223,10 @@ export const clearResetToken = async (userId) => {
     const query = `
       UPDATE users
       SET reset_token = NULL,
-          reset_token_expires_at = NULL
+      reset_token_expires_at = NULL
       WHERE id = $1;
     `;
+    
     await pool.query(query, [user_id]);
   } catch (error) {
     console.error("Error al limpiar reset token:", error);
@@ -212,7 +236,7 @@ export const clearResetToken = async (userId) => {
 
 /* CONTRASEÑA */
 
-/* Actualiza la contraseña de un usuario */
+// Actualiza la contraseña de un usuario
 export const updateUserPassword = async (userId, hashedPassword) => {
   try {
     const user_id = validateId(userId);
@@ -224,11 +248,12 @@ export const updateUserPassword = async (userId, hashedPassword) => {
     const query = `
       UPDATE users
       SET password = $1,
-          reset_token = NULL,
-          reset_token_expires_at = NULL,
-          token_version = token_version + 1
+      reset_token = NULL,
+      reset_token_expires_at = NULL,
+      token_version = token_version + 1
       WHERE id = $2;
     `;
+    
     await pool.query(query, [hashedPassword, user_id]);
   } catch (error) {
     console.error("Error al actualizar contraseña:", error);
@@ -238,7 +263,7 @@ export const updateUserPassword = async (userId, hashedPassword) => {
 
 /* TOKEN VERSION */
 
-/* Incrementa la versión del token de un usuario (invalida todos los tokens antiguos) */
+// Incrementa la versión del token de un usuario (invalida todos los tokens antiguos)
 export const incrementTokenVersion = async (userId) => {
   try {
     const user_id = validateId(userId);
@@ -249,6 +274,7 @@ export const incrementTokenVersion = async (userId) => {
       SET token_version = token_version + 1
       WHERE id = $1;
     `;
+    
     await pool.query(query, [user_id]);
   } catch (error) {
     console.error("Error al incrementar versión de token:", error);

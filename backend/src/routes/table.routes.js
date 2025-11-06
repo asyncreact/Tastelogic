@@ -7,7 +7,6 @@ import {
   addTable,
   editTable,
   removeTable,
-  showTableWithOrder,
   tableStats,
 } from "../controllers/table.controller.js";
 
@@ -19,15 +18,11 @@ import {
 
 const router = express.Router();
 
-/* PÚBLICAS - SIN AUTENTICACIÓN */
-
+// Rutas públicas sin autenticación
 router.get("/public/all", listTable);
 router.get("/public/available", listTable);
 
-/* PROTEGIDAS - CON AUTENTICACIÓN */
-
-/* CRUD BÁSICO */
-
+// Rutas protegidas con autenticación
 router.post(
   "/",
   authenticate,
@@ -68,19 +63,9 @@ router.delete(
   removeTable
 );
 
-/* INFORMACIÓN EN TIEMPO REAL */
-
+// Estadísticas
 router.get(
-  "/:table_id/with-order",
-  authenticate,
-  authorizeRoles("admin", "customer"),
-  showTableWithOrder
-);
-
-/* ESTADÍSTICAS */
-
-router.get(
-  "/dashboard/statistics",
+  "/statistics",
   authenticate,
   authorizeRoles("admin"),
   tableStats

@@ -6,16 +6,13 @@ import {
   createTable,
   updateTable,
   deleteTable,
-  getTableWithCurrentOrder,
   getTableStatistics,
 } from "../repositories/table.repository.js";
 
 import { getZoneById } from "../repositories/zone.repository.js";
 import { successResponse, errorResponse } from "../utils/response.js";
 
-/* CRUD BÁSICO - MESAS */
-
-/* Obtiene todas las mesas con filtros opcionales */
+// Obtiene todas las mesas con filtros opcionales
 export const listTable = async (req, res, next) => {
   try {
     const filters = {};
@@ -43,7 +40,7 @@ export const listTable = async (req, res, next) => {
   }
 };
 
-/* Obtiene una mesa específica por ID */
+// Obtiene una mesa específica por ID
 export const showTable = async (req, res, next) => {
   try {
     const table_id = Number(req.params.table_id);
@@ -63,7 +60,7 @@ export const showTable = async (req, res, next) => {
   }
 };
 
-/* Crea una nueva mesa */
+// Crea una nueva mesa
 export const addTable = async (req, res, next) => {
   try {
     const { zone_id, capacity, table_number, status } = req.body;
@@ -97,7 +94,7 @@ export const addTable = async (req, res, next) => {
   }
 };
 
-/* Actualiza una mesa (PUT o PATCH) */
+// Actualiza una mesa
 export const editTable = async (req, res, next) => {
   try {
     const table_id = Number(req.params.table_id);
@@ -110,7 +107,7 @@ export const editTable = async (req, res, next) => {
       return errorResponse(res, 404, "Mesa no encontrada");
     }
 
-    /* Validar zone_id si se proporciona */
+    // Validar zone_id si se proporciona
     const { zone_id } = req.body;
     if (zone_id && zone_id !== existing.zone_id) {
       const zone = await getZoneById(zone_id);
@@ -141,7 +138,7 @@ export const editTable = async (req, res, next) => {
   }
 };
 
-/* Elimina una mesa */
+// Elimina una mesa
 export const removeTable = async (req, res, next) => {
   try {
     const table_id = Number(req.params.table_id);
@@ -162,33 +159,7 @@ export const removeTable = async (req, res, next) => {
   }
 };
 
-/* INFORMACIÓN EN TIEMPO REAL */
-
-/* Obtiene una mesa con su orden actual */
-export const showTableWithOrder = async (req, res, next) => {
-  try {
-    const table_id = Number(req.params.table_id);
-    if (isNaN(table_id) || table_id <= 0) {
-      return errorResponse(res, 400, "ID de mesa inválido");
-    }
-
-    const table = await getTableWithCurrentOrder(table_id);
-    if (!table) {
-      return errorResponse(res, 404, "Mesa no encontrada o sin órdenes activas");
-    }
-
-    return successResponse(res, "Mesa con orden obtenida correctamente", {
-      table,
-    });
-  } catch (err) {
-    console.error("Error en showTableWithOrder:", err);
-    next(err);
-  }
-};
-
-/* ESTADÍSTICAS */
-
-/* Obtiene estadísticas generales de mesas */
+// Obtiene estadísticas generales de mesas
 export const tableStats = async (req, res, next) => {
   try {
     const stats = await getTableStatistics();

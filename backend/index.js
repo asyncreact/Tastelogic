@@ -11,7 +11,7 @@ import authRoutes from "./src/routes/auth.routes.js";
 import menuRoutes from "./src/routes/menu.routes.js";
 import zoneRoutes from "./src/routes/zone.routes.js";
 import tableRoutes from "./src/routes/table.routes.js";
-import ordersRoutes from "./src/routes/orders.routes.js";
+import reservationRoutes from "./src/routes/reservation.routes.js"
 import { errorHandler } from "./src/middleware/errorHandler.middleware.js";
 
 dotenv.config();
@@ -69,7 +69,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/menu", menuRoutes);
 app.use("/api/zones", zoneRoutes);
 app.use("/api/tables", tableRoutes);
-app.use("/api/orders", ordersRoutes);
+app.use("/api/reservations", reservationRoutes);
 
 /* MIDDLEWARE - ERROR HANDLER */
 
