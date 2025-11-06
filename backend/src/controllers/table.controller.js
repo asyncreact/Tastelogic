@@ -85,7 +85,7 @@ export const addTable = async (req, res, next) => {
       ...(status && { status }),
     };
 
-    console.log("📥 Data para crear mesa:", table_data);
+    console.log("Data para crear mesa:", table_data);
     const table = await createTable(table_data);
     return successResponse(res, "Mesa creada correctamente", { table }, 201);
   } catch (err) {

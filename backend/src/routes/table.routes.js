@@ -33,6 +33,14 @@ router.post(
 
 router.get("/", authenticate, authorizeRoles("admin", "customer"), listTable);
 
+// ✅ Mover la ruta de estadísticas arriba
+router.get(
+  "/statistics",
+  authenticate,
+  authorizeRoles("admin"),
+  tableStats
+);
+
 router.get(
   "/:table_id",
   authenticate,
@@ -61,14 +69,6 @@ router.delete(
   authenticate,
   authorizeRoles("admin"),
   removeTable
-);
-
-// Estadísticas
-router.get(
-  "/statistics",
-  authenticate,
-  authorizeRoles("admin"),
-  tableStats
 );
 
 export default router;

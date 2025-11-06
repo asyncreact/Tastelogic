@@ -4,21 +4,22 @@ import { z } from "zod";
 
 // Esquema para crear una reserva
 export const reservationCreateSchema = z.object({
-  user_id: z.preprocess(
-    (val) => {
-      if (val === "" || val == null) {
-        return val;
-      }
-      return Number(val);
-    },
-    z
-      .number({
-        required_error: "El ID de usuario es obligatorio",
-        invalid_type_error: "El ID de usuario debe ser numérico",
-      })
-      .int("El ID de usuario debe ser un número entero")
-      .positive("El ID de usuario debe ser positivo")
-  ),
+  user_id: z
+    .preprocess(
+      (val) => {
+        if (val === "" || val == null) {
+          return val;
+        }
+        return Number(val);
+      },
+      z
+        .number({
+          invalid_type_error: "El ID de usuario debe ser numérico",
+        })
+        .int("El ID de usuario debe ser un número entero")
+        .positive("El ID de usuario debe ser positivo")
+        .optional() // ✅ CAMBIO: ahora es opcional
+    ),
   zone_id: z.preprocess(
     (val) => {
       if (val === "" || val == null) {
@@ -298,7 +299,7 @@ export const validateCheckAvailabilityMiddleware = (req, res, next) => {
 // Middleware para validar filtros de reservas
 export const validateReservationFilters = (req, res, next) => {
   try {
-    validateFilters(req.query);  // ✅ SOLO VALIDA - Sin asignación
+    validateFilters(req.query); // ✅ SOLO VALIDA - Sin asignación
     next();
   } catch (error) {
     next(error);

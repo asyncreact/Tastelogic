@@ -3,48 +3,6 @@
 import { pool } from "../config/db.js";
 
 /**
- * VALIDADORES BÁSICOS
- */
-
-const validateId = (id) => {
-  const numId = Number(id);
-  return isNaN(numId) || numId <= 0 ? null : numId;
-};
-
-const validateString = (value, fieldName) => {
-  if (!value || typeof value !== "string" || value.trim().length === 0) {
-    throw new Error(`${fieldName} es requerido y no puede estar vacío`);
-  }
-  return value.trim();
-};
-
-const validateNumber = (value, fieldName, allowNegative = false) => {
-  const num = Number(value);
-  if (isNaN(num) || (!allowNegative && num < 0)) {
-    throw new Error(
-      `${fieldName} debe ser un número válido ${allowNegative ? "" : "no negativo"}`
-    );
-  }
-  return num;
-};
-
-const validateDate = (value, fieldName) => {
-  const date = new Date(value);
-  if (isNaN(date.getTime())) {
-    throw new Error(`${fieldName} debe ser una fecha válida`);
-  }
-  return value;
-};
-
-const validateTime = (value, fieldName) => {
-  const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9](?::[0-5][0-9])?$/;
-  if (!timeRegex.test(value)) {
-    throw new Error(`${fieldName} debe estar en formato HH:MM o HH:MM:SS`);
-  }
-  return value;
-};
-
-/**
  * OBTENER RESERVAS
  */
 
@@ -98,11 +56,11 @@ export const getReservations = async (filters = {}) => {
 // Obtiene una reserva por ID con información completa
 export const getReservationById = async (id) => {
   try {
-    const reservation_id = validateId(id);
-    if (!reservation_id) throw new Error("ID de reserva inválido");
+    const numId = Number(id);
+    if (isNaN(numId) || numId <= 0) throw new Error("ID de reserva inválido");
 
     const query = `
-      SELECT 
+      SELECT
         r.id,
         r.user_id,
         r.zone_id,
@@ -126,7 +84,7 @@ export const getReservationById = async (id) => {
       WHERE r.id = $1
     `;
 
-    const result = await pool.query(query, [reservation_id]);
+    const result = await pool.query(query, [numId]);
     return result.rows[0] || null;
   } catch (error) {
     console.error("Error en getReservationById:", error);
@@ -149,21 +107,7 @@ export const createReservation = async ({
   special_requirements = null,
 }) => {
   const client = await pool.connect();
-
   try {
-    // Validaciones
-    const validUserId = validateId(user_id);
-    const validZoneId = validateId(zone_id);
-    const validTableId = validateId(table_id);
-    const validGuestCount = validateNumber(guest_count, "guest_count");
-
-    validateDate(reservation_date, "reservation_date");
-    validateTime(reservation_time, "reservation_time");
-
-    if (!validUserId || !validZoneId || !validTableId) {
-      throw new Error("IDs inválidos");
-    }
-
     await client.query("BEGIN");
 
     // Verificar conflictos
@@ -176,7 +120,7 @@ export const createReservation = async ({
     `;
 
     const conflictResult = await client.query(conflictQuery, [
-      validTableId,
+      table_id,
       reservation_date,
       reservation_time,
     ]);
@@ -187,19 +131,19 @@ export const createReservation = async ({
 
     // Crear reserva
     const insertQuery = `
-      INSERT INTO public.reservations 
+      INSERT INTO public.reservations
       (user_id, zone_id, table_id, reservation_date, reservation_time, guest_count, status, special_requirements)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       RETURNING *
     `;
 
     const result = await client.query(insertQuery, [
-      validUserId,
-      validZoneId,
-      validTableId,
+      user_id,
+      zone_id,
+      table_id,
       reservation_date,
       reservation_time,
-      validGuestCount,
+      guest_count,
       status,
       special_requirements,
     ]);
@@ -222,14 +166,13 @@ export const createReservation = async ({
 
 export const updateReservation = async (id, updateData) => {
   const client = await pool.connect();
-
   try {
-    const reservation_id = validateId(id);
-    if (!reservation_id) throw new Error("ID de reserva inválido");
+    const numId = Number(id);
+    if (isNaN(numId) || numId <= 0) throw new Error("ID de reserva inválido");
 
     const existing = await client.query(
       "SELECT * FROM public.reservations WHERE id = $1",
-      [reservation_id]
+      [numId]
     );
 
     if (existing.rows.length === 0) {
@@ -245,8 +188,10 @@ export const updateReservation = async (id, updateData) => {
       updateData.reservation_time
     ) {
       const tableId = updateData.table_id || existing.rows[0].table_id;
-      const resDate = updateData.reservation_date || existing.rows[0].reservation_date;
-      const resTime = updateData.reservation_time || existing.rows[0].reservation_time;
+      const resDate =
+        updateData.reservation_date || existing.rows[0].reservation_date;
+      const resTime =
+        updateData.reservation_time || existing.rows[0].reservation_time;
 
       const conflictQuery = `
         SELECT * FROM public.reservations
@@ -261,7 +206,7 @@ export const updateReservation = async (id, updateData) => {
         tableId,
         resDate,
         resTime,
-        reservation_id,
+        numId,
       ]);
 
       if (conflictResult.rows.length > 0) {
@@ -280,10 +225,9 @@ export const updateReservation = async (id, updateData) => {
     });
 
     query += `updated_at = NOW() WHERE id = $${paramCount} RETURNING *`;
-    values.push(reservation_id);
+    values.push(numId);
 
     const result = await client.query(query, values);
-
     await client.query("COMMIT");
     console.log("✅ Reserva actualizada");
     return result.rows[0];
@@ -302,12 +246,14 @@ export const updateReservation = async (id, updateData) => {
 
 export const updateReservationStatus = async (id, status) => {
   try {
-    const reservation_id = validateId(id);
-    if (!reservation_id) throw new Error("ID de reserva inválido");
+    const numId = Number(id);
+    if (isNaN(numId) || numId <= 0) throw new Error("ID de reserva inválido");
 
     const validStatuses = ["pending", "confirmed", "completed", "cancelled"];
     if (!validStatuses.includes(status)) {
-      throw new Error(`Estado inválido. Debe ser uno de: ${validStatuses.join(", ")}`);
+      throw new Error(
+        `Estado inválido. Debe ser uno de: ${validStatuses.join(", ")}`
+      );
     }
 
     const query = `
@@ -317,7 +263,7 @@ export const updateReservationStatus = async (id, status) => {
       RETURNING *
     `;
 
-    const result = await pool.query(query, [status, reservation_id]);
+    const result = await pool.query(query, [status, numId]);
 
     if (result.rows.length === 0) {
       throw new Error("Reserva no encontrada");
@@ -332,13 +278,13 @@ export const updateReservationStatus = async (id, status) => {
 };
 
 /**
- * CANCELAR RESERVA - FUNCIÓN FALTANTE
+ * CANCELAR RESERVA
  */
 
 export const cancelReservation = async (id) => {
   try {
-    const reservation_id = validateId(id);
-    if (!reservation_id) throw new Error("ID de reserva inválido");
+    const numId = Number(id);
+    if (isNaN(numId) || numId <= 0) throw new Error("ID de reserva inválido");
 
     const query = `
       UPDATE public.reservations
@@ -347,7 +293,7 @@ export const cancelReservation = async (id) => {
       RETURNING *
     `;
 
-    const result = await pool.query(query, [reservation_id]);
+    const result = await pool.query(query, [numId]);
 
     if (result.rows.length === 0) {
       throw new Error("Reserva no encontrada");
@@ -367,15 +313,12 @@ export const cancelReservation = async (id) => {
 
 export const deleteReservation = async (id) => {
   try {
-    const reservation_id = validateId(id);
-    if (!reservation_id) throw new Error("ID de reserva inválido");
+    const numId = Number(id);
+    if (isNaN(numId) || numId <= 0) throw new Error("ID de reserva inválido");
 
-    const query = `
-      DELETE FROM public.reservations
-      WHERE id = $1
-    `;
+    const query = `DELETE FROM public.reservations WHERE id = $1`;
 
-    const result = await pool.query(query, [reservation_id]);
+    const result = await pool.query(query, [numId]);
 
     if (result.rowCount === 0) {
       throw new Error("Reserva no encontrada");
@@ -400,12 +343,6 @@ export const checkTableAvailability = async (
   excludeReservationId = null
 ) => {
   try {
-    const validTableId = validateId(table_id);
-    if (!validTableId) throw new Error("ID de mesa inválido");
-
-    validateDate(reservation_date, "reservation_date");
-    validateTime(reservation_time, "reservation_time");
-
     // Obtener tabla
     const tableQuery = `
       SELECT t.*, z.name as zone_name
@@ -414,7 +351,7 @@ export const checkTableAvailability = async (
       WHERE t.id = $1
     `;
 
-    const tableResult = await pool.query(tableQuery, [validTableId]);
+    const tableResult = await pool.query(tableQuery, [table_id]);
 
     if (tableResult.rows.length === 0) {
       throw new Error("Mesa no encontrada");
@@ -430,7 +367,7 @@ export const checkTableAvailability = async (
       AND status IN ('confirmed', 'pending')
     `;
 
-    const params = [validTableId, reservation_date, reservation_time];
+    const params = [table_id, reservation_date, reservation_time];
 
     if (excludeReservationId) {
       conflictQuery += ` AND id != $4`;
@@ -456,14 +393,6 @@ export const checkTableAvailability = async (
 
 export const getAvailableTablesByZone = async (zone_id, guest_count) => {
   try {
-    const validZoneId = validateId(zone_id);
-    const validGuestCount = validateNumber(guest_count, "guest_count");
-
-    if (!validZoneId) throw new Error("ID de zona inválido");
-    if (validGuestCount < 1 || validGuestCount > 50) {
-      throw new Error("guest_count debe estar entre 1 y 50");
-    }
-
     const query = `
       SELECT t.* FROM public.tables t
       WHERE t.zone_id = $1
@@ -476,7 +405,7 @@ export const getAvailableTablesByZone = async (zone_id, guest_count) => {
       )
     `;
 
-    const result = await pool.query(query, [validZoneId, validGuestCount]);
+    const result = await pool.query(query, [zone_id, guest_count]);
     return result.rows;
   } catch (error) {
     console.error("Error en getAvailableTablesByZone:", error);
@@ -507,14 +436,14 @@ export const getReservationStatistics = async (filters = {}) => {
     }
 
     const query = `
-      SELECT 
+      SELECT
         COUNT(*) as total_reservations,
         SUM(CASE WHEN status = 'confirmed' THEN 1 ELSE 0 END) as confirmed_count,
         SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending_count,
         SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed_count,
         SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) as cancelled_count,
         SUM(guest_count) as total_guests,
-        AVG(guest_count) as avg_guests
+        AVG(guest_count)::DECIMAL(10,2) as avg_guests
       FROM public.reservations
       ${whereClause}
     `;
@@ -540,7 +469,7 @@ export const getReservationStatisticsByDate = async (filters = {}) => {
     }
 
     const query = `
-      SELECT 
+      SELECT
         DATE(reservation_date) as date,
         COUNT(*) as total_reservations,
         SUM(CASE WHEN status = 'confirmed' THEN 1 ELSE 0 END) as confirmed_count,
@@ -562,7 +491,7 @@ export const getReservationStatisticsByDate = async (filters = {}) => {
 export const getReservationStatisticsByZone = async () => {
   try {
     const query = `
-      SELECT 
+      SELECT
         z.name as zone_name,
         COUNT(*) as total_reservations,
         SUM(CASE WHEN status = 'confirmed' THEN 1 ELSE 0 END) as confirmed_count,
@@ -594,7 +523,7 @@ export const getReservationStatisticsByStatus = async (filters = {}) => {
     }
 
     const query = `
-      SELECT 
+      SELECT
         status,
         COUNT(*) as total_count,
         SUM(guest_count) as total_guests
