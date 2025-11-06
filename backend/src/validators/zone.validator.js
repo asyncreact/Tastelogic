@@ -2,14 +2,9 @@
 
 import { z } from "zod";
 
-// ============================================================
-// ESQUEMAS DE VALIDACIÓN
-// ============================================================
+/* ESQUEMAS DE VALIDACIÓN */
 
-/**
- * Esquema para crear/editar zona
- */
-export const zoneSchema = z.object({
+export const zoneCreateSchema = z.object({
   name: z
     .string({
       required_error: "El nombre de la zona es obligatorio",
@@ -35,7 +30,10 @@ export const zoneSchema = z.object({
     .nullable()
     .refine(
       (url) =>
-        !url || url === "" || /^https?:\/\/[^\s]+$/i.test(url) || url.startsWith("/uploads"),
+        !url ||
+        url === "" ||
+        /^https?:\/\/[^\s]+$/i.test(url) ||
+        url.startsWith("/uploads"),
       "Debe ser una URL válida o dejarse vacío"
     ),
   is_active: z.preprocess(
@@ -51,43 +49,27 @@ export const zoneSchema = z.object({
   ).optional(),
 });
 
-// ============================================================
-// FUNCIONES DE VALIDACIÓN
-// ============================================================
+export const zoneUpdateSchema = zoneCreateSchema.partial();
 
-/**
- * Validar zona completa
- */
-export const validateZone = (data) => zoneSchema.parse(data);
+/* FUNCIONES DE VALIDACIÓN */
 
-/**
- * Validar zona parcial (para PATCH)
- */
-export const validatePartialZone = (data) =>
-  zoneSchema.partial().parse(data);
+export const validateCreate = (data) => zoneCreateSchema.parse(data);
+export const validateUpdate = (data) => zoneUpdateSchema.parse(data);
 
-// ============================================================
-// MIDDLEWARES DE VALIDACIÓN
-// ============================================================
+/* MIDDLEWARES DE VALIDACIÓN */
 
-/**
- * Middleware para validar zona completa (POST/PUT)
- */
-export const validateZoneMiddleware = (req, res, next) => {
+export const validateZoneCreate = (req, res, next) => {
   try {
-    req.body = validateZone(req.body);
+    req.body = validateCreate(req.body);
     next();
   } catch (error) {
     next(error);
   }
 };
 
-/**
- * Middleware para validar zona parcial (PATCH)
- */
-export const validatePartialZoneMiddleware = (req, res, next) => {
+export const validateZoneUpdate = (req, res, next) => {
   try {
-    req.body = validatePartialZone(req.body);
+    req.body = validateUpdate(req.body);
     next();
   } catch (error) {
     next(error);

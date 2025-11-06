@@ -5,515 +5,250 @@ import {
   getCategoryById,
   createCategory,
   updateCategory,
-  updateCategoryPartial,
   deleteCategory,
   getAllItems,
   getItemById,
   createItem,
   updateItem,
-  updateItemPartial,
   deleteItem,
 } from "../repositories/menu.repository.js";
 
-import { pool } from "../config/db.js";
 import { successResponse, errorResponse } from "../utils/response.js";
 
-// ============================================================
-// CATEGORÍAS
-// ============================================================
+/* CATEGORÍAS */
 
-export const getCategories = async (req, res, next) => {
+/* Obtiene todas las categorías */
+export const listMenu = async (req, res, next) => {
   try {
     const categories = await getAllCategories();
-    return successResponse(res, "Categorías obtenidas correctamente", { categories });
+    return successResponse(res, "Categorías obtenidas correctamente", {
+      categories,
+    });
   } catch (err) {
-    console.error("Error en getCategories:", err);
+    console.error("Error en listMenu:", err);
     next(err);
   }
 };
 
-export const getCategory = async (req, res, next) => {
+/* Obtiene una categoría específica por ID */
+export const showMenu = async (req, res, next) => {
   try {
-    const id = Number(req.params.id);
-
-    if (isNaN(id) || id <= 0) {
+    const categoryId = Number(req.params.category_id);
+    if (isNaN(categoryId) || categoryId <= 0) {
       return errorResponse(res, 400, "ID de categoría inválido");
     }
 
-    const category = await getCategoryById(id);
-
+    const category = await getCategoryById(categoryId);
     if (!category) {
       return errorResponse(res, 404, "Categoría no encontrada");
     }
 
-    return successResponse(res, "Categoría obtenida correctamente", { category });
+    return successResponse(res, "Categoría obtenida correctamente", {
+      category,
+    });
   } catch (err) {
-    console.error("Error en getCategory:", err);
+    console.error("Error en showMenu:", err);
     next(err);
   }
 };
 
-export const addCategory = async (req, res, next) => {
+/* Crea una nueva categoría */
+export const addMenu = async (req, res, next) => {
   try {
-    const newCategory = await createCategory(req.body);
+    const { name, description, is_active } = req.body;
+
+    const category = await createCategory({
+      name,
+      description: description || null,
+      is_active: is_active ?? true,
+    });
 
     return successResponse(
       res,
       "Categoría creada correctamente",
-      { category: newCategory },
+      { category },
       201
     );
   } catch (err) {
-    if (err.message === "El nombre de la categoría ya existe") {
-      return errorResponse(res, 409, err.message);
+    if (err.code === "23505") {
+      return errorResponse(res, 409, "El nombre de la categoría ya existe");
     }
-
-    if (err.message.includes("requerido") || err.message.includes("válido")) {
+    if (err.message.includes("requerido")) {
       return errorResponse(res, 400, err.message);
     }
-
-    console.error("Error en addCategory:", err);
+    console.error("Error en addMenu:", err);
     next(err);
   }
 };
 
-export const editCategory = async (req, res, next) => {
+/* Actualiza una categoría (PUT o PATCH - completo o parcial) */
+export const editMenu = async (req, res, next) => {
   try {
-    const id = Number(req.params.id);
-
-    if (isNaN(id) || id <= 0) {
+    const categoryId = Number(req.params.category_id);
+    if (isNaN(categoryId) || categoryId <= 0) {
       return errorResponse(res, 400, "ID de categoría inválido");
     }
 
-    const updated = await updateCategory(id, req.body);
-
-    if (!updated) {
-      return errorResponse(res, 404, "Categoría no encontrada");
-    }
-
-    return successResponse(res, "Categoría actualizada correctamente", { category: updated });
-  } catch (err) {
-    if (err.message === "El nombre de la categoría ya existe") {
-      return errorResponse(res, 409, err.message);
-    }
-
-    if (err.message.includes("requerido") || err.message.includes("válido")) {
-      return errorResponse(res, 400, err.message);
-    }
-
-    console.error("Error en editCategory:", err);
-    next(err);
-  }
-};
-
-export const patchCategory = async (req, res, next) => {
-  try {
-    const id = Number(req.params.id);
-
-    if (isNaN(id) || id <= 0) {
-      return errorResponse(res, 400, "ID de categoría inválido");
-    }
-
-    const existing = await getCategoryById(id);
+    const existing = await getCategoryById(categoryId);
     if (!existing) {
       return errorResponse(res, 404, "Categoría no encontrada");
     }
 
-    const updated = await updateCategoryPartial(id, req.body);
+    const updated = await updateCategory(categoryId, req.body);
 
-    if (!updated) {
-      return errorResponse(res, 400, "No se pudo actualizar la categoría");
-    }
-
-    return successResponse(res, "Categoría actualizada parcialmente", { category: updated });
+    return successResponse(res, "Categoría actualizada correctamente", {
+      category: updated,
+    });
   } catch (err) {
-    if (err.message === "El nombre de la categoría ya existe") {
-      return errorResponse(res, 409, err.message);
+    if (err.code === "23505") {
+      return errorResponse(res, 409, "El nombre de la categoría ya existe");
     }
-
-    if (err.message.includes("campo") || err.message.includes("válido")) {
-      return errorResponse(res, 400, err.message);
-    }
-
-    console.error("Error en patchCategory:", err);
+    console.error("Error en editMenu:", err);
     next(err);
   }
 };
 
-export const removeCategory = async (req, res, next) => {
+/* Elimina una categoría */
+export const removeMenu = async (req, res, next) => {
   try {
-    const id = Number(req.params.id);
-
-    if (isNaN(id) || id <= 0) {
+    const categoryId = Number(req.params.category_id);
+    if (isNaN(categoryId) || categoryId <= 0) {
       return errorResponse(res, 400, "ID de categoría inválido");
     }
 
-    const category = await getCategoryById(id);
+    const category = await getCategoryById(categoryId);
     if (!category) {
       return errorResponse(res, 404, "Categoría no encontrada");
     }
 
-    const result = await deleteCategory(id);
-
+    const result = await deleteCategory(categoryId);
     return successResponse(res, result.message);
   } catch (err) {
-    console.error("Error en removeCategory:", err);
+    console.error("Error en removeMenu:", err);
     next(err);
   }
 };
 
-// ============================================================
-// ITEMS
-// ============================================================
+/* ITEMS DEL MENÚ */
 
-export const getItems = async (req, res, next) => {
+/* Obtiene todos los items */
+export const listItem = async (req, res, next) => {
   try {
     const items = await getAllItems();
-    return successResponse(res, "Platos obtenidos correctamente", { items });
+    return successResponse(res, "Items obtenidos correctamente", { items });
   } catch (err) {
-    console.error("Error en getItems:", err);
+    console.error("Error en listItem:", err);
     next(err);
   }
 };
 
-export const getItem = async (req, res, next) => {
+/* Obtiene un item específico por ID */
+export const showItem = async (req, res, next) => {
   try {
-    const id = Number(req.params.id);
-
-    if (isNaN(id) || id <= 0) {
-      return errorResponse(res, 400, "ID de plato inválido");
+    const itemId = Number(req.params.item_id);
+    if (isNaN(itemId) || itemId <= 0) {
+      return errorResponse(res, 400, "ID de item inválido");
     }
 
-    const item = await getItemById(id);
-
+    const item = await getItemById(itemId);
     if (!item) {
-      return errorResponse(res, 404, "Plato no encontrado");
+      return errorResponse(res, 404, "Item no encontrado");
     }
 
-    return successResponse(res, "Plato obtenido correctamente", { item });
+    return successResponse(res, "Item obtenido correctamente", { item });
   } catch (err) {
-    console.error("Error en getItem:", err);
+    console.error("Error en showItem:", err);
     next(err);
   }
 };
 
-// 🆕 ACTUALIZADO - Incluir estimated_prep_time al crear item
+/* Crea un nuevo item */
 export const addItem = async (req, res, next) => {
   try {
-    if (req.body.category_id) {
-      const categoryExists = await getCategoryById(req.body.category_id);
-      if (!categoryExists) {
-        return errorResponse(res, 400, "La categoría especificada no existe");
-      }
+    const {
+      category_id,
+      name,
+      description,
+      ingredients,
+      price,
+      estimated_prep_time,
+      is_available,
+    } = req.body;
+
+    let imageUrl = null;
+    if (req.file) {
+      imageUrl = `/uploads/menu/${req.file.filename}`;
     }
 
-    // 🆕 Extraer estimated_prep_time del body
-    const { estimated_prep_time, ...itemData } = req.body;
+    const item = await createItem({
+      category_id: category_id || null,
+      name,
+      description: description || null,
+      ingredients: ingredients || null,
+      price,
+      image_url: imageUrl,
+      estimated_prep_time: estimated_prep_time || 10,
+      is_available: is_available ?? true,
+    });
 
-    const newItem = await createItem(itemData);
-
-    // 🆕 Si viene estimated_prep_time, actualizar con ese valor
-    if (estimated_prep_time) {
-      const updated = await updateItemPartial(newItem.id, {
-        estimated_prep_time: estimated_prep_time
-      });
-      newItem.estimated_prep_time = updated.estimated_prep_time;
-    } else {
-      // Si no viene, establecer default
-      const updated = await updateItemPartial(newItem.id, {
-        estimated_prep_time: 30
-      });
-      newItem.estimated_prep_time = updated.estimated_prep_time;
-    }
-
-    return successResponse(
-      res,
-      "Plato creado correctamente",
-      { item: newItem },
-      201
-    );
+    return successResponse(res, "Item creado correctamente", { item }, 201);
   } catch (err) {
-    if (err.message.includes("requerido") || err.message.includes("válido")) {
-      return errorResponse(res, 400, err.message);
-    }
-
-    if (err.code === "23503") {
-      return errorResponse(res, 400, "La categoría especificada no existe");
-    }
-
     console.error("Error en addItem:", err);
     next(err);
   }
 };
 
+/* Actualiza un item (PUT o PATCH - completo o parcial) */
 export const editItem = async (req, res, next) => {
   try {
-    const id = Number(req.params.id);
-
-    if (isNaN(id) || id <= 0) {
-      return errorResponse(res, 400, "ID de plato inválido");
+    const itemId = Number(req.params.item_id);
+    if (isNaN(itemId) || itemId <= 0) {
+      return errorResponse(res, 400, "ID de item inválido");
     }
 
-    const existing = await getItemById(id);
+    const existing = await getItemById(itemId);
     if (!existing) {
-      return errorResponse(res, 404, "Plato no encontrado");
+      return errorResponse(res, 404, "Item no encontrado");
     }
 
-    if (req.body.category_id) {
-      const categoryExists = await getCategoryById(req.body.category_id);
-      if (!categoryExists) {
-        return errorResponse(res, 400, "La categoría especificada no existe");
-      }
+    let imageUrl = existing.image_url;
+    if (req.file) {
+      imageUrl = `/uploads/menu/${req.file.filename}`;
     }
 
-    const updated = await updateItem(id, req.body);
+    const data = {
+      ...req.body,
+      ...(req.file && { image_url: imageUrl }),
+    };
 
-    return successResponse(res, "Plato actualizado correctamente", { item: updated });
+    const updated = await updateItem(itemId, data);
+
+    return successResponse(res, "Item actualizado correctamente", {
+      item: updated,
+    });
   } catch (err) {
-    if (err.message.includes("requerido") || err.message.includes("válido")) {
-      return errorResponse(res, 400, err.message);
-    }
-
-    if (err.code === "23503") {
-      return errorResponse(res, 400, "La categoría especificada no existe");
-    }
-
     console.error("Error en editItem:", err);
     next(err);
   }
 };
 
-export const patchItem = async (req, res, next) => {
-  try {
-    const id = Number(req.params.id);
-
-    if (isNaN(id) || id <= 0) {
-      return errorResponse(res, 400, "ID de plato inválido");
-    }
-
-    const existing = await getItemById(id);
-    if (!existing) {
-      return errorResponse(res, 404, "Plato no encontrado");
-    }
-
-    if (req.body.category_id) {
-      const categoryExists = await getCategoryById(req.body.category_id);
-      if (!categoryExists) {
-        return errorResponse(res, 400, "La categoría especificada no existe");
-      }
-    }
-
-    const updated = await updateItemPartial(id, req.body);
-
-    if (!updated) {
-      return errorResponse(res, 400, "No se pudo actualizar el plato");
-    }
-
-    return successResponse(res, "Plato actualizado parcialmente", { item: updated });
-  } catch (err) {
-    if (err.message.includes("campo") || err.message.includes("válido")) {
-      return errorResponse(res, 400, err.message);
-    }
-
-    if (err.code === "23503") {
-      return errorResponse(res, 400, "La categoría especificada no existe");
-    }
-
-    console.error("Error en patchItem:", err);
-    next(err);
-  }
-};
-
+/* Elimina un item */
 export const removeItem = async (req, res, next) => {
   try {
-    const id = Number(req.params.id);
-
-    if (isNaN(id) || id <= 0) {
-      return errorResponse(res, 400, "ID de plato inválido");
+    const itemId = Number(req.params.item_id);
+    if (isNaN(itemId) || itemId <= 0) {
+      return errorResponse(res, 400, "ID de item inválido");
     }
 
-    const item = await getItemById(id);
+    const item = await getItemById(itemId);
     if (!item) {
-      return errorResponse(res, 404, "Plato no encontrado");
+      return errorResponse(res, 404, "Item no encontrado");
     }
 
-    const result = await deleteItem(id);
-
+    const result = await deleteItem(itemId);
     return successResponse(res, result.message);
   } catch (err) {
     console.error("Error en removeItem:", err);
     next(err);
-  }
-};
-
-// ============================================================
-// TIEMPO DE PREPARACIÓN (PREP TIME)
-// ============================================================
-
-/**
- * GET /api/menu/prep-times/all
- * Obtener todos los items con sus tiempos de preparación
- */
-export const getAllItemsPrepTimes = async (req, res, next) => {
-  try {
-    const items = await getAllItems();
-
-    const prepTimes = items.map(item => ({
-      id: item.id,
-      name: item.name,
-      category_id: item.category_id,
-      estimated_prep_time: item.estimated_prep_time || 10,
-      is_available: item.is_available,
-      price: item.price
-    }));
-
-    return successResponse(res, "✅ Tiempos de preparación obtenidos", {
-      items: prepTimes,
-      count: prepTimes.length,
-      total_items: items.length
-    });
-  } catch (err) {
-    console.error("Error en getAllItemsPrepTimes:", err);
-    next(err);
-  }
-};
-
-/**
- * GET /api/menu/items/:id/prep-time
- * Obtener tiempo de preparación de un item específico
- */
-export const getItemPrepTime = async (req, res, next) => {
-  try {
-    const id = Number(req.params.id);
-
-    if (isNaN(id) || id <= 0) {
-      return errorResponse(res, 400, "ID de plato inválido");
-    }
-
-    const item = await getItemById(id);
-
-    if (!item) {
-      return errorResponse(res, 404, "Plato no encontrado");
-    }
-
-    return successResponse(res, "✅ Tiempo de preparación obtenido", {
-      item_id: item.id,
-      name: item.name,
-      estimated_prep_time: item.estimated_prep_time || 10,
-      unit: "minutos"
-    });
-  } catch (err) {
-    console.error("Error en getItemPrepTime:", err);
-    next(err);
-  }
-};
-
-/**
- * PATCH /api/menu/items/:id/prep-time
- * Actualizar SOLO el tiempo de preparación de un item (Admin)
- * Body: { estimated_prep_time: number (5-120) }
- */
-export const updateItemPrepTime = async (req, res, next) => {
-  try {
-    const id = Number(req.params.id);
-
-    if (isNaN(id) || id <= 0) {
-      return errorResponse(res, 400, "ID de plato inválido");
-    }
-
-    // Verificar que el item existe
-    const existing = await getItemById(id);
-    if (!existing) {
-      return errorResponse(res, 404, "Plato no encontrado");
-    }
-
-    // req.body ya fue validado por middleware (validatePrepTimeMiddleware)
-    const { estimated_prep_time } = req.body;
-
-    // Actualizar solo prep_time
-    const updated = await updateItemPartial(id, {
-      estimated_prep_time
-    });
-
-    if (!updated) {
-      return errorResponse(res, 400, "No se pudo actualizar el tiempo de preparación");
-    }
-
-    return successResponse(res, "✅ Tiempo de preparación actualizado", {
-      item_id: updated.id,
-      name: updated.name,
-      estimated_prep_time: updated.estimated_prep_time,
-      unit: "minutos",
-      updated_at: updated.updated_at
-    });
-  } catch (err) {
-    if (err.message.includes("tiempo de preparación")) {
-      return errorResponse(res, 400, err.message);
-    }
-
-    console.error("Error en updateItemPrepTime:", err);
-    next(err);
-  }
-};
-
-// ============================================================
-// MENÚ PÚBLICO
-// ============================================================
-
-export const getPublicMenu = async (req, res, next) => {
-  try {
-    const query = `
-      SELECT mi.*, mc.name AS category_name
-      FROM menu_items mi
-      LEFT JOIN menu_categories mc ON mi.category_id = mc.id
-      WHERE mi.is_available = true
-      ORDER BY mc.name, mi.name ASC;
-    `;
-
-    const { rows } = await pool.query(query);
-
-    return successResponse(res, "Menú público obtenido correctamente", { items: rows });
-  } catch (err) {
-    console.error("Error en getPublicMenu:", err);
-    next(err);
-  }
-};
-
-export const getPublicCategories = async (req, res, next) => {
-  try {
-    const query = `
-      SELECT id, name, description
-      FROM menu_categories
-      ORDER BY name ASC;
-    `;
-
-    const { rows } = await pool.query(query);
-
-    return successResponse(res, "Categorías públicas obtenidas correctamente", { categories: rows });
-  } catch (err) {
-    console.error("Error en getPublicCategories:", err);
-    next(err);
-  }
-};
-
-// ============================================================
-// SUBIDA DE IMÁGENES
-// ============================================================
-
-export const uploadImage = async (req, res, next) => {
-  try {
-    if (!req.file) {
-      return errorResponse(res, 400, "No se proporcionó ninguna imagen");
-    }
-
-    const imageUrl = `/uploads/menu/${req.file.filename}`;
-
-    return successResponse(res, "Imagen subida exitosamente", {
-      url: imageUrl,
-      filename: req.file.filename,
-    });
-  } catch (error) {
-    console.error("Error al subir imagen:", error);
-    next(error);
   }
 };

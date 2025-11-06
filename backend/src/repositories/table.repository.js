@@ -2,13 +2,34 @@
 
 import { pool } from "../config/db.js";
 
+/* UTILIDADES Y VALIDADORES */
+
+/* Valida que un ID sea un número positivo válido */
 const validateId = (id) => {
   const numId = Number(id);
   return isNaN(numId) || numId <= 0 ? null : numId;
 };
 
-const ALLOWED_TABLE_FIELDS = ["zone_id", "table_number", "capacity", "status", "is_active"];
+/* Valida que un string sea válido y no esté vacío */
+const validateString = (value, fieldName) => {
+  if (!value || typeof value !== "string" || value.trim().length === 0) {
+    throw new Error(`${fieldName} es requerido y no puede estar vacío`);
+  }
+  return value.trim();
+};
 
+/* Valida que un número sea válido y no negativo */
+const validateNumber = (value, fieldName, allowNegative = false) => {
+  const num = Number(value);
+  if (isNaN(num) || (!allowNegative && num < 0)) {
+    throw new Error(
+      `${fieldName} debe ser un número válido ${allowNegative ? "" : "no negativo"}`
+    );
+  }
+  return num;
+};
+
+/* Filtra solo los campos permitidos de un objeto */
 const filterAllowedFields = (data, allowedFields) => {
   const filtered = {};
   Object.keys(data).forEach((key) => {
@@ -19,15 +40,147 @@ const filterAllowedFields = (data, allowedFields) => {
   return filtered;
 };
 
-export const getAllTables = async () => {
+/* Valida campos específicos según su tipo */
+const validateFields = (data, fieldValidators) => {
+  const validated = { ...data };
+  Object.entries(fieldValidators).forEach(([field, validator]) => {
+    if (validated[field] !== undefined && validated[field] !== null) {
+      validated[field] = validator(validated[field]);
+    }
+  });
+  return validated;
+};
+
+/* Construye una query UPDATE dinámica con validación de campos */
+const buildUpdateQuery = (data, allowedFields, tableName, whereId) => {
+  const filteredData = filterAllowedFields(data, allowedFields);
+  const keys = Object.keys(filteredData);
+  if (keys.length === 0) {
+    throw new Error("No se proporcionaron campos válidos para actualizar");
+  }
+
+  const setClauses = keys.map((key, i) => `${key} = $${i + 1}`);
+  const values = keys.map((key) => filteredData[key]);
+  const query = `
+    UPDATE ${tableName}
+    SET ${setClauses.join(", ")}, updated_at = NOW()
+    WHERE id = $${keys.length + 1}
+    RETURNING *;
+  `;
+  return { query, values: [...values, whereId] };
+};
+
+/* Maneja errores comunes de PostgreSQL */
+const handleDatabaseError = (error) => {
+  if (error.code === "23505") {
+    throw new Error("Este registro ya existe (violación de unicidad)");
+  }
+  if (error.code === "23503") {
+    throw new Error("Referencia a un registro que no existe");
+  }
+  throw error;
+};
+
+/* Campos permitidos para actualizar mesas */
+const ALLOWED_TABLE_FIELDS = [
+  "zone_id",
+  "table_number",
+  "capacity",
+  "status",
+  "is_active",
+];
+
+/* Validadores para campos de mesas */
+const TABLE_VALIDATORS = {
+  table_number: (value) => validateString(value, "El número de mesa"),
+  capacity: (value) => validateNumber(value, "La capacidad"),
+  status: (value) => {
+    const validStatuses = ["available", "occupied", "reserved"];
+    if (!validStatuses.includes(value)) {
+      throw new Error(
+        `Estado inválido: ${value}. Debe ser uno de: ${validStatuses.join(", ")}`
+      );
+    }
+    return value;
+  },
+  is_active: (value) => Boolean(value),
+};
+
+/* Función auxiliar interna: Generar prefijo automático de mesa */
+const generateTableNumber = async (zone_id) => {
   try {
-    const query = `
-      SELECT t.*, z.name AS zone_name
-      FROM tables t
-      LEFT JOIN zones z ON t.zone_id = z.id
-      ORDER BY t.zone_id, t.table_number ASC;
+    if (!zone_id) throw new Error("zone_id es requerido");
+
+    const zone_query = `SELECT name FROM public.zones WHERE id = $1;`;
+    const zone_result = await pool.query(zone_query, [zone_id]);
+
+    if (!zone_result.rows[0]) {
+      throw new Error(`Zona con ID ${zone_id} no existe`);
+    }
+
+    const zone_name = zone_result.rows[0].name;
+    const prefix = zone_name.charAt(0).toUpperCase();
+
+    const count_query = `
+      SELECT COUNT(*) + 1 as next_number
+      FROM public.tables
+      WHERE zone_id = $1;
     `;
-    const { rows } = await pool.query(query);
+    const count_result = await pool.query(count_query, [zone_id]);
+    const next_number = count_result.rows[0].next_number;
+
+    const table_number = `${prefix}-${String(next_number).padStart(2, "0")}`;
+    console.log(`✅ Mesa generada: ${table_number} para zona ${zone_name}`);
+    return table_number;
+  } catch (error) {
+    console.error("Error al generar número de mesa:", error);
+    throw error;
+  }
+};
+
+/* CRUD BÁSICO - MESAS */
+
+/* Obtiene mesas con filtros opcionales (zone_id, status, is_active) */
+export const getTables = async (filters = {}) => {
+  try {
+    let query = `
+      SELECT t.*, z.name AS zone_name
+      FROM public.tables t
+      LEFT JOIN public.zones z ON t.zone_id = z.id
+      WHERE 1=1
+    `;
+    const values = [];
+    let paramCount = 1;
+
+    if (filters.zone_id) {
+      const valid_zone_id = validateId(filters.zone_id);
+      if (!valid_zone_id) throw new Error("ID de zona inválido");
+      query += ` AND t.zone_id = $${paramCount}`;
+      values.push(valid_zone_id);
+      paramCount++;
+    }
+
+    if (filters.status) {
+      const validStatuses = ["available", "occupied", "reserved"];
+      if (!validStatuses.includes(filters.status)) {
+        throw new Error(
+          `Estado inválido: ${filters.status}. Debe ser uno de: ${validStatuses.join(", ")}`
+        );
+      }
+      query += ` AND t.status = $${paramCount}`;
+      values.push(filters.status);
+      paramCount++;
+    }
+
+    if (filters.is_active !== undefined) {
+      query += ` AND t.is_active = $${paramCount}`;
+      values.push(Boolean(filters.is_active));
+      paramCount++;
+    }
+
+    query += ` ORDER BY t.zone_id, t.table_number ASC;`;
+
+    const { rows } = await pool.query(query, values);
     return rows;
   } catch (error) {
     console.error("Error al obtener mesas:", error);
@@ -35,18 +188,19 @@ export const getAllTables = async () => {
   }
 };
 
+/* Obtiene una mesa específica por su ID */
 export const getTableById = async (id) => {
   try {
-    const tableId = validateId(id);
-    if (!tableId) return null;
+    const table_id = validateId(id);
+    if (!table_id) throw new Error("ID de mesa inválido");
 
     const query = `
       SELECT t.*, z.name AS zone_name
-      FROM tables t
-      LEFT JOIN zones z ON t.zone_id = z.id
+      FROM public.tables t
+      LEFT JOIN public.zones z ON t.zone_id = z.id
       WHERE t.id = $1;
     `;
-    const { rows } = await pool.query(query, [tableId]);
+    const { rows } = await pool.query(query, [table_id]);
     return rows[0] || null;
   } catch (error) {
     console.error("Error al obtener mesa por ID:", error);
@@ -54,270 +208,166 @@ export const getTableById = async (id) => {
   }
 };
 
-export const getTablesByZone = async (zoneId) => {
-  try {
-    const validZoneId = validateId(zoneId);
-    if (!validZoneId) return [];
-
-    const query = `
-      SELECT t.*, z.name AS zone_name
-      FROM tables t
-      LEFT JOIN zones z ON t.zone_id = z.id
-      WHERE t.zone_id = $1 AND t.is_active = true
-      ORDER BY t.table_number ASC;
-    `;
-    const { rows } = await pool.query(query, [validZoneId]);
-    return rows;
-  } catch (error) {
-    console.error("Error al obtener mesas por zona:", error);
-    throw error;
-  }
-};
-
-export const getTablesByStatus = async (status) => {
-  try {
-    if (!status || !["available", "occupied", "reserved"].includes(status)) {
-      throw new Error("Estado inválido. Debe ser: available, occupied o reserved");
-    }
-
-    const query = `
-      SELECT t.*, z.name AS zone_name
-      FROM tables t
-      LEFT JOIN zones z ON t.zone_id = z.id
-      WHERE t.status = $1 AND t.is_active = true
-      ORDER BY t.zone_id, t.table_number ASC;
-    `;
-    const { rows } = await pool.query(query, [status]);
-    return rows;
-  } catch (error) {
-    console.error("Error al obtener mesas por estado:", error);
-    throw error;
-  }
-};
-
-export const getAvailableTablesByZone = async (zoneId) => {
-  try {
-    const validZoneId = validateId(zoneId);
-    if (!validZoneId) return [];
-
-    const query = `
-      SELECT t.*, z.name AS zone_name
-      FROM tables t
-      LEFT JOIN zones z ON t.zone_id = z.id
-      WHERE t.zone_id = $1 AND t.status = 'available' AND t.is_active = true
-      ORDER BY t.table_number ASC;
-    `;
-    const { rows } = await pool.query(query, [validZoneId]);
-    return rows;
-  } catch (error) {
-    console.error("Error al obtener mesas disponibles por zona:", error);
-    throw error;
-  }
-};
-
+/* Crea una nueva mesa */
 export const createTable = async ({
-  zone_id = null,
-  table_number,
+  zone_id,
+  table_number = null,
   capacity,
   status = "available",
   is_active = true,
 }) => {
   try {
-    if (!table_number || typeof table_number !== "string" || table_number.trim().length === 0) {
-      throw new Error("El número de mesa es requerido");
-    }
-
-    if (capacity === undefined || capacity === null || isNaN(Number(capacity)) || Number(capacity) <= 0) {
-      throw new Error("La capacidad debe ser un número válido mayor a 0");
-    }
-
-    if (!["available", "occupied", "reserved"].includes(status)) {
-      throw new Error("Estado inválido. Debe ser: available, occupied o reserved");
-    }
-
-    const query = `
-      INSERT INTO tables
-      (zone_id, table_number, capacity, status, is_active)
-      VALUES ($1, $2, $3, $4, $5)
-      RETURNING *;
-    `;
-
-    const values = [
-      zone_id || null,
-      table_number.trim(),
-      Number(capacity),
-      status,
-      Boolean(is_active),
-    ];
-
-    const { rows } = await pool.query(query, values);
-    return rows[0];
-  } catch (error) {
-    if (error.code === "23505") {
-      throw new Error("El número de mesa ya existe en esta zona");
-    }
-    console.error("Error al crear mesa:", error);
-    throw error;
-  }
-};
-
-export const updateTable = async (id, data) => {
-  try {
-    const tableId = validateId(id);
-    if (!tableId) return null;
-
-    const {
+    console.log("📥 Data recibida:", {
       zone_id,
       table_number,
       capacity,
       status,
       is_active,
-    } = data;
+    });
 
-    if (!table_number || typeof table_number !== "string" || table_number.trim().length === 0) {
-      throw new Error("El número de mesa es requerido");
+    /* Generar table_number automáticamente si no se proporciona */
+    let finalTableNumber = table_number;
+    if (!finalTableNumber && zone_id) {
+      finalTableNumber = await generateTableNumber(zone_id);
+      console.log("✅ table_number generado:", finalTableNumber);
     }
 
-    if (capacity === undefined || capacity === null || isNaN(Number(capacity)) || Number(capacity) <= 0) {
-      throw new Error("La capacidad debe ser un número válido mayor a 0");
-    }
+    /* Validar campos requeridos */
+    validateNumber(zone_id, "zone_id");
+    validateString(finalTableNumber, "table_number");
+    validateNumber(capacity, "capacity");
 
-    const validStatus = status || "available";
-    if (!["available", "occupied", "reserved"].includes(validStatus)) {
-      throw new Error("Estado inválido. Debe ser: available, occupied o reserved");
-    }
+    const data = {
+      zone_id: Number(zone_id),
+      table_number: finalTableNumber,
+      capacity: Number(capacity),
+      status,
+      is_active: Boolean(is_active),
+    };
 
-    const query = `
-      UPDATE tables
-      SET zone_id = $1,
-          table_number = $2,
-          capacity = $3,
-          status = $4,
-          is_active = $5,
-          updated_at = NOW()
-      WHERE id = $6
-      RETURNING *;
-    `;
+    const validatedData = validateFields(data, TABLE_VALIDATORS);
+    const filteredData = filterAllowedFields(validatedData, ALLOWED_TABLE_FIELDS);
 
-    const values = [
-      zone_id !== undefined && zone_id !== null ? zone_id : null,
-      table_number.trim(),
-      Number(capacity),
-      validStatus,
-      is_active !== undefined ? Boolean(is_active) : true,
-      tableId,
-    ];
-
-    const { rows } = await pool.query(query, values);
-    return rows[0] || null;
-  } catch (error) {
-    if (error.code === "23505") {
-      throw new Error("El número de mesa ya existe en esta zona");
-    }
-    console.error("Error al actualizar mesa:", error);
-    throw error;
-  }
-};
-
-export const updateTablePartial = async (id, data) => {
-  try {
-    const tableId = validateId(id);
-    if (!tableId) return null;
-
-    const filteredData = filterAllowedFields(data, ALLOWED_TABLE_FIELDS);
     const keys = Object.keys(filteredData);
-
-    if (keys.length === 0) {
-      throw new Error("No se proporcionaron campos válidos para actualizar");
-    }
-
-    if (filteredData.table_number !== undefined) {
-      if (typeof filteredData.table_number !== "string" || filteredData.table_number.trim().length === 0) {
-        throw new Error("El número de mesa no puede estar vacío");
-      }
-      filteredData.table_number = filteredData.table_number.trim();
-    }
-
-    if (filteredData.capacity !== undefined) {
-      const capacityNum = Number(filteredData.capacity);
-      if (isNaN(capacityNum) || capacityNum <= 0) {
-        throw new Error("La capacidad debe ser un número válido mayor a 0");
-      }
-      filteredData.capacity = capacityNum;
-    }
-
-    if (filteredData.status !== undefined) {
-      if (!["available", "occupied", "reserved"].includes(filteredData.status)) {
-        throw new Error("Estado inválido. Debe ser: available, occupied o reserved");
-      }
-    }
-
-    if (filteredData.is_active !== undefined) {
-      filteredData.is_active = Boolean(filteredData.is_active);
-    }
-
-    const setClauses = keys.map((key, i) => `${key} = $${i + 1}`);
     const values = Object.values(filteredData);
+    const placeholders = keys.map((_, i) => `$${i + 1}`).join(", ");
 
     const query = `
-      UPDATE tables
-      SET ${setClauses.join(", ")}, updated_at = NOW()
-      WHERE id = $${keys.length + 1}
+      INSERT INTO public.tables (${keys.join(", ")})
+      VALUES (${placeholders})
       RETURNING *;
     `;
 
-    const { rows } = await pool.query(query, [...values, tableId]);
-    return rows[0] || null;
+    console.log("🔧 Query:", query);
+    const { rows } = await pool.query(query, values);
+    console.log("✅ Mesa creada:", rows[0]);
+    return rows[0];
   } catch (error) {
-    if (error.code === "23505") {
-      throw new Error("El número de mesa ya existe en esta zona");
-    }
-    console.error("Error al actualizar parcialmente mesa:", error);
-    throw error;
+    console.error("❌ Error al crear mesa:", error);
+    handleDatabaseError(error);
   }
 };
 
-export const updateTableStatus = async (id, status) => {
+/* Actualiza una mesa (completa o parcial, incluyendo estado) */
+export const updateTable = async (id, data) => {
   try {
-    const tableId = validateId(id);
-    if (!tableId) return null;
+    const table_id = validateId(id);
+    if (!table_id) throw new Error("ID de mesa inválido");
 
-    if (!["available", "occupied", "reserved"].includes(status)) {
-      throw new Error("Estado inválido. Debe ser: available, occupied o reserved");
-    }
-
-    const query = `
-      UPDATE tables
-      SET status = $1, updated_at = NOW()
-      WHERE id = $2
-      RETURNING *;
-    `;
-
-    const { rows } = await pool.query(query, [status, tableId]);
-    return rows[0] || null;
-  } catch (error) {
-    console.error("Error al actualizar estado de mesa:", error);
-    throw error;
-  }
-};
-
-export const deleteTable = async (id) => {
-  try {
-    const tableId = validateId(id);
-    if (!tableId) return null;
-
-    const result = await pool.query(
-      "DELETE FROM tables WHERE id = $1 RETURNING id",
-      [tableId]
+    const validatedData = validateFields(data, TABLE_VALIDATORS);
+    const { query, values } = buildUpdateQuery(
+      validatedData,
+      ALLOWED_TABLE_FIELDS,
+      "public.tables",
+      table_id
     );
 
-    if (result.rowCount === 0) {
-      return null;
+    const { rows } = await pool.query(query, values);
+    if (rows.length === 0) {
+      throw new Error("Mesa no encontrada");
+    }
+
+    return rows[0];
+  } catch (error) {
+    console.error("Error al actualizar mesa:", error);
+    handleDatabaseError(error);
+  }
+};
+
+/* Elimina una mesa */
+export const deleteTable = async (id) => {
+  try {
+    const table_id = validateId(id);
+    if (!table_id) throw new Error("ID de mesa inválido");
+
+    const query = `
+      DELETE FROM public.tables
+      WHERE id = $1
+      RETURNING id;
+    `;
+
+    const { rows } = await pool.query(query, [table_id]);
+    if (rows.length === 0) {
+      throw new Error("Mesa no encontrada");
     }
 
     return { message: "Mesa eliminada correctamente" };
   } catch (error) {
     console.error("Error al eliminar mesa:", error);
+    throw error;
+  }
+};
+
+/* FUNCIONES AVANZADAS */
+
+/* Obtiene una mesa con su orden actual (información completa) */
+export const getTableWithCurrentOrder = async (table_id) => {
+  try {
+    const valid_table_id = validateId(table_id);
+    if (!valid_table_id) throw new Error("ID de mesa inválido");
+
+    const query = `
+      SELECT
+        t.*,
+        z.name AS zone_name,
+        o.id AS order_id,
+        o.status AS order_status,
+        COUNT(oi.id) AS items_count,
+        SUM(oi.quantity) AS total_items
+      FROM public.tables t
+      LEFT JOIN public.zones z ON t.zone_id = z.id
+      LEFT JOIN public.orders o ON t.id = o.table_id AND o.status IN ('pending', 'preparing', 'ready')
+      LEFT JOIN public.order_items oi ON o.id = oi.order_id
+      WHERE t.id = $1
+      GROUP BY t.id, z.id, o.id;
+    `;
+
+    const { rows } = await pool.query(query, [valid_table_id]);
+    return rows[0] || null;
+  } catch (error) {
+    console.error("Error al obtener mesa con orden:", error);
+    throw error;
+  }
+};
+
+/* Obtiene estadísticas generales de mesas (para dashboards/reportes) */
+export const getTableStatistics = async () => {
+  try {
+    const query = `
+      SELECT
+        COUNT(*) as total_tables,
+        COUNT(CASE WHEN status = 'available' THEN 1 END) as available_count,
+        COUNT(CASE WHEN status = 'occupied' THEN 1 END) as occupied_count,
+        COUNT(CASE WHEN status = 'reserved' THEN 1 END) as reserved_count,
+        AVG(capacity) as avg_capacity,
+        SUM(capacity) as total_capacity
+      FROM public.tables;
+    `;
+
+    const { rows } = await pool.query(query);
+    return rows[0] || {};
+  } catch (error) {
+    console.error("Error al obtener estadísticas de mesas:", error);
     throw error;
   }
 };

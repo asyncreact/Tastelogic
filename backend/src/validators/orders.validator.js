@@ -3,192 +3,107 @@
 import { z } from "zod";
 
 // ============================================================
-// Esquemas de Validación
+// ESQUEMAS DE VALIDACIÓN
 // ============================================================
 
-/**
- * Esquema para crear una orden
- */
 export const createOrderSchema = z.object({
-  totalAmount: z.number().min(0).optional().default(0),
-  deliveryType: z.enum(['dine-in', 'delivery', 'takeout']).optional().default('dine-in'),
-  specialInstructions: z.string().max(500).optional().nullable()
+  user_id: z.number().int().positive("user_id debe ser un número positivo"),
+  total_amount: z.number().min(0).optional().default(0),
+  delivery_type: z.enum(['dine-in', 'delivery', 'takeout']).optional().default('dine-in'),
+  special_instructions: z.string().max(500).optional().nullable()
 });
 
-/**
- * Esquema para actualizar estado de orden
- */
 export const updateOrderStatusSchema = z.object({
   status: z.enum(['pending', 'preparing', 'ready', 'completed', 'cancelled'])
     .describe('Estado válido de la orden')
 });
 
-/**
- * Esquema para actualizar instrucciones especiales
- */
-export const updateInstructionsSchema = z.object({
-  specialInstructions: z.string().max(500).optional().nullable()
+export const updateOrderSchema = z.object({
+  status: z.enum(['pending', 'preparing', 'ready', 'completed', 'cancelled']).optional(),
+  delivery_type: z.enum(['dine-in', 'delivery', 'takeout']).optional(),
+  special_instructions: z.string().max(500).optional().nullable(),
+  total_amount: z.number().min(0).optional()
 });
 
-/**
- * Esquema para agregar item a orden
- */
 export const addOrderItemSchema = z.object({
-  menuItemId: z.number().int().positive(),
+  order_id: z.number().int().positive("order_id debe ser positivo"),
+  menu_item_id: z.number().int().positive("menu_item_id debe ser positivo"),
   quantity: z.number().int().min(1).max(99),
-  specialRequests: z.string().max(300).optional().nullable()
+  price: z.number().min(0),
+  subtotal: z.number().min(0).optional(),
+  special_requests: z.string().max(300).optional().nullable()
 });
 
-/**
- * Esquema para actualizar cantidad de item
- */
-export const updateItemQuantitySchema = z.object({
-  quantity: z.number().int().min(1).max(99)
+export const updateOrderItemSchema = z.object({
+  quantity: z.number().int().min(1).max(99).optional(),
+  special_requests: z.string().max(300).optional().nullable()
 });
 
-/**
- * Esquema para un item del carrito en checkout
- */
 const cartItemSchema = z.object({
-  menuItemId: z.number().int().positive(),
-  quantity: z.number().int().min(1).max(99),
-  specialRequests: z.string().max(300).optional().nullable()
+  menu_item_id: z.number().int().positive(),
+  quantity: z.number().int().min(1).max(99).default(1),
+  special_requests: z.string().max(300).optional().nullable()
 });
 
-/**
- * Esquema para checkout completo
- */
-export const checkoutCartSchema = z.object({
-  cartItems: z.array(cartItemSchema).min(1, 'El carrito debe tener al menos 1 item'),
-  deliveryType: z.enum(['dine-in', 'delivery', 'takeout']).optional().default('dine-in'),
-  specialInstructions: z.string().max(500).optional().nullable()
+export const createFullOrderSchema = z.object({
+  user_id: z.number().int().positive("user_id debe ser positivo"),
+  cart_items: z.array(cartItemSchema).min(1, 'El carrito debe tener al menos 1 item'),
+  delivery_type: z.enum(['dine-in', 'delivery', 'takeout']).optional().default('dine-in'),
+  special_instructions: z.string().max(500).optional().nullable()
 });
 
-/**
- * Esquema para query parameters de órdenes
- */
+export const validateCartSchema = z.object({
+  cart_items: z.array(cartItemSchema).min(1, 'El carrito debe tener al menos 1 item')
+});
+
+export const createDineInOrderSchema = z.object({
+  user_id: z.number().int().positive("user_id debe ser positivo"),
+  table_id: z.number().int().positive("table_id debe ser positivo"),
+  cart_items: z.array(cartItemSchema).min(1, 'El carrito debe tener al menos 1 item'),
+  special_instructions: z.string().max(500).optional().nullable()
+});
+
+export const moveOrderSchema = z.object({
+  new_table_id: z.number().int().positive("new_table_id debe ser positivo")
+});
+
 export const ordersQuerySchema = z.object({
   status: z.enum(['pending', 'preparing', 'ready', 'completed', 'cancelled']).optional(),
   limit: z.coerce.number().int().min(1).max(100).optional().default(10),
   offset: z.coerce.number().int().min(0).optional().default(0)
 });
 
-/**
- * Esquema para query parameters de analytics con rango de fechas
- */
 export const dateRangeQuerySchema = z.object({
-  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato requerido: YYYY-MM-DD'),
-  endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato requerido: YYYY-MM-DD')
+  start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato requerido: YYYY-MM-DD'),
+  end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato requerido: YYYY-MM-DD')
 });
 
-/**
- * Esquema para query parameters con limit
- */
-export const limitQuerySchema = z.object({
-  limit: z.coerce.number().int().min(1).max(100).optional().default(10)
+export const paginationQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(100).optional().default(10),
+  offset: z.coerce.number().int().min(0).optional().default(0)
 });
 
 // ============================================================
-// Funciones de Validación
+// FUNCIONES DE VALIDACIÓN
 // ============================================================
 
-/**
- * Valida el body para crear orden
- * @param {Object} data - Datos a validar
- * @throws {ZodError} - Si los datos no son válidos
- * @returns {Object} - Datos validados
- */
-export const validateCreateOrder = (data) => {
-  return createOrderSchema.parse(data);
-};
-
-/**
- * Valida el body para actualizar estado
- * @param {Object} data - Datos a validar
- * @throws {ZodError} - Si los datos no son válidos
- * @returns {Object} - Datos validados
- */
-export const validateUpdateOrderStatus = (data) => {
-  return updateOrderStatusSchema.parse(data);
-};
-
-/**
- * Valida el body para actualizar instrucciones
- * @param {Object} data - Datos a validar
- * @throws {ZodError} - Si los datos no son válidos
- * @returns {Object} - Datos validados
- */
-export const validateUpdateInstructions = (data) => {
-  return updateInstructionsSchema.parse(data);
-};
-
-/**
- * Valida el body para agregar item
- * @param {Object} data - Datos a validar
- * @throws {ZodError} - Si los datos no son válidos
- * @returns {Object} - Datos validados
- */
-export const validateAddOrderItem = (data) => {
-  return addOrderItemSchema.parse(data);
-};
-
-/**
- * Valida el body para actualizar cantidad
- * @param {Object} data - Datos a validar
- * @throws {ZodError} - Si los datos no son válidos
- * @returns {Object} - Datos validados
- */
-export const validateUpdateItemQuantity = (data) => {
-  return updateItemQuantitySchema.parse(data);
-};
-
-/**
- * Valida el body para checkout
- * @param {Object} data - Datos a validar
- * @throws {ZodError} - Si los datos no son válidos
- * @returns {Object} - Datos validados
- */
-export const validateCheckoutCart = (data) => {
-  return checkoutCartSchema.parse(data);
-};
-
-/**
- * Valida los query parameters de órdenes
- * @param {Object} data - Query params a validar
- * @throws {ZodError} - Si los datos no son válidos
- * @returns {Object} - Datos validados
- */
-export const validateOrdersQuery = (data) => {
-  return ordersQuerySchema.parse(data);
-};
-
-/**
- * Valida los query parameters de rango de fechas
- * @param {Object} data - Query params a validar
- * @throws {ZodError} - Si los datos no son válidos
- * @returns {Object} - Datos validados
- */
-export const validateDateRangeQuery = (data) => {
-  return dateRangeQuerySchema.parse(data);
-};
-
-/**
- * Valida los query parameters con limit
- * @param {Object} data - Query params a validar
- * @throws {ZodError} - Si los datos no son válidos
- * @returns {Object} - Datos validados
- */
-export const validateLimitQuery = (data) => {
-  return limitQuerySchema.parse(data);
-};
+export const validateCreateOrder = (data) => createOrderSchema.parse(data);
+export const validateUpdateOrderStatus = (data) => updateOrderStatusSchema.parse(data);
+export const validateUpdateOrder = (data) => updateOrderSchema.parse(data);
+export const validateAddOrderItem = (data) => addOrderItemSchema.parse(data);
+export const validateUpdateOrderItem = (data) => updateOrderItemSchema.parse(data);
+export const validateCreateFullOrder = (data) => createFullOrderSchema.parse(data);
+export const validateValidateCart = (data) => validateCartSchema.parse(data);
+export const validateCreateDineInOrder = (data) => createDineInOrderSchema.parse(data);
+export const validateMoveOrder = (data) => moveOrderSchema.parse(data);
+export const validateOrdersQuery = (data) => ordersQuerySchema.parse(data);
+export const validateDateRangeQuery = (data) => dateRangeQuerySchema.parse(data);
+export const validatePaginationQuery = (data) => paginationQuerySchema.parse(data);
 
 // ============================================================
-// MIDDLEWARES DE VALIDACIÓN - BODY (Pueden modificar req.body)
+// MIDDLEWARES DE VALIDACIÓN - BODY
 // ============================================================
 
-/**
- * Middleware para validar body de crear orden
- */
 export const validateCreateOrderMiddleware = (req, res, next) => {
   try {
     req.body = validateCreateOrder(req.body);
@@ -198,9 +113,6 @@ export const validateCreateOrderMiddleware = (req, res, next) => {
   }
 };
 
-/**
- * Middleware para validar body de actualizar estado
- */
 export const validateUpdateStatusMiddleware = (req, res, next) => {
   try {
     req.body = validateUpdateOrderStatus(req.body);
@@ -210,21 +122,15 @@ export const validateUpdateStatusMiddleware = (req, res, next) => {
   }
 };
 
-/**
- * Middleware para validar body de actualizar instrucciones
- */
-export const validateUpdateInstructionsMiddleware = (req, res, next) => {
+export const validateUpdateOrderMiddleware = (req, res, next) => {
   try {
-    req.body = validateUpdateInstructions(req.body);
+    req.body = validateUpdateOrder(req.body);
     next();
   } catch (error) {
     next(error);
   }
 };
 
-/**
- * Middleware para validar body de agregar item
- */
 export const validateAddItemMiddleware = (req, res, next) => {
   try {
     req.body = validateAddOrderItem(req.body);
@@ -234,24 +140,45 @@ export const validateAddItemMiddleware = (req, res, next) => {
   }
 };
 
-/**
- * Middleware para validar body de actualizar cantidad
- */
-export const validateUpdateQuantityMiddleware = (req, res, next) => {
+export const validateUpdateItemMiddleware = (req, res, next) => {
   try {
-    req.body = validateUpdateItemQuantity(req.body);
+    req.body = validateUpdateOrderItem(req.body);
     next();
   } catch (error) {
     next(error);
   }
 };
 
-/**
- * Middleware para validar body de checkout
- */
-export const validateCheckoutMiddleware = (req, res, next) => {
+export const validateCreateFullOrderMiddleware = (req, res, next) => {
   try {
-    req.body = validateCheckoutCart(req.body);
+    req.body = validateCreateFullOrder(req.body);
+    next();
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const validateValidateCartMiddleware = (req, res, next) => {
+  try {
+    req.body = validateValidateCart(req.body);
+    next();
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const validateCreateDineInOrderMiddleware = (req, res, next) => {
+  try {
+    req.body = validateCreateDineInOrder(req.body);
+    next();
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const validateMoveOrderMiddleware = (req, res, next) => {
+  try {
+    req.body = validateMoveOrder(req.body);
     next();
   } catch (error) {
     next(error);
@@ -259,16 +186,11 @@ export const validateCheckoutMiddleware = (req, res, next) => {
 };
 
 // ============================================================
-// MIDDLEWARES DE VALIDACIÓN - QUERY (NO modificar req.query directamente)
+// MIDDLEWARES DE VALIDACIÓN - QUERY
 // ============================================================
 
-/**
- * Middleware para validar query params de órdenes
- * ⚠️ NO modifica req.query, solo valida
- */
 export const validateOrdersQueryMiddleware = (req, res, next) => {
   try {
-    // Solo validar, no asignar a req.query
     validateOrdersQuery(req.query);
     next();
   } catch (error) {
@@ -276,13 +198,8 @@ export const validateOrdersQueryMiddleware = (req, res, next) => {
   }
 };
 
-/**
- * Middleware para validar query params de rango de fechas
- * ⚠️ NO modifica req.query, solo valida
- */
 export const validateDateRangeQueryMiddleware = (req, res, next) => {
   try {
-    // Solo validar, no asignar a req.query
     validateDateRangeQuery(req.query);
     next();
   } catch (error) {
@@ -290,14 +207,9 @@ export const validateDateRangeQueryMiddleware = (req, res, next) => {
   }
 };
 
-/**
- * Middleware para validar query params con limit
- * ⚠️ NO modifica req.query, solo valida
- */
-export const validateLimitQueryMiddleware = (req, res, next) => {
+export const validatePaginationQueryMiddleware = (req, res, next) => {
   try {
-    // Solo validar, no asignar a req.query
-    validateLimitQuery(req.query);
+    validatePaginationQuery(req.query);
     next();
   } catch (error) {
     next(error);

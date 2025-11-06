@@ -2,24 +2,34 @@
 
 import { pool } from "../config/db.js";
 
+/* UTILIDADES Y VALIDADORES */
+
+/* Valida que un ID sea un número positivo válido */
 const validateId = (id) => {
   const numId = Number(id);
   return isNaN(numId) || numId <= 0 ? null : numId;
 };
 
-const ALLOWED_CATEGORY_FIELDS = ["name", "description", "is_active"];
+/* Valida que un string sea válido y no esté vacío */
+const validateString = (value, fieldName) => {
+  if (!value || typeof value !== "string" || value.trim().length === 0) {
+    throw new Error(`${fieldName} es requerido y no puede estar vacío`);
+  }
+  return value.trim();
+};
 
-const ALLOWED_ITEM_FIELDS = [
-  "category_id",
-  "name",
-  "description",
-  "ingredients",
-  "price",
-  "image_url",
-  "estimated_prep_time",
-  "is_available"
-];
+/* Valida que un número sea válido y no negativo */
+const validateNumber = (value, fieldName, allowNegative = false) => {
+  const num = Number(value);
+  if (isNaN(num) || (!allowNegative && num < 0)) {
+    throw new Error(
+      `${fieldName} debe ser un número válido ${allowNegative ? "" : "no negativo"}`
+    );
+  }
+  return num;
+};
 
+/* Filtra solo los campos permitidos de un objeto */
 const filterAllowedFields = (data, allowedFields) => {
   const filtered = {};
   Object.keys(data).forEach((key) => {
@@ -30,6 +40,82 @@ const filterAllowedFields = (data, allowedFields) => {
   return filtered;
 };
 
+/* Valida campos específicos según su tipo */
+const validateFields = (data, fieldValidators) => {
+  const validated = { ...data };
+  Object.entries(fieldValidators).forEach(([field, validator]) => {
+    if (validated[field] !== undefined && validated[field] !== null) {
+      validated[field] = validator(validated[field]);
+    }
+  });
+  return validated;
+};
+
+/* Construye una query UPDATE dinámica con validación de campos */
+const buildUpdateQuery = (data, allowedFields, tableName, whereId) => {
+  const filteredData = filterAllowedFields(data, allowedFields);
+  const keys = Object.keys(filteredData);
+
+  if (keys.length === 0) {
+    throw new Error("No se proporcionaron campos válidos para actualizar");
+  }
+
+  const setClauses = keys.map((key, i) => `${key} = $${i + 1}`);
+  const values = keys.map((key) => filteredData[key]);
+
+  const query = `
+    UPDATE ${tableName}
+    SET ${setClauses.join(", ")}, updated_at = NOW()
+    WHERE id = $${keys.length + 1}
+    RETURNING *;
+  `;
+
+  return { query, values: [...values, whereId] };
+};
+
+/* Maneja errores comunes de PostgreSQL */
+const handleDatabaseError = (error) => {
+  if (error.code === "23505") {
+    throw new Error("Este registro ya existe (violación de unicidad)");
+  }
+  if (error.code === "23503") {
+    throw new Error("Referencia a un registro que no existe");
+  }
+  throw error;
+};
+
+/* Campos permitidos para actualizar categorías */
+const ALLOWED_CATEGORY_FIELDS = ["name", "description", "is_active"];
+
+/* Campos permitidos para actualizar items del menú */
+const ALLOWED_ITEM_FIELDS = [
+  "category_id",
+  "name",
+  "description",
+  "ingredients",
+  "price",
+  "image_url",
+  "estimated_prep_time",
+  "is_available",
+];
+
+/* Validadores para campos de categoría */
+const CATEGORY_VALIDATORS = {
+  name: (value) => validateString(value, "El nombre de la categoría"),
+  is_active: (value) => Boolean(value),
+};
+
+/* Validadores para campos de items */
+const ITEM_VALIDATORS = {
+  name: (value) => validateString(value, "El nombre del plato"),
+  price: (value) => validateNumber(value, "El precio"),
+  estimated_prep_time: (value) => validateNumber(value, "El tiempo de preparación"),
+  is_available: (value) => Boolean(value),
+};
+
+/* CATEGORÍAS */
+
+/* Obtiene todas las categorías ordenadas por ID */
 export const getAllCategories = async () => {
   try {
     const result = await pool.query(`
@@ -44,10 +130,11 @@ export const getAllCategories = async () => {
   }
 };
 
+/* Obtiene una categoría específica por su ID */
 export const getCategoryById = async (id) => {
   try {
     const categoryId = validateId(id);
-    if (!categoryId) return null;
+    if (!categoryId) throw new Error("ID de categoría inválido");
 
     const result = await pool.query(
       "SELECT * FROM menu_categories WHERE id = $1",
@@ -60,115 +147,72 @@ export const getCategoryById = async (id) => {
   }
 };
 
-export const createCategory = async ({ name, description = null, is_active = true }) => {
+/* Crea una nueva categoría */
+export const createCategory = async ({
+  name,
+  description = null,
+  is_active = true,
+}) => {
   try {
-    if (!name || typeof name !== "string" || name.trim().length === 0) {
-      throw new Error("El nombre de la categoría es requerido");
-    }
+    validateString(name, "El nombre de la categoría");
 
     const query = `
       INSERT INTO menu_categories (name, description, is_active)
       VALUES ($1, $2, $3)
       RETURNING *;
     `;
+
     const { rows } = await pool.query(query, [
-      name.trim(),
+      name,
       description,
-      Boolean(is_active)
+      Boolean(is_active),
     ]);
     return rows[0];
   } catch (error) {
-    if (error.code === "23505") {
-      throw new Error("El nombre de la categoría ya existe");
-    }
-    console.error("Error al crear categoría:", error);
-    throw error;
+    handleDatabaseError(error);
   }
 };
 
-export const updateCategory = async (id, { name, description = null, is_active = true }) => {
+/* Actualiza una categoría. Puede ser completa o parcial según los campos enviados */
+export const updateCategory = async (id, data) => {
   try {
     const categoryId = validateId(id);
-    if (!categoryId) return null;
+    if (!categoryId) throw new Error("ID de categoría inválido");
 
-    if (!name || typeof name !== "string" || name.trim().length === 0) {
-      throw new Error("El nombre de la categoría es requerido");
-    }
-
-    const query = `
-      UPDATE menu_categories
-      SET name = $1, description = $2, is_active = $3, updated_at = NOW()
-      WHERE id = $4
-      RETURNING *;
-    `;
-    const { rows } = await pool.query(query, [
-      name.trim(),
-      description,
-      Boolean(is_active),
+    const validatedData = validateFields(data, CATEGORY_VALIDATORS);
+    const { query, values } = buildUpdateQuery(
+      validatedData,
+      ALLOWED_CATEGORY_FIELDS,
+      "menu_categories",
       categoryId
-    ]);
-    return rows[0] || null;
-  } catch (error) {
-    if (error.code === "23505") {
-      throw new Error("El nombre de la categoría ya existe");
+    );
+
+    const { rows } = await pool.query(query, values);
+
+    if (rows.length === 0) {
+      throw new Error("Categoría no encontrada");
     }
-    console.error("Error al actualizar categoría:", error);
-    throw error;
+    return rows[0];
+  } catch (error) {
+    handleDatabaseError(error);
   }
 };
 
-export const updateCategoryPartial = async (id, data) => {
-  try {
-    const categoryId = validateId(id);
-    if (!categoryId) return null;
-
-    const filteredData = filterAllowedFields(data, ALLOWED_CATEGORY_FIELDS);
-    const keys = Object.keys(filteredData);
-
-    if (keys.length === 0) {
-      throw new Error("No se proporcionaron campos válidos para actualizar");
-    }
-
-    if (filteredData.name) {
-      filteredData.name = filteredData.name.trim();
-      if (filteredData.name.length === 0) {
-        throw new Error("El nombre no puede estar vacío");
-      }
-    }
-
-    if (filteredData.is_active !== undefined) {
-      filteredData.is_active = Boolean(filteredData.is_active);
-    }
-
-    const setClauses = keys.map((key, i) => `${key} = $${i + 1}`);
-    const values = Object.values(filteredData);
-
-    const query = `
-      UPDATE menu_categories
-      SET ${setClauses.join(", ")}, updated_at = NOW()
-      WHERE id = $${keys.length + 1}
-      RETURNING *;
-    `;
-
-    const { rows } = await pool.query(query, [...values, categoryId]);
-    return rows[0] || null;
-  } catch (error) {
-    if (error.code === "23505") {
-      throw new Error("El nombre de la categoría ya existe");
-    }
-    console.error("Error al actualizar parcialmente categoría:", error);
-    throw error;
-  }
-};
-
+/* Elimina una categoría y todos sus items en una transacción */
 export const deleteCategory = async (id) => {
   const client = await pool.connect();
   try {
     const categoryId = validateId(id);
-    if (!categoryId) return null;
+    if (!categoryId) throw new Error("ID de categoría inválido");
 
     await client.query("BEGIN");
-    await client.query("DELETE FROM menu_items WHERE category_id = $1", [categoryId]);
+
+    /* Eliminar items asociados */
+    await client.query("DELETE FROM menu_items WHERE category_id = $1", [
+      categoryId,
+    ]);
+
+    /* Eliminar categoría */
     const result = await client.query(
       "DELETE FROM menu_categories WHERE id = $1 RETURNING id",
       [categoryId]
@@ -176,7 +220,7 @@ export const deleteCategory = async (id) => {
 
     if (result.rowCount === 0) {
       await client.query("ROLLBACK");
-      return null;
+      throw new Error("Categoría no encontrada");
     }
 
     await client.query("COMMIT");
@@ -190,6 +234,9 @@ export const deleteCategory = async (id) => {
   }
 };
 
+/* ITEMS DEL MENÚ */
+
+/* Obtiene todos los items del menú con nombres de categoría */
 export const getAllItems = async () => {
   try {
     const query = `
@@ -206,10 +253,11 @@ export const getAllItems = async () => {
   }
 };
 
+/* Obtiene un item específico por su ID */
 export const getItemById = async (id) => {
   try {
     const itemId = validateId(id);
-    if (!itemId) return null;
+    if (!itemId) throw new Error("ID de plato inválido");
 
     const query = `
       SELECT mi.*, mc.name AS category_name
@@ -225,6 +273,7 @@ export const getItemById = async (id) => {
   }
 };
 
+/* Crea un nuevo item del menú */
 export const createItem = async ({
   category_id = null,
   name,
@@ -236,17 +285,9 @@ export const createItem = async ({
   is_available = true,
 }) => {
   try {
-    if (!name || typeof name !== "string" || name.trim().length === 0) {
-      throw new Error("El nombre del plato es requerido");
-    }
-
-    if (price === undefined || price === null || isNaN(Number(price)) || Number(price) < 0) {
-      throw new Error("El precio debe ser un número válido mayor o igual a 0");
-    }
-
-    if (estimated_prep_time && (isNaN(Number(estimated_prep_time)) || Number(estimated_prep_time) < 0)) {
-      throw new Error("El tiempo de preparación debe ser un número válido");
-    }
+    validateString(name, "El nombre del plato");
+    validateNumber(price, "El precio");
+    validateNumber(estimated_prep_time, "El tiempo de preparación");
 
     const query = `
       INSERT INTO menu_items
@@ -257,7 +298,7 @@ export const createItem = async ({
 
     const values = [
       category_id || null,
-      name.trim(),
+      name,
       description,
       ingredients,
       Number(price),
@@ -269,139 +310,40 @@ export const createItem = async ({
     const { rows } = await pool.query(query, values);
     return rows[0];
   } catch (error) {
-    console.error("Error al crear plato:", error);
-    throw error;
+    handleDatabaseError(error);
   }
 };
 
+/* Actualiza un item. Puede ser completa o parcial según los campos enviados */
 export const updateItem = async (id, data) => {
   try {
     const itemId = validateId(id);
-    if (!itemId) return null;
+    if (!itemId) throw new Error("ID de plato inválido");
 
-    const {
-      category_id,
-      name,
-      description,
-      ingredients,
-      price,
-      image_url,
-      estimated_prep_time,
-      is_available,
-    } = data;
-
-    if (!name || typeof name !== "string" || name.trim().length === 0) {
-      throw new Error("El nombre del plato es requerido");
-    }
-
-    if (price === undefined || price === null || isNaN(Number(price)) || Number(price) < 0) {
-      throw new Error("El precio debe ser un número válido mayor o igual a 0");
-    }
-
-    const prepTime = estimated_prep_time !== undefined && estimated_prep_time !== null
-      ? Number(estimated_prep_time)
-      : 10;
-
-    if (isNaN(prepTime) || prepTime < 0) {
-      throw new Error("El tiempo de preparación debe ser un número válido");
-    }
-
-    const query = `
-      UPDATE menu_items
-      SET category_id = $1,
-          name = $2,
-          description = $3,
-          ingredients = $4,
-          price = $5,
-          image_url = $6,
-          estimated_prep_time = $7,
-          is_available = $8,
-          updated_at = NOW()
-      WHERE id = $9
-      RETURNING *;
-    `;
-
-    const values = [
-      category_id !== undefined && category_id !== null ? category_id : null,
-      name.trim(),
-      description !== undefined ? description : null,
-      ingredients !== undefined ? ingredients : null,
-      Number(price),
-      image_url !== undefined ? image_url : null,
-      prepTime,
-      is_available !== undefined ? Boolean(is_available) : true,
-      itemId,
-    ];
+    const validatedData = validateFields(data, ITEM_VALIDATORS);
+    const { query, values } = buildUpdateQuery(
+      validatedData,
+      ALLOWED_ITEM_FIELDS,
+      "menu_items",
+      itemId
+    );
 
     const { rows } = await pool.query(query, values);
-    return rows[0] || null;
+
+    if (rows.length === 0) {
+      throw new Error("Plato no encontrado");
+    }
+    return rows[0];
   } catch (error) {
-    console.error("Error al actualizar plato:", error);
-    throw error;
+    handleDatabaseError(error);
   }
 };
 
-export const updateItemPartial = async (id, data) => {
-  try {
-    const itemId = validateId(id);
-    if (!itemId) return null;
-
-    const filteredData = filterAllowedFields(data, ALLOWED_ITEM_FIELDS);
-    const keys = Object.keys(filteredData);
-
-    if (keys.length === 0) {
-      throw new Error("No se proporcionaron campos válidos para actualizar");
-    }
-
-    if (filteredData.name !== undefined) {
-      if (typeof filteredData.name !== "string" || filteredData.name.trim().length === 0) {
-        throw new Error("El nombre del plato no puede estar vacío");
-      }
-      filteredData.name = filteredData.name.trim();
-    }
-
-    if (filteredData.price !== undefined) {
-      const priceNum = Number(filteredData.price);
-      if (isNaN(priceNum) || priceNum < 0) {
-        throw new Error("El precio debe ser un número válido mayor o igual a 0");
-      }
-      filteredData.price = priceNum;
-    }
-
-    if (filteredData.estimated_prep_time !== undefined) {
-      const timeNum = Number(filteredData.estimated_prep_time);
-      if (isNaN(timeNum) || timeNum < 0) {
-        throw new Error("El tiempo de preparación debe ser un número válido");
-      }
-      filteredData.estimated_prep_time = timeNum;
-    }
-
-    if (filteredData.is_available !== undefined) {
-      filteredData.is_available = Boolean(filteredData.is_available);
-    }
-
-    const setClauses = keys.map((key, i) => `${key} = $${i + 1}`);
-    const values = Object.values(filteredData);
-
-    const query = `
-      UPDATE menu_items
-      SET ${setClauses.join(", ")}, updated_at = NOW()
-      WHERE id = $${keys.length + 1}
-      RETURNING *;
-    `;
-
-    const { rows } = await pool.query(query, [...values, itemId]);
-    return rows[0] || null;
-  } catch (error) {
-    console.error("Error al actualizar parcialmente plato:", error);
-    throw error;
-  }
-};
-
+/* Elimina un item del menú */
 export const deleteItem = async (id) => {
   try {
     const itemId = validateId(id);
-    if (!itemId) return null;
+    if (!itemId) throw new Error("ID de plato inválido");
 
     const result = await pool.query(
       "DELETE FROM menu_items WHERE id = $1 RETURNING id",
@@ -409,9 +351,8 @@ export const deleteItem = async (id) => {
     );
 
     if (result.rowCount === 0) {
-      return null;
+      throw new Error("Plato no encontrado");
     }
-
     return { message: "Plato eliminado correctamente" };
   } catch (error) {
     console.error("Error al eliminar plato:", error);

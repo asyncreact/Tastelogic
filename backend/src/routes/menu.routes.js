@@ -2,101 +2,71 @@
 
 import express from "express";
 import {
-  getCategories,
-  getCategory,
-  addCategory,
-  editCategory,
-  patchCategory,
-  removeCategory,
-  getItems,
-  getItem,
+  listMenu,
+  showMenu,
+  addMenu,
+  editMenu,
+  removeMenu,
+  listItem,
+  showItem,
   addItem,
   editItem,
-  patchItem,
   removeItem,
-  uploadImage,
-  getPublicMenu,
-  getPublicCategories,
-  getItemPrepTime,
-  updateItemPrepTime,
-  getAllItemsPrepTimes,
 } from "../controllers/menu.controller.js";
-
 
 import { authenticate, authorizeRoles } from "../middleware/auth.middleware.js";
 import { upload } from "../config/multer.js";
-
-
-// 🆕 VALIDATORS
 import {
   validateCategoryMiddleware,
   validateItemMiddleware,
-  validatePartialCategoryMiddleware,
-  validatePartialItemMiddleware,
-  validatePrepTimeMiddleware,
 } from "../validators/menu.validator.js";
-
 
 const router = express.Router();
 
+/* PÚBLICAS - CATEGORÍAS */
 
-// ============================================================
-// RUTAS PÚBLICAS
-// ============================================================
+router.get("/categories", listMenu);
+router.get("/categories/:category_id", showMenu);
 
+/* PÚBLICAS - ITEMS */
 
-router.get("/public/items", getPublicMenu);
-router.get("/public/categories", getPublicCategories);
-router.get("/public/items/:id/prep-time", getItemPrepTime); // 🆕 NUEVA RUTA PÚBLICA
+router.get("/items", listItem);
+router.get("/items/:item_id", showItem);
 
-
-// ============================================================
-// RUTAS PROTEGIDAS - Categorías
-// ============================================================
-
-
-router.get("/categories", authenticate, authorizeRoles("admin", "customer"), getCategories);
-router.get("/categories/:id", authenticate, authorizeRoles("admin", "customer"), getCategory);
-
+/* PROTEGIDAS - CATEGORÍAS */
 
 router.post(
   "/categories",
   authenticate,
   authorizeRoles("admin"),
   validateCategoryMiddleware,
-  addCategory
+  addMenu
 );
 
-
 router.put(
-  "/categories/:id",
+  "/categories/:category_id",
   authenticate,
   authorizeRoles("admin"),
   validateCategoryMiddleware,
-  editCategory
+  editMenu
 );
-
 
 router.patch(
-  "/categories/:id",
+  "/categories/:category_id",
   authenticate,
   authorizeRoles("admin"),
-  validatePartialCategoryMiddleware,
-  patchCategory
+  validateCategoryMiddleware,
+  editMenu
 );
 
+router.delete(
+  "/categories/:category_id",
+  authenticate,
+  authorizeRoles("admin"),
+  removeMenu
+);
 
-router.delete("/categories/:id", authenticate, authorizeRoles("admin"), removeCategory);
-
-
-// ============================================================
-// RUTAS PROTEGIDAS - Items
-// ============================================================
-
-
-router.get("/items", authenticate, authorizeRoles("admin", "customer"), getItems);
-router.get("/items/:id", authenticate, authorizeRoles("admin", "customer"), getItem);
-
+/* PROTEGIDAS - ITEMS */
 
 router.post(
   "/items",
@@ -107,9 +77,8 @@ router.post(
   addItem
 );
 
-
 router.put(
-  "/items/:id",
+  "/items/:item_id",
   authenticate,
   authorizeRoles("admin"),
   upload.single("image"),
@@ -117,63 +86,20 @@ router.put(
   editItem
 );
 
-
 router.patch(
-  "/items/:id",
+  "/items/:item_id",
   authenticate,
   authorizeRoles("admin"),
   upload.single("image"),
-  validatePartialItemMiddleware,
-  patchItem
+  validateItemMiddleware,
+  editItem
 );
 
-
-router.delete("/items/:id", authenticate, authorizeRoles("admin"), removeItem);
-
-
-// ============================================================
-// PREP TIME - Rutas Nuevas
-// ============================================================
-
-
-router.get(
-  "/prep-times/all",
+router.delete(
+  "/items/:item_id",
   authenticate,
   authorizeRoles("admin"),
-  getAllItemsPrepTimes
+  removeItem
 );
-
-
-// 🆕 RUTA PROTEGIDA - Para admin/customer con autenticación
-router.get(
-  "/items/:id/prep-time/auth",
-  authenticate,
-  authorizeRoles("admin", "customer"),
-  getItemPrepTime
-);
-
-
-router.patch(
-  "/items/:id/prep-time",
-  authenticate,
-  authorizeRoles("admin"),
-  validatePrepTimeMiddleware,
-  updateItemPrepTime
-);
-
-
-// ============================================================
-// UPLOAD IMAGE
-// ============================================================
-
-
-router.post(
-  "/upload-image",
-  authenticate,
-  authorizeRoles("admin"),
-  upload.single("image"),
-  uploadImage
-);
-
 
 export default router;

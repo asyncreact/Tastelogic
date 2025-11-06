@@ -2,151 +2,88 @@
 
 import express from "express";
 import {
-  getTables,
-  getTable,
-  getTablesByZoneId,
-  getAvailableTablesByZoneId,
-  getTablesByStatusQuery,
+  listTable,
+  showTable,
   addTable,
   editTable,
-  patchTable,
   removeTable,
-  updateStatus,
+  showTableWithOrder,
+  tableStats,
 } from "../controllers/table.controller.js";
+
 import { authenticate, authorizeRoles } from "../middleware/auth.middleware.js";
 import {
-  validateTableMiddleware,
-  validatePartialTableMiddleware,
-  validateTableStatusMiddleware,
+  validateTableCreate,
+  validateTableUpdate,
 } from "../validators/table.validator.js";
 
 const router = express.Router();
 
-// ============================================================
-// RUTAS PÚBLICAS
-// ============================================================
+/* PÚBLICAS - SIN AUTENTICACIÓN */
 
-/**
- * GET /api/tables/public
- * Obtener todas las mesas
- */
-router.get("/public", getTables);
+router.get("/public/all", listTable);
+router.get("/public/available", listTable);
 
-/**
- * GET /api/tables/public/:id
- * Obtener una mesa por ID
- */
-router.get("/public/:id", getTable);
+/* PROTEGIDAS - CON AUTENTICACIÓN */
 
-/**
- * GET /api/tables/public/zone/:zoneId
- * Obtener mesas de una zona
- */
-router.get("/public/zone/:zoneId", getTablesByZoneId);
+/* CRUD BÁSICO */
 
-/**
- * GET /api/tables/public/zone/:zoneId/available
- * Obtener mesas disponibles de una zona
- */
-router.get("/public/zone/:zoneId/available", getAvailableTablesByZoneId);
-
-/**
- * GET /api/tables/public/status
- * Obtener mesas por estado
- */
-router.get("/public/status", getTablesByStatusQuery);
-
-// ============================================================
-// RUTAS PROTEGIDAS - ADMIN Y CUSTOMER (LECTURA)
-// ============================================================
-
-/**
- * GET /api/tables
- * Obtener todas las mesas (ADMIN, CUSTOMER)
- */
-router.get(
-  "/",
-  authenticate,
-  authorizeRoles("admin", "customer"),
-  getTables
-);
-
-/**
- * GET /api/tables/:id
- * Obtener una mesa por ID (ADMIN, CUSTOMER)
- */
-router.get(
-  "/:id",
-  authenticate,
-  authorizeRoles("admin", "customer"),
-  getTable
-);
-
-// ============================================================
-// RUTAS PROTEGIDAS - SOLO ADMIN (ESCRITURA)
-// ============================================================
-
-/**
- * POST /api/tables
- * Crear nueva mesa (ADMIN)
- */
 router.post(
   "/",
   authenticate,
   authorizeRoles("admin"),
-  validateTableMiddleware,
+  validateTableCreate,
   addTable
 );
 
-/**
- * PUT /api/tables/:id
- * Actualizar mesa completamente (ADMIN)
- */
+router.get("/", authenticate, authorizeRoles("admin", "customer"), listTable);
+
+router.get(
+  "/:table_id",
+  authenticate,
+  authorizeRoles("admin", "customer"),
+  showTable
+);
+
 router.put(
-  "/:id",
+  "/:table_id",
   authenticate,
   authorizeRoles("admin"),
-  validateTableMiddleware,
+  validateTableUpdate,
   editTable
 );
 
-/**
- * PATCH /api/tables/:id
- * Actualizar mesa parcialmente (ADMIN)
- */
 router.patch(
-  "/:id",
+  "/:table_id",
   authenticate,
   authorizeRoles("admin"),
-  validatePartialTableMiddleware,
-  patchTable
+  validateTableUpdate,
+  editTable
 );
 
-/**
- * DELETE /api/tables/:id
- * Eliminar mesa (ADMIN)
- */
 router.delete(
-  "/:id",
+  "/:table_id",
   authenticate,
   authorizeRoles("admin"),
   removeTable
 );
 
-// ============================================================
-// RUTAS PROTEGIDAS - CAMBIAR ESTADO (ADMIN Y CUSTOMER)
-// ============================================================
+/* INFORMACIÓN EN TIEMPO REAL */
 
-/**
- * PATCH /api/tables/:id/status
- * Cambiar estado de mesa (ADMIN, CUSTOMER)
- */
-router.patch(
-  "/:id/status",
+router.get(
+  "/:table_id/with-order",
+  authenticate,
+  authorizeRoles("admin", "customer"),
+  showTableWithOrder
+);
+
+/* ESTADÍSTICAS */
+
+router.get(
+  "/dashboard/statistics",
   authenticate,
   authorizeRoles("admin"),
-  validateTableStatusMiddleware,
-  updateStatus
+  tableStats
 );
 
 export default router;

@@ -2,35 +2,39 @@
 
 import { z } from "zod";
 
-// ============================================================
-// ESQUEMAS DE VALIDACIÓN
-// ============================================================
+/* ESQUEMAS DE VALIDACIÓN */
 
-/**
- * Esquema para crear/editar mesa
- */
-export const tableSchema = z.object({
+export const tableCreateSchema = z.object({
   zone_id: z
     .preprocess(
-      (val) => (val === "" || val == null ? null : Number(val)),
+      (val) => {
+        if (val === "" || val == null) {
+          return val;
+        }
+        return Number(val);
+      },
       z
         .number({
           invalid_type_error: "El ID de la zona debe ser numérico",
         })
         .int("El ID de la zona debe ser un número entero")
-        .nullable()
-        .optional()
+        .positive("El ID de la zona debe ser positivo")
     ),
   table_number: z
     .string({
-      required_error: "El número de mesa es obligatorio",
       invalid_type_error: "El número de mesa debe ser texto",
     })
     .trim()
     .min(1, "El número de mesa no puede estar vacío")
-    .max(50, "El número de mesa no debe superar los 50 caracteres"),
+    .max(50, "El número de mesa no debe superar los 50 caracteres")
+    .optional(),
   capacity: z.preprocess(
-    (val) => (val === "" || val == null ? undefined : Number(val)),
+    (val) => {
+      if (val === "" || val == null) {
+        return undefined;
+      }
+      return Number(val);
+    },
     z
       .number({
         required_error: "La capacidad es obligatoria",
@@ -60,73 +64,27 @@ export const tableSchema = z.object({
   ).optional(),
 });
 
-/**
- * Esquema para actualizar SOLO el estado de la mesa
- */
-export const tableStatusSchema = z.object({
-  status: z.enum(["available", "occupied", "reserved"], {
-    errorMap: () => ({
-      message: "El estado debe ser: available, occupied o reserved",
-    }),
-  }),
-});
+export const tableUpdateSchema = tableCreateSchema.partial();
 
-// ============================================================
-// FUNCIONES DE VALIDACIÓN
-// ============================================================
+/* FUNCIONES DE VALIDACIÓN */
 
-/**
- * Validar mesa completa
- */
-export const validateTable = (data) => tableSchema.parse(data);
+export const validateCreate = (data) => tableCreateSchema.parse(data);
+export const validateUpdate = (data) => tableUpdateSchema.parse(data);
 
-/**
- * Validar mesa parcial (para PATCH)
- */
-export const validatePartialTable = (data) =>
-  tableSchema.partial().parse(data);
+/* MIDDLEWARES DE VALIDACIÓN */
 
-/**
- * Validar estado de mesa
- */
-export const validateTableStatus = (data) => {
-  return tableStatusSchema.parse(data);
-};
-
-// ============================================================
-// MIDDLEWARES DE VALIDACIÓN
-// ============================================================
-
-/**
- * Middleware para validar mesa completa (POST/PUT)
- */
-export const validateTableMiddleware = (req, res, next) => {
+export const validateTableCreate = (req, res, next) => {
   try {
-    req.body = validateTable(req.body);
+    req.body = validateCreate(req.body);
     next();
   } catch (error) {
     next(error);
   }
 };
 
-/**
- * Middleware para validar mesa parcial (PATCH)
- */
-export const validatePartialTableMiddleware = (req, res, next) => {
+export const validateTableUpdate = (req, res, next) => {
   try {
-    req.body = validatePartialTable(req.body);
-    next();
-  } catch (error) {
-    next(error);
-  }
-};
-
-/**
- * Middleware para validar estado de mesa
- */
-export const validateTableStatusMiddleware = (req, res, next) => {
-  try {
-    req.body = validateTableStatus(req.body);
+    req.body = validateUpdate(req.body);
     next();
   } catch (error) {
     next(error);

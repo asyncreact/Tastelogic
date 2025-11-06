@@ -1,3 +1,5 @@
+// src/middleware/auth.middleware.js
+
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 import { pool } from "../config/db.js";
@@ -6,15 +8,15 @@ dotenv.config();
 
 export const authenticate = async (req, res, next) => {
   try {
-    const authHeader = req.headers.authorization;
+    const auth_header = req.headers.authorization;
 
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    if (!auth_header || !auth_header.startsWith("Bearer ")) {
       const err = new Error("No autorizado: token requerido");
       err.status = 401;
       throw err;
     }
 
-    const token = authHeader.split(" ")[1];
+    const token = auth_header.split(" ")[1];
     let decoded;
 
     try {
@@ -33,7 +35,7 @@ export const authenticate = async (req, res, next) => {
       throw error;
     }
 
-    const result = await pool.query("SELECT * FROM users WHERE id = $1", [decoded.id]);
+    const result = await pool.query("SELECT * FROM public.users WHERE id = $1", [decoded.id]);
     const user = result.rows[0];
 
     if (!user) {
@@ -42,6 +44,7 @@ export const authenticate = async (req, res, next) => {
       throw err;
     }
 
+    // ✅ No necesitas mapear a camelCase, mantén todo en snake_case
     if (
       decoded.token_version !== undefined &&
       decoded.token_version !== user.token_version
@@ -59,7 +62,7 @@ export const authenticate = async (req, res, next) => {
   }
 };
 
-export const authorizeRoles = (...rolesPermitidos) => {
+export const authorizeRoles = (...roles_permitidos) => {
   return (req, res, next) => {
     try {
       if (!req.user) {
@@ -68,8 +71,10 @@ export const authorizeRoles = (...rolesPermitidos) => {
         throw err;
       }
 
-      if (!rolesPermitidos.includes(req.user.role)) {
-        const err = new Error(`Acceso denegado. Rol requerido: ${rolesPermitidos.join(", ")}`);
+      if (!roles_permitidos.includes(req.user.role)) {
+        const err = new Error(
+          `Acceso denegado. Rol requerido: ${roles_permitidos.join(", ")}`
+        );
         err.status = 403;
         throw err;
       }

@@ -1,43 +1,75 @@
-// repositories/orders.repository.js
+// src/repositories/orders.repository.js
 
 import { pool } from "../config/db.js";
 
-/**
- * Repository para manejar todas las operaciones de órdenes en la BD
- */
+// ============================================================
+// FUNCIONES AUXILIARES
+// ============================================================
 
-export class OrdersRepository {
-  // ============================================================
-  // ÓRDENES - CRUD Básico
-  // ============================================================
+const validateId = (id) => {
+  const numId = Number(id);
+  return isNaN(numId) || numId <= 0 ? null : numId;
+};
 
-  /**
-   * Crear una nueva orden
-   * @param {number} userId - ID del usuario
-   * @param {number} totalAmount - Monto total de la orden
-   * @param {string} deliveryType - Tipo de entrega (dine-in, delivery, takeout)
-   * @param {string} specialInstructions - Instrucciones especiales
-   * @returns {Promise<Object>} - La orden creada
-   */
-  static async createOrder(userId, totalAmount = 0, deliveryType = 'dine-in', specialInstructions = null) {
+const ALLOWED_ORDER_FIELDS = [
+  "status",
+  "delivery_type",
+  "special_instructions",
+  "total_amount"
+];
+
+const ALLOWED_ORDER_ITEM_FIELDS = [
+  "quantity",
+  "special_requests"
+];
+
+const filterAllowedFields = (data, allowedFields) => {
+  const filtered = {};
+  Object.keys(data).forEach((key) => {
+    if (allowedFields.includes(key)) {
+      filtered[key] = data[key];
+    }
+  });
+  return filtered;
+};
+
+// ============================================================
+// ÓRDENES - CRUD Básico
+// ============================================================
+
+export const createOrder = async (
+  user_id,
+  total_amount = 0,
+  delivery_type = 'dine-in',
+  special_instructions = null
+) => {
+  try {
     const query = `
-      INSERT INTO public.orders 
+      INSERT INTO public.orders
       (user_id, total_amount, status, delivery_type, special_instructions)
       VALUES ($1, $2, 'pending', $3, $4)
       RETURNING *;
     `;
-    const result = await pool.query(query, [userId, totalAmount, deliveryType, specialInstructions]);
+    const result = await pool.query(query, [
+      user_id,
+      total_amount,
+      delivery_type,
+      special_instructions
+    ]);
     return result.rows[0];
+  } catch (error) {
+    console.error("Error al crear orden:", error);
+    throw error;
   }
+};
 
-  /**
-   * Obtener una orden por ID
-   * @param {number} orderId - ID de la orden
-   * @returns {Promise<Object>} - Detalles de la orden
-   */
-  static async getOrderById(orderId) {
+export const getOrderById = async (id) => {
+  try {
+    const order_id = validateId(id);
+    if (!order_id) return null;
+
     const query = `
-      SELECT 
+      SELECT
         o.*,
         u.name as user_name,
         u.email as user_email
@@ -45,20 +77,27 @@ export class OrdersRepository {
       JOIN public.users u ON o.user_id = u.id
       WHERE o.id = $1;
     `;
-    const result = await pool.query(query, [orderId]);
-    return result.rows[0];
-  }
+    const result = await pool.query(query, [order_id]);
+    if (!result.rows[0]) return null;
 
-  /**
-   * Obtener todas las órdenes de un usuario
-   * @param {number} userId - ID del usuario
-   * @param {number} limit - Límite de registros
-   * @param {number} offset - Offset para paginación
-   * @returns {Promise<Array>} - Lista de órdenes
-   */
-  static async getOrdersByUserId(userId, limit = 10, offset = 0) {
+    const order = result.rows[0];
+
+    // ✅ CALCULA ETA
+    const eta_data = await calculateOrderETA(order_id);
+    order.estimated_prep_time = eta_data?.max_prep_time || 0;
+    order.items_count = eta_data?.total_items || 0;
+
+    return order;
+  } catch (error) {
+    console.error("Error al obtener orden por ID:", error);
+    throw error;
+  }
+};
+
+export const getOrdersByUserId = async (user_id, limit = 10, offset = 0) => {
+  try {
     const query = `
-      SELECT 
+      SELECT
         o.*,
         COUNT(oi.id) as items_count,
         SUM(oi.quantity) as total_items
@@ -66,23 +105,21 @@ export class OrdersRepository {
       LEFT JOIN public.order_items oi ON o.id = oi.order_id
       WHERE o.user_id = $1
       GROUP BY o.id
-      ORDER BY o.order_date DESC
+      ORDER BY o.created_at DESC
       LIMIT $2 OFFSET $3;
     `;
-    const result = await pool.query(query, [userId, limit, offset]);
+    const result = await pool.query(query, [user_id, limit, offset]);
     return result.rows;
+  } catch (error) {
+    console.error("Error al obtener órdenes por usuario:", error);
+    throw error;
   }
+};
 
-  /**
-   * Obtener todas las órdenes (admin)
-   * @param {number} limit - Límite de registros
-   * @param {number} offset - Offset para paginación
-   * @param {string} status - Filtrar por estado (opcional)
-   * @returns {Promise<Array>} - Lista de órdenes
-   */
-  static async getAllOrders(limit = 10, offset = 0, status = null) {
+export const getAllOrders = async (limit = 10, offset = 0, status = null) => {
+  try {
     let query = `
-      SELECT 
+      SELECT
         o.*,
         u.name as user_name,
         u.email as user_email,
@@ -93,7 +130,6 @@ export class OrdersRepository {
     `;
 
     const params = [];
-
     if (status) {
       query += ` WHERE o.status = $${params.length + 1}`;
       params.push(status);
@@ -101,26 +137,29 @@ export class OrdersRepository {
 
     query += `
       GROUP BY o.id, u.id
-      ORDER BY o.order_date DESC
+      ORDER BY o.created_at DESC
       LIMIT $${params.length + 1} OFFSET $${params.length + 2};
     `;
-
     params.push(limit, offset);
+
     const result = await pool.query(query, params);
     return result.rows;
+  } catch (error) {
+    console.error("Error al obtener todas las órdenes:", error);
+    throw error;
   }
+};
 
-  /**
-   * Actualizar estado de una orden
-   * @param {number} orderId - ID de la orden
-   * @param {string} status - Nuevo estado
-   * @returns {Promise<Object>} - Orden actualizada
-   */
-  static async updateOrderStatus(orderId, status) {
-    const validStatuses = ['pending', 'preparing', 'ready', 'completed', 'cancelled'];
-    
-    if (!validStatuses.includes(status)) {
-      throw new Error(`Estado inválido: ${status}. Debe ser uno de: ${validStatuses.join(', ')}`);
+export const updateOrderStatus = async (id, status) => {
+  try {
+    const order_id = validateId(id);
+    if (!order_id) return null;
+
+    const valid_statuses = ['pending', 'preparing', 'ready', 'completed', 'cancelled'];
+    if (!valid_statuses.includes(status)) {
+      throw new Error(
+        `Estado inválido: ${status}. Debe ser uno de: ${valid_statuses.join(', ')}`
+      );
     }
 
     const query = `
@@ -129,356 +168,545 @@ export class OrdersRepository {
       WHERE id = $2
       RETURNING *;
     `;
-    const result = await pool.query(query, [status, orderId]);
-    return result.rows[0];
+    const result = await pool.query(query, [status, order_id]);
+    return result.rows[0] || null;
+  } catch (error) {
+    console.error("Error al actualizar estado de orden:", error);
+    throw error;
   }
+};
 
-  /**
-   * Actualizar monto total de una orden
-   * @param {number} orderId - ID de la orden
-   * @param {number} totalAmount - Nuevo monto total
-   * @returns {Promise<Object>} - Orden actualizada
-   */
-  static async updateOrderTotal(orderId, totalAmount) {
+export const updateOrder = async (id, data) => {
+  try {
+    const order_id = validateId(id);
+    if (!order_id) return null;
+
+    const { status, delivery_type, special_instructions, total_amount } = data;
+
+    if (status) {
+      const valid_statuses = ['pending', 'preparing', 'ready', 'completed', 'cancelled'];
+      if (!valid_statuses.includes(status)) {
+        throw new Error(`Estado inválido: ${status}`);
+      }
+    }
+
+    const query = `
+      UPDATE public.orders
+      SET status = COALESCE($1, status),
+          delivery_type = COALESCE($2, delivery_type),
+          special_instructions = COALESCE($3, special_instructions),
+          total_amount = COALESCE($4, total_amount),
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = $5
+      RETURNING *;
+    `;
+
+    const result = await pool.query(query, [
+      status || null,
+      delivery_type || null,
+      special_instructions,
+      total_amount || null,
+      order_id
+    ]);
+    return result.rows[0] || null;
+  } catch (error) {
+    console.error("Error al actualizar orden:", error);
+    throw error;
+  }
+};
+
+export const updateOrderPartial = async (id, data) => {
+  try {
+    const order_id = validateId(id);
+    if (!order_id) return null;
+
+    const filtered_data = filterAllowedFields(data, ALLOWED_ORDER_FIELDS);
+    const keys = Object.keys(filtered_data);
+
+    if (keys.length === 0) {
+      throw new Error("No se proporcionaron campos válidos para actualizar");
+    }
+
+    if (filtered_data.status) {
+      const valid_statuses = ['pending', 'preparing', 'ready', 'completed', 'cancelled'];
+      if (!valid_statuses.includes(filtered_data.status)) {
+        throw new Error(`Estado inválido: ${filtered_data.status}`);
+      }
+    }
+
+    if (filtered_data.total_amount !== undefined) {
+      const amount = Number(filtered_data.total_amount);
+      if (isNaN(amount) || amount < 0) {
+        throw new Error("El monto total debe ser un número válido mayor o igual a 0");
+      }
+      filtered_data.total_amount = amount;
+    }
+
+    const set_clauses = keys.map((key, i) => `${key} = $${i + 1}`);
+    const values = Object.values(filtered_data);
+
+    const query = `
+      UPDATE public.orders
+      SET ${set_clauses.join(", ")}, updated_at = CURRENT_TIMESTAMP
+      WHERE id = $${keys.length + 1}
+      RETURNING *;
+    `;
+
+    const result = await pool.query(query, [...values, order_id]);
+    return result.rows[0] || null;
+  } catch (error) {
+    console.error("Error al actualizar parcialmente orden:", error);
+    throw error;
+  }
+};
+
+export const deleteOrder = async (id) => {
+  try {
+    const order_id = validateId(id);
+    if (!order_id) return null;
+
+    const query = `
+      DELETE FROM public.orders
+      WHERE id = $1
+      RETURNING id;
+    `;
+
+    const result = await pool.query(query, [order_id]);
+    if (result.rowCount === 0) return null;
+
+    return { message: "Orden eliminada correctamente" };
+  } catch (error) {
+    console.error("Error al eliminar orden:", error);
+    throw error;
+  }
+};
+
+// ============================================================
+// ORDER ITEMS
+// ============================================================
+
+export const addOrderItem = async (
+  order_id,
+  menu_item_id,
+  quantity,
+  price,
+  special_requests = null
+) => {
+  try {
+    const subtotal = price * quantity;
+    const query = `
+      INSERT INTO public.order_items
+      (order_id, menu_item_id, quantity, price, subtotal, special_requests)
+      VALUES ($1, $2, $3, $4, $5, $6)
+      RETURNING *;
+    `;
+    const result = await pool.query(query, [
+      order_id,
+      menu_item_id,
+      quantity,
+      price,
+      subtotal,
+      special_requests
+    ]);
+    return result.rows[0];
+  } catch (error) {
+    console.error("Error al agregar item a orden:", error);
+    throw error;
+  }
+};
+
+export const getOrderItems = async (order_id) => {
+  try {
+    const query = `
+      SELECT
+        oi.id as item_id,
+        oi.order_id,
+        oi.menu_item_id,
+        oi.quantity,
+        oi.price as price_at_order,
+        oi.subtotal,
+        oi.special_requests,
+        oi.created_at,
+        mi.name as item_name,
+        mi.description as item_description,
+        mi.estimated_prep_time,
+        mi.image_url,
+        mi.price as current_price
+      FROM public.order_items oi
+      LEFT JOIN public.menu_items mi ON oi.menu_item_id = mi.id
+      WHERE oi.order_id = $1
+      ORDER BY oi.created_at ASC;
+    `;
+    const result = await pool.query(query, [order_id]);
+    return result.rows;
+  } catch (error) {
+    console.error("Error al obtener items de orden:", error);
+    throw error;
+  }
+};
+
+export const getOrderItemById = async (id) => {
+  try {
+    const item_id = validateId(id);
+    if (!item_id) return null;
+
+    const query = `
+      SELECT
+        oi.id as item_id,
+        oi.order_id,
+        oi.menu_item_id,
+        oi.quantity,
+        oi.price as price_at_order,
+        oi.subtotal,
+        oi.special_requests,
+        oi.created_at,
+        mi.name as item_name,
+        mi.description as item_description,
+        mi.price as current_price,
+        mi.estimated_prep_time,
+        mi.image_url
+      FROM public.order_items oi
+      LEFT JOIN public.menu_items mi ON oi.menu_item_id = mi.id
+      WHERE oi.id = $1;
+    `;
+    const result = await pool.query(query, [item_id]);
+    return result.rows[0] || null;
+  } catch (error) {
+    console.error("Error al obtener item de orden:", error);
+    throw error;
+  }
+};
+
+export const updateOrderItem = async (id, data) => {
+  try {
+    const item_id = validateId(id);
+    if (!item_id) return null;
+
+    const { quantity, special_requests } = data;
+
+    if (quantity !== undefined) {
+      const qty = Number(quantity);
+      if (isNaN(qty) || qty <= 0 || qty > 99) {
+        throw new Error("La cantidad debe ser un número válido entre 1 y 99");
+      }
+
+      const price_query = `SELECT price FROM public.order_items WHERE id = $1;`;
+      const price_result = await pool.query(price_query, [item_id]);
+
+      if (!price_result.rows[0]) throw new Error('Item de orden no encontrado');
+
+      const unit_price = price_result.rows[0].price;
+      const new_subtotal = unit_price * qty;
+
+      const update_query = `
+        UPDATE public.order_items
+        SET quantity = $1,
+            subtotal = $2,
+            special_requests = COALESCE($3, special_requests)
+        WHERE id = $4
+        RETURNING *;
+      `;
+
+      const result = await pool.query(update_query, [qty, new_subtotal, special_requests, item_id]);
+      return result.rows[0] || null;
+    }
+
+    const query = `
+      UPDATE public.order_items
+      SET special_requests = $1
+      WHERE id = $2
+      RETURNING *;
+    `;
+
+    const result = await pool.query(query, [special_requests, item_id]);
+    return result.rows[0] || null;
+  } catch (error) {
+    console.error("Error al actualizar item de orden:", error);
+    throw error;
+  }
+};
+
+export const updateOrderItemPartial = async (id, data) => {
+  try {
+    const item_id = validateId(id);
+    if (!item_id) return null;
+
+    const filtered_data = filterAllowedFields(data, ALLOWED_ORDER_ITEM_FIELDS);
+    const keys = Object.keys(filtered_data);
+
+    if (keys.length === 0) {
+      throw new Error("No se proporcionaron campos válidos para actualizar");
+    }
+
+    if (filtered_data.quantity !== undefined) {
+      const qty = Number(filtered_data.quantity);
+      if (isNaN(qty) || qty <= 0 || qty > 99) {
+        throw new Error("La cantidad debe ser un número válido entre 1 y 99");
+      }
+      filtered_data.quantity = qty;
+    }
+
+    const set_clauses = keys.map((key, i) => `${key} = $${i + 1}`);
+    const values = Object.values(filtered_data);
+
+    const query = `
+      UPDATE public.order_items
+      SET ${set_clauses.join(", ")}
+      WHERE id = $${keys.length + 1}
+      RETURNING *;
+    `;
+
+    const result = await pool.query(query, [...values, item_id]);
+    return result.rows[0] || null;
+  } catch (error) {
+    console.error("Error al actualizar parcialmente item de orden:", error);
+    throw error;
+  }
+};
+
+export const deleteOrderItem = async (id) => {
+  try {
+    const item_id = validateId(id);
+    if (!item_id) return null;
+
+    const query = `
+      DELETE FROM public.order_items
+      WHERE id = $1
+      RETURNING id;
+    `;
+
+    const result = await pool.query(query, [item_id]);
+    if (result.rowCount === 0) return null;
+
+    return { message: "Item de orden eliminado correctamente" };
+  } catch (error) {
+    console.error("Error al eliminar item de orden:", error);
+    throw error;
+  }
+};
+
+export const clearOrderItems = async (order_id) => {
+  try {
+    const query = `
+      DELETE FROM public.order_items
+      WHERE order_id = $1;
+    `;
+
+    const result = await pool.query(query, [order_id]);
+    return result.rowCount;
+  } catch (error) {
+    console.error("Error al limpiar items de orden:", error);
+    throw error;
+  }
+};
+
+// ============================================================
+// OPERACIONES COMPLEJAS - Transacciones
+// ============================================================
+
+export const createOrderWithItems = async (
+  user_id,
+  cart_items,
+  delivery_type = 'dine-in',
+  special_instructions = null
+) => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    if (!cart_items || cart_items.length === 0) {
+      throw new Error('El carrito no puede estar vacío');
+    }
+
+    const order_result = await client.query(
+      `INSERT INTO public.orders
+       (user_id, total_amount, status, delivery_type, special_instructions)
+       VALUES ($1, 0, 'pending', $2, $3)
+       RETURNING *;`,
+      [user_id, delivery_type, special_instructions]
+    );
+
+    const order = order_result.rows[0];
+    let total_amount = 0;
+    let max_prep_time = 0;
+
+    for (const item of cart_items) {
+      const price_result = await client.query(
+        `SELECT price, is_available, estimated_prep_time FROM public.menu_items WHERE id = $1;`,
+        [item.menu_item_id]
+      );
+
+      if (!price_result.rows[0]) {
+        throw new Error(`Item no encontrado: ${item.menu_item_id}`);
+      }
+
+      if (!price_result.rows[0].is_available) {
+        throw new Error(`Item no disponible: ${item.menu_item_id}`);
+      }
+
+      const price = price_result.rows[0].price;
+      const prep_time = price_result.rows[0].estimated_prep_time || 0;
+      const quantity = Math.max(1, Math.min(item.quantity || 1, 99));
+      const subtotal = price * quantity;
+
+      total_amount += subtotal;
+
+      if (prep_time > max_prep_time) {
+        max_prep_time = prep_time;
+      }
+
+      await client.query(
+        `INSERT INTO public.order_items
+         (order_id, menu_item_id, quantity, price, subtotal, special_requests)
+         VALUES ($1, $2, $3, $4, $5, $6);`,
+        [order.id, item.menu_item_id, quantity, price, subtotal, item.special_requests || null]
+      );
+    }
+
+    await client.query(
+      `UPDATE public.orders SET total_amount = $1 WHERE id = $2;`,
+      [total_amount, order.id]
+    );
+
+    await client.query('COMMIT');
+
+    return {
+      ...order,
+      total_amount,
+      items_count: cart_items.length,
+      estimated_prep_time: max_prep_time
+    };
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error("Error al crear orden con items:", error);
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
+export const validateCartItems = async (cart_items) => {
+  try {
+    if (!cart_items || cart_items.length === 0) {
+      return { valid: false, error: 'El carrito está vacío' };
+    }
+
+    const unavailable = [];
+    const not_found = [];
+
+    for (const item of cart_items) {
+      if (!item.menu_item_id || item.menu_item_id <= 0) {
+        not_found.push({ id: item.menu_item_id, reason: 'menu_item_id inválido' });
+        continue;
+      }
+
+      const result = await pool.query(
+        `SELECT id, is_available, name FROM public.menu_items WHERE id = $1;`,
+        [item.menu_item_id]
+      );
+
+      if (!result.rows[0]) {
+        not_found.push({ id: item.menu_item_id, reason: 'No existe' });
+      } else if (!result.rows[0].is_available) {
+        unavailable.push({
+          id: item.menu_item_id,
+          name: result.rows[0].name,
+          reason: 'No disponible'
+        });
+      }
+    }
+
+    return {
+      valid: unavailable.length === 0 && not_found.length === 0,
+      unavailable,
+      not_found
+    };
+  } catch (error) {
+    console.error("Error al validar items del carrito:", error);
+    throw error;
+  }
+};
+
+export const calculateOrderTotal = async (order_id) => {
+  try {
+    const query = `
+      SELECT
+        COALESCE(SUM(oi.subtotal), 0) as total_amount,
+        COUNT(*) as items_count,
+        COALESCE(SUM(oi.quantity), 0) as total_quantity
+      FROM public.order_items oi
+      WHERE oi.order_id = $1;
+    `;
+    const result = await pool.query(query, [order_id]);
+    return result.rows[0] || { total_amount: 0, items_count: 0, total_quantity: 0 };
+  } catch (error) {
+    console.error("Error al calcular total de orden:", error);
+    throw error;
+  }
+};
+
+export const syncOrderTotal = async (order_id) => {
+  try {
+    const totals = await calculateOrderTotal(order_id);
     const query = `
       UPDATE public.orders
       SET total_amount = $1, updated_at = CURRENT_TIMESTAMP
       WHERE id = $2
       RETURNING *;
     `;
-    const result = await pool.query(query, [totalAmount, orderId]);
+    const result = await pool.query(query, [totals.total_amount || 0, order_id]);
     return result.rows[0];
+  } catch (error) {
+    console.error("Error al sincronizar total de orden:", error);
+    throw error;
   }
+};
 
-  /**
-   * Actualizar instrucciones especiales
-   * @param {number} orderId - ID de la orden
-   * @param {string} specialInstructions - Nuevas instrucciones
-   * @returns {Promise<Object>} - Orden actualizada
-   */
-  static async updateSpecialInstructions(orderId, specialInstructions) {
-    const query = `
-      UPDATE public.orders
-      SET special_instructions = $1, updated_at = CURRENT_TIMESTAMP
-      WHERE id = $2
-      RETURNING *;
-    `;
-    const result = await pool.query(query, [specialInstructions, orderId]);
-    return result.rows[0];
-  }
+export const calculateOrderETA = async (order_id) => {
+  try {
+    const valid_id = validateId(order_id);
+    if (!valid_id) return { max_prep_time: 0, total_items: 0, item_names: '' };
 
-  /**
-   * Eliminar una orden
-   * @param {number} orderId - ID de la orden
-   * @returns {Promise<Object>} - Orden eliminada
-   */
-  static async deleteOrder(orderId) {
-    const query = `
-      DELETE FROM public.orders
-      WHERE id = $1
-      RETURNING *;
-    `;
-    const result = await pool.query(query, [orderId]);
-    return result.rows[0];
-  }
-
-  // ============================================================
-  // ORDER ITEMS - Items dentro de una orden
-  // ============================================================
-
-  /**
-   * Agregar un item a una orden
-   * @param {number} orderId - ID de la orden
-   * @param {number} menuItemId - ID del item del menú
-   * @param {number} quantity - Cantidad
-   * @param {number} price - Precio unitario
-   * @param {number} subtotal - Subtotal
-   * @param {string} specialRequests - Solicitudes especiales
-   * @returns {Promise<Object>} - Item de orden creado
-   */
-  static async addOrderItem(orderId, menuItemId, quantity, price, subtotal, specialRequests = null) {
-    const query = `
-      INSERT INTO public.order_items 
-      (order_id, menu_item_id, quantity, price, subtotal, special_requests)
-      VALUES ($1, $2, $3, $4, $5, $6)
-      RETURNING *;
-    `;
-    const result = await pool.query(query, [orderId, menuItemId, quantity, price, subtotal, specialRequests]);
-    return result.rows[0];
-  }
-
-  /**
-   * Obtener todos los items de una orden
-   * @param {number} orderId - ID de la orden
-   * @returns {Promise<Array>} - Items de la orden
-   */
-  static async getOrderItems(orderId) {
-    const query = `
-      SELECT 
-        oi.*,
-        mi.name as item_name,
-        mi.description,
-        mi.image_url,
-        mi.is_available
+    const result = await pool.query(
+      `SELECT
+        COALESCE(MAX(mi.estimated_prep_time), 0)::INTEGER as max_prep_time,
+        COUNT(oi.id)::INTEGER as total_items,
+        STRING_AGG(DISTINCT mi.name, ', ') as item_names
       FROM public.order_items oi
-      JOIN public.menu_items mi ON oi.menu_item_id = mi.id
+      INNER JOIN public.menu_items mi ON oi.menu_item_id = mi.id
       WHERE oi.order_id = $1
-      ORDER BY oi.created_at ASC;
-    `;
-    const result = await pool.query(query, [orderId]);
-    return result.rows;
-  }
+      GROUP BY oi.order_id;`,
+      [valid_id]
+    );
 
-  /**
-   * Obtener un item específico de una orden
-   * @param {number} orderItemId - ID del item de orden
-   * @returns {Promise<Object>} - Item de la orden
-   */
-  static async getOrderItem(orderItemId) {
-    const query = `
-      SELECT 
-        oi.*,
-        mi.name as item_name,
-        mi.description,
-        mi.price as original_price
-      FROM public.order_items oi
-      JOIN public.menu_items mi ON oi.menu_item_id = mi.id
-      WHERE oi.id = $1;
-    `;
-    const result = await pool.query(query, [orderItemId]);
-    return result.rows[0];
-  }
-
-  /**
-   * Actualizar cantidad de un item en una orden
-   * @param {number} orderItemId - ID del item de orden
-   * @param {number} newQuantity - Nueva cantidad
-   * @returns {Promise<Object>} - Item actualizado
-   */
-  static async updateOrderItemQuantity(orderItemId, newQuantity) {
-    const query = `
-      SELECT price FROM public.order_items WHERE id = $1;
-    `;
-    const priceResult = await pool.query(query, [orderItemId]);
-    
-    if (!priceResult.rows[0]) {
-      throw new Error('Item de orden no encontrado');
-    }
-
-    const unitPrice = priceResult.rows[0].price;
-    const newSubtotal = unitPrice * newQuantity;
-
-    const updateQuery = `
-      UPDATE public.order_items
-      SET quantity = $1, subtotal = $2
-      WHERE id = $3
-      RETURNING *;
-    `;
-    const result = await pool.query(updateQuery, [newQuantity, newSubtotal, orderItemId]);
-    return result.rows[0];
-  }
-
-  /**
-   * Eliminar un item de una orden
-   * @param {number} orderItemId - ID del item de orden
-   * @returns {Promise<Object>} - Item eliminado
-   */
-  static async removeOrderItem(orderItemId) {
-    const query = `
-      DELETE FROM public.order_items
-      WHERE id = $1
-      RETURNING *;
-    `;
-    const result = await pool.query(query, [orderItemId]);
-    return result.rows[0];
-  }
-
-  /**
-   * Eliminar todos los items de una orden
-   * @param {number} orderId - ID de la orden
-   * @returns {Promise<number>} - Cantidad de items eliminados
-   */
-  static async clearOrderItems(orderId) {
-    const query = `
-      DELETE FROM public.order_items
-      WHERE order_id = $1;
-    `;
-    const result = await pool.query(query, [orderId]);
-    return result.rowCount;
-  }
-
-  // ============================================================
-  // OPERACIONES COMPLEJAS - Transacciones
-  // ============================================================
-
-  /**
-   * Crear orden completa con items en una transacción
-   * Garantiza que todos los items se agregan o ninguno
-   * @param {number} userId - ID del usuario
-   * @param {Array} cartItems - Array de {menuItemId, quantity, specialRequests}
-   * @param {string} deliveryType - Tipo de entrega (dine-in, delivery, takeout)
-   * @param {string} specialInstructions - Instrucciones generales
-   * @returns {Promise<Object>} - Orden creada con items
-   */
-  static async createOrderWithItems(userId, cartItems, deliveryType = 'dine-in', specialInstructions = null) {
-    const client = await pool.connect();
-    
-    try {
-      await client.query('BEGIN');
-
-      // 1. Validar que el carrito no esté vacío
-      if (!cartItems || cartItems.length === 0) {
-        throw new Error('El carrito no puede estar vacío');
-      }
-
-      // 2. Crear orden inicial
-      const orderResult = await client.query(
-        `INSERT INTO public.orders 
-         (user_id, total_amount, status, delivery_type, special_instructions)
-         VALUES ($1, 0, 'pending', $2, $3)
-         RETURNING *;`,
-        [userId, deliveryType, specialInstructions]
-      );
-
-      const order = orderResult.rows[0];
-      let totalAmount = 0;
-
-      // 3. Agregar items a la orden
-      for (const item of cartItems) {
-        // Validar que el item existe y obtener precio actual
-        const priceResult = await client.query(
-          `SELECT price, is_available FROM public.menu_items WHERE id = $1;`,
-          [item.menuItemId]
-        );
-
-        if (!priceResult.rows[0]) {
-          throw new Error(`Item no encontrado: ${item.menuItemId}`);
-        }
-
-        if (!priceResult.rows[0].is_available) {
-          throw new Error(`Item no disponible: ${item.menuItemId}`);
-        }
-
-        const price = priceResult.rows[0].price;
-        const quantity = Math.max(1, Math.min(item.quantity || 1, 99)); // 1-99 items
-        const subtotal = price * quantity;
-        totalAmount += subtotal;
-
-        // Insertar item (automáticamente poblará order_history mediante TRIGGER)
-        await client.query(
-          `INSERT INTO public.order_items 
-           (order_id, menu_item_id, quantity, price, subtotal, special_requests)
-           VALUES ($1, $2, $3, $4, $5, $6);`,
-          [order.id, item.menuItemId, quantity, price, subtotal, item.specialRequests || null]
-        );
-      }
-
-      // 4. Actualizar monto total de la orden
-      await client.query(
-        `UPDATE public.orders SET total_amount = $1 WHERE id = $2;`,
-        [totalAmount, order.id]
-      );
-
-      await client.query('COMMIT');
-
-      return {
-        ...order,
-        total_amount: totalAmount,
-        items_count: cartItems.length
-      };
-    } catch (error) {
-      await client.query('ROLLBACK');
-      throw error;
-    } finally {
-      client.release();
-    }
-  }
-
-  /**
-   * Validar disponibilidad de items antes de crear orden
-   * @param {Array} cartItems - Array de {menuItemId, quantity}
-   * @returns {Promise<Object>} - {valid: boolean, unavailable: Array, notFound: Array}
-   */
-  static async validateCartItems(cartItems) {
-    if (!cartItems || cartItems.length === 0) {
-      return { valid: false, error: 'El carrito está vacío' };
-    }
-
-    const unavailable = [];
-    const notFound = [];
-
-    for (const item of cartItems) {
-      const result = await pool.query(
-        `SELECT id, is_available, name FROM public.menu_items WHERE id = $1;`,
-        [item.menuItemId]
-      );
-
-      if (!result.rows[0]) {
-        notFound.push({ id: item.menuItemId, reason: 'No existe' });
-      } else if (!result.rows[0].is_available) {
-        unavailable.push({ 
-          id: item.menuItemId, 
-          name: result.rows[0].name,
-          reason: 'No disponible' 
-        });
-      }
+    if (!result.rows[0]) {
+      return { max_prep_time: 0, total_items: 0, item_names: '' };
     }
 
     return {
-      valid: unavailable.length === 0 && notFound.length === 0,
-      unavailable,
-      notFound
+      max_prep_time: result.rows[0].max_prep_time || 0,
+      total_items: result.rows[0].total_items || 0,
+      item_names: result.rows[0].item_names || ''
     };
+  } catch (error) {
+    console.error("Error al calcular ETA:", error);
+    return { max_prep_time: 0, total_items: 0, item_names: '' };
   }
+};
 
-  /**
-   * Calcular total de una orden
-   * @param {number} orderId - ID de la orden
-   * @returns {Promise<Object>} - {totalAmount, itemsCount}
-   */
-  static async calculateOrderTotal(orderId) {
-    const query = `
-      SELECT 
-        SUM(subtotal) as total_amount,
-        COUNT(*) as items_count,
-        SUM(quantity) as total_quantity
-      FROM public.order_items
-      WHERE order_id = $1;
-    `;
-    const result = await pool.query(query, [orderId]);
-    return result.rows[0] || { total_amount: 0, items_count: 0, total_quantity: 0 };
+export const cancelOrder = async (order_id) => {
+  try {
+    return await updateOrderStatus(order_id, 'cancelled');
+  } catch (error) {
+    console.error("Error al cancelar orden:", error);
+    throw error;
   }
+};
 
-  /**
-   * Sincronizar total de orden (actualizar desde items)
-   * @param {number} orderId - ID de la orden
-   * @returns {Promise<Object>} - Orden actualizada
-   */
-  static async syncOrderTotal(orderId) {
-    const totals = await this.calculateOrderTotal(orderId);
-    return this.updateOrderTotal(orderId, totals.total_amount || 0);
-  }
-
-  /**
-   * Cancelar orden (cambiar estado a cancelled)
-   * @param {number} orderId - ID de la orden
-   * @returns {Promise<Object>} - Orden cancelada
-   */
-  static async cancelOrder(orderId) {
-    return this.updateOrderStatus(orderId, 'cancelled');
-  }
-
-  /**
-   * Obtener órdenes por usuario con paginación avanzada
-   * @param {number} userId - ID del usuario
-   * @param {string} status - Filtrar por estado (opcional)
-   * @param {number} limit - Límite de registros
-   * @param {number} offset - Offset para paginación
-   * @returns {Promise<Array>} - Órdenes filtradas
-   */
-  static async getUserOrdersFiltered(userId, status = null, limit = 10, offset = 0) {
+export const getUserOrdersFiltered = async (user_id, status = null, limit = 10, offset = 0) => {
+  try {
     let query = `
-      SELECT 
+      SELECT
         o.*,
         COUNT(oi.id) as items_count,
         SUM(oi.quantity) as total_items
@@ -487,8 +715,7 @@ export class OrdersRepository {
       WHERE o.user_id = $1
     `;
 
-    const params = [userId];
-
+    const params = [user_id];
     if (status) {
       query += ` AND o.status = $${params.length + 1}`;
       params.push(status);
@@ -496,71 +723,109 @@ export class OrdersRepository {
 
     query += `
       GROUP BY o.id
-      ORDER BY o.order_date DESC
+      ORDER BY o.created_at DESC
       LIMIT $${params.length + 1} OFFSET $${params.length + 2};
     `;
-
     params.push(limit, offset);
+
     const result = await pool.query(query, params);
     return result.rows;
+  } catch (error) {
+    console.error("Error al obtener órdenes filtradas por usuario:", error);
+    throw error;
   }
+};
 
-  // ============================================================
-  // ANÁLISIS Y ESTADÍSTICAS
-  // ============================================================
+// ============================================================
+// DINE-IN CON MESAS
+// ============================================================
 
-  /**
-   * Obtener estadísticas de órdenes por usuario
-   * @returns {Promise<Array>} - Resumen de órdenes por usuario
-   */
-  static async getUserOrdersSummary() {
+export const createDineInOrderWithTable = async (
+  user_id,
+  table_id,
+  cart_items,
+  special_instructions = null
+) => {
+  try {
     const query = `
-      SELECT * FROM public.user_orders_summary
-      ORDER BY total_spent DESC;
+      SELECT * FROM public.create_dinein_order($1, $2, $3, $4);
     `;
+    const result = await pool.query(query, [
+      user_id,
+      table_id,
+      JSON.stringify(cart_items),
+      special_instructions
+    ]);
+    return result.rows[0];
+  } catch (error) {
+    console.error("Error al crear orden dine-in con mesa:", error);
+    throw error;
+  }
+};
+
+export const getOrderWithTable = async (order_id) => {
+  try {
+    const valid_id = validateId(order_id);
+    if (!valid_id) return null;
+
+    const query = `SELECT * FROM public.orders_with_tables WHERE id = $1;`;
+    const result = await pool.query(query, [valid_id]);
+    return result.rows[0] || null;
+  } catch (error) {
+    console.error("Error al obtener orden con mesa:", error);
+    throw error;
+  }
+};
+
+export const getTableWithOrders = async (table_id) => {
+  try {
+    const valid_id = validateId(table_id);
+    if (!valid_id) return null;
+
+    const query = `SELECT * FROM public.get_table_with_orders($1);`;
+    const result = await pool.query(query, [valid_id]);
+    return result.rows[0] || null;
+  } catch (error) {
+    console.error("Error al obtener mesa con órdenes activas:", error);
+    throw error;
+  }
+};
+
+export const moveOrderToTable = async (order_id, new_table_id) => {
+  try {
+    const query = `SELECT * FROM public.move_order_to_table($1, $2);`;
+    const result = await pool.query(query, [order_id, new_table_id]);
+    return result.rows[0];
+  } catch (error) {
+    console.error("Error al mover orden a otra mesa:", error);
+    throw error;
+  }
+};
+
+export const getOccupiedTables = async () => {
+  try {
+    const query = `SELECT * FROM public.occupied_tables ORDER BY table_number ASC;`;
     const result = await pool.query(query);
     return result.rows;
+  } catch (error) {
+    console.error("Error al obtener mesas ocupadas:", error);
+    throw error;
   }
+};
 
-  /**
-   * Obtener items más vendidos
-   * @param {number} limit - Cantidad de items a retornar
-   * @returns {Promise<Array>} - Items más vendidos
-   */
-  static async getTopSellingItems(limit = 10) {
-    const query = `
-      SELECT * FROM public.top_selling_items
-      LIMIT $1;
-    `;
-    const result = await pool.query(query, [limit]);
-    return result.rows;
-  }
+// ============================================================
+// ESTADÍSTICAS Y REPORTES
+// ============================================================
 
-  /**
-   * Obtener demanda por hora y día
-   * @returns {Promise<Array>} - Demanda por hora y día
-   */
-  static async getDemandByTime() {
+export const getOrdersStatistics = async () => {
+  try {
     const query = `
-      SELECT * FROM public.demand_by_time
-      ORDER BY hour, day_of_week;
-    `;
-    const result = await pool.query(query);
-    return result.rows;
-  }
-
-  /**
-   * Obtener resumen de órdenes (total, promedio, etc.)
-   * @returns {Promise<Object>} - Estadísticas generales
-   */
-  static async getOrdersStatistics() {
-    const query = `
-      SELECT 
+      SELECT
         COUNT(DISTINCT id) as total_orders,
         SUM(total_amount) as total_revenue,
         AVG(total_amount) as avg_order_value,
         COUNT(DISTINCT user_id) as unique_customers,
-        MAX(order_date) as last_order_date,
+        MAX(created_at) as last_order_date,
         COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed_orders,
         COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending_orders,
         COUNT(CASE WHEN status = 'preparing' THEN 1 END) as preparing_orders,
@@ -575,16 +840,16 @@ export class OrdersRepository {
       avg_order_value: 0,
       unique_customers: 0
     };
+  } catch (error) {
+    console.error("Error al obtener estadísticas de órdenes:", error);
+    throw error;
   }
+};
 
-  /**
-   * Obtener órdenes recientes
-   * @param {number} limit - Cantidad de órdenes a retornar
-   * @returns {Promise<Array>} - Órdenes recientes
-   */
-  static async getRecentOrders(limit = 10) {
+export const getRecentOrders = async (limit = 10) => {
+  try {
     const query = `
-      SELECT 
+      SELECT
         o.*,
         u.name as user_name,
         COUNT(oi.id) as items_count
@@ -592,20 +857,21 @@ export class OrdersRepository {
       JOIN public.users u ON o.user_id = u.id
       LEFT JOIN public.order_items oi ON o.id = oi.order_id
       GROUP BY o.id, u.id
-      ORDER BY o.order_date DESC
+      ORDER BY o.created_at DESC
       LIMIT $1;
     `;
     const result = await pool.query(query, [limit]);
     return result.rows;
+  } catch (error) {
+    console.error("Error al obtener órdenes recientes:", error);
+    throw error;
   }
+};
 
-  /**
-   * Obtener estadísticas por tipo de entrega
-   * @returns {Promise<Array>} - Estadísticas por delivery_type
-   */
-  static async getStatisticsByDeliveryType() {
+export const getStatisticsByDeliveryType = async () => {
+  try {
     const query = `
-      SELECT 
+      SELECT
         delivery_type,
         COUNT(*) as order_count,
         SUM(total_amount) as total_revenue,
@@ -617,30 +883,30 @@ export class OrdersRepository {
     `;
     const result = await pool.query(query);
     return result.rows;
+  } catch (error) {
+    console.error("Error al obtener estadísticas por tipo de entrega:", error);
+    throw error;
   }
+};
 
-  /**
-   * Obtener órdenes por rango de fechas
-   * @param {string} startDate - Fecha de inicio (YYYY-MM-DD)
-   * @param {string} endDate - Fecha de fin (YYYY-MM-DD)
-   * @returns {Promise<Array>} - Órdenes en el rango
-   */
-  static async getOrdersByDateRange(startDate, endDate) {
+export const getOrdersByDateRange = async (start_date, end_date) => {
+  try {
     const query = `
-      SELECT 
+      SELECT
         o.*,
         u.name as user_name,
         COUNT(oi.id) as items_count
       FROM public.orders o
       JOIN public.users u ON o.user_id = u.id
       LEFT JOIN public.order_items oi ON o.id = oi.order_id
-      WHERE DATE(o.order_date) BETWEEN $1 AND $2
+      WHERE DATE(o.created_at) BETWEEN $1 AND $2
       GROUP BY o.id, u.id
-      ORDER BY o.order_date DESC;
+      ORDER BY o.created_at DESC;
     `;
-    const result = await pool.query(query, [startDate, endDate]);
+    const result = await pool.query(query, [start_date, end_date]);
     return result.rows;
+  } catch (error) {
+    console.error("Error al obtener órdenes por rango de fechas:", error);
+    throw error;
   }
-}
-
-export default OrdersRepository;
+};

@@ -1,7 +1,18 @@
 // src/controllers/auth.controller.js
+
 import bcrypt from "bcrypt";
 import crypto from "crypto";
-import { UserRepository } from "../repositories/user.repository.js";
+import {
+  getUserByEmail,
+  createUser,
+  verifyUserAccount,
+  setResetToken,
+  getUserByResetToken,
+  updateUserPassword,
+  clearResetToken,
+  incrementTokenVersion,
+} from "../repositories/user.repository.js";
+
 import { generateToken } from "../utils/jwt.js";
 import { sendStyledMail } from "../config/mailer.js";
 import {
@@ -9,194 +20,195 @@ import {
   loginSchema,
   resetPasswordSchema,
 } from "../validators/auth.validator.js";
-import { successResponse } from "../utils/response.js";
+import { successResponse, errorResponse } from "../utils/response.js";
 
-export class AuthController {
-  static async register(req, res, next) {
-    try {
-      const { name, email, password } = registerSchema.parse(req.body);
+/* AUTENTICACIÓN - REGISTRO */
 
-      const existing = await UserRepository.findByEmail(email);
-      if (existing) {
-        const err = new Error("El correo ya está registrado");
-        err.status = 400;
-        throw err;
-      }
+/* Registra un nuevo usuario */
+export const register = async (req, res, next) => {
+  try {
+    const { name, email, password } = registerSchema.parse(req.body);
+    const existing = await getUserByEmail(email);
 
-      const hashedPassword = await bcrypt.hash(password, 10);
-      const verificationToken = crypto.randomBytes(40).toString("hex");
+    if (existing) {
+      return errorResponse(res, 409, "El correo ya está registrado");
+    }
 
-      await UserRepository.createUser({
-        name,
-        email,
-        password: hashedPassword,
-        verification_token: verificationToken,
-      });
+    const hashed_password = await bcrypt.hash(password, 10);
+    const verification_token = crypto.randomBytes(40).toString("hex");
 
-      const verifyUrl = `${process.env.FRONTEND_URL}/verify/${verificationToken}`;
+    await createUser({
+      name,
+      email,
+      password: hashed_password,
+      verification_token,
+    });
 
-      Promise.resolve(
-        sendStyledMail({
-          to: email,
-          subject: "Verifica tu cuenta - TasteLogic",
-          title: `¡Bienvenido, ${name}!`,
-          message: `
-            Gracias por registrarte en <b>TasteLogic</b>.<br><br>
-            Verifica tu cuenta haciendo clic en el siguiente botón:
-          `,
-          buttonText: "Verificar mi cuenta",
-          buttonUrl: verifyUrl,
-        })
-      ).catch((err) => console.error("Error al enviar correo de verificación:", err));
+    const verify_url = `${process.env.FRONTEND_URL}/verify/${verification_token}`;
 
-      return successResponse(
+    Promise.resolve(
+      sendStyledMail({
+        to: email,
+        subject: "Verifica tu cuenta - TasteLogic",
+        title: `¡Bienvenido, ${name}!`,
+        message: `Gracias por registrarte en TasteLogic.
+                  Verifica tu cuenta haciendo clic en el siguiente botón:`,
+        buttonText: "Verificar mi cuenta",
+        buttonUrl: verify_url,
+      })
+    ).catch((err) =>
+      console.error("Error al enviar correo de verificación:", err)
+    );
+
+    return successResponse(
+      res,
+      "Usuario registrado correctamente. Revisa tu correo para verificar la cuenta.",
+      {},
+      201
+    );
+  } catch (err) {
+    next(err);
+  }
+};
+
+/* Verifica la cuenta de un usuario */
+export const verify = async (req, res, next) => {
+  try {
+    const { token } = req.params;
+    const user = await verifyUserAccount(token);
+
+    if (!user) {
+      return errorResponse(res, 400, "Token inválido o expirado");
+    }
+
+    return successResponse(res, "Cuenta verificada correctamente", {}, 200);
+  } catch (err) {
+    next(err);
+  }
+};
+
+/* AUTENTICACIÓN - LOGIN Y LOGOUT */
+
+/* Inicia sesión de un usuario */
+export const login = async (req, res, next) => {
+  try {
+    const { email, password } = loginSchema.parse(req.body);
+    const user = await getUserByEmail(email);
+
+    if (!user) {
+      return errorResponse(res, 404, "Usuario no encontrado");
+    }
+
+    if (!user.is_verified) {
+      return errorResponse(
         res,
-        "Usuario registrado correctamente. Revisa tu correo para verificar la cuenta.",
-        {},
-        201
+        403,
+        "Cuenta no verificada. Revisa tu correo."
       );
-    } catch (err) {
-      next(err);
     }
-  }
 
-  static async verify(req, res, next) {
-    try {
-      const { token } = req.params;
-      const user = await UserRepository.verifyAccount(token);
+    const valid = await bcrypt.compare(password, user.password);
 
-      if (!user) {
-        const err = new Error("Token inválido o expirado");
-        err.status = 400;
-        throw err;
-      }
-
-      return successResponse(res, "Cuenta verificada correctamente", {}, 200);
-    } catch (err) {
-      next(err);
+    if (!valid) {
+      return errorResponse(res, 400, "Contraseña incorrecta");
     }
-  }
 
-  static async login(req, res, next) {
-    try {
-      const { email, password } = loginSchema.parse(req.body);
+    const token = generateToken({
+      id: user.id,
+      role: user.role,
+      token_version: user.token_version,
+    });
 
-      const user = await UserRepository.findByEmail(email);
-      if (!user) {
-        const err = new Error("Usuario no encontrado");
-        err.status = 404;
-        throw err;
-      }
-
-      if (!user.is_verified) {
-        const err = new Error("Cuenta no verificada. Revisa tu correo.");
-        err.status = 403;
-        throw err;
-      }
-
-      const valid = await bcrypt.compare(password, user.password);
-      if (!valid) {
-        const err = new Error("Contraseña incorrecta");
-        err.status = 400;
-        throw err;
-      }
-
-      const token = generateToken({
+    return successResponse(res, "Inicio de sesión exitoso", {
+      token,
+      user: {
         id: user.id,
+        name: user.name,
+        email: user.email,
         role: user.role,
-        token_version: user.token_version,
-      });
-
-      return successResponse(res, "Inicio de sesión exitoso", {
-        token,
-        user: {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
-        },
-      });
-    } catch (err) {
-      next(err);
-    }
+      },
+    });
+  } catch (err) {
+    next(err);
   }
+};
 
-  static async logout(req, res, next) {
-    try {
-      const userId = req.user.id;
-      await UserRepository.incrementTokenVersion(userId);
-      return successResponse(res, "Sesión cerrada correctamente", {}, 200);
-    } catch (err) {
-      next(err);
-    }
+/* Cierra la sesión de un usuario */
+export const logout = async (req, res, next) => {
+  try {
+    const user_id = req.user.id;
+    await incrementTokenVersion(user_id);
+
+    return successResponse(res, "Sesión cerrada correctamente", {}, 200);
+  } catch (err) {
+    next(err);
   }
+};
 
-  static async forgotPassword(req, res, next) {
-    try {
-      const { email } = req.body;
-      const user = await UserRepository.findByEmail(email);
+/* AUTENTICACIÓN - RESET DE CONTRASEÑA */
 
-      if (!user) {
-        const err = new Error("Usuario no encontrado");
-        err.status = 404;
-        throw err;
-      }
+/* Inicia el proceso de reseteo de contraseña */
+export const forgotPassword = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    const user = await getUserByEmail(email);
 
-      const resetToken = crypto.randomBytes(40).toString("hex");
-      await UserRepository.setResetToken(user.id, resetToken);
-
-      const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
-
-      Promise.resolve(
-        sendStyledMail({
-          to: email,
-          subject: "Restablece tu contraseña - TasteLogic",
-          title: `Hola ${user.name},`,
-          message: `
-            Recibimos una solicitud para restablecer tu contraseña.<br><br>
-            Si fuiste tú, haz clic en el botón para continuar:
-          `,
-          buttonText: "Restablecer contraseña",
-          buttonUrl: resetUrl,
-        })
-      ).catch((err) => console.error("Error al enviar correo de restablecimiento:", err));
-
-      return successResponse(
-        res,
-        "Se ha enviado un enlace de restablecimiento a tu correo.",
-        {},
-        200
-      );
-    } catch (err) {
-      next(err);
+    if (!user) {
+      return errorResponse(res, 404, "Usuario no encontrado");
     }
+
+    const reset_token = crypto.randomBytes(40).toString("hex");
+    await setResetToken(user.id, reset_token);
+
+    const reset_url = `${process.env.FRONTEND_URL}/reset-password/${reset_token}`;
+
+    Promise.resolve(
+      sendStyledMail({
+        to: email,
+        subject: "Restablece tu contraseña - TasteLogic",
+        title: `Hola ${user.name},`,
+        message: `Recibimos una solicitud para restablecer tu contraseña.
+                  Si fuiste tú, haz clic en el botón para continuar:`,
+        buttonText: "Restablecer contraseña",
+        buttonUrl: reset_url,
+      })
+    ).catch((err) =>
+      console.error("Error al enviar correo de restablecimiento:", err)
+    );
+
+    return successResponse(
+      res,
+      "Se ha enviado un enlace de restablecimiento a tu correo.",
+      {},
+      200
+    );
+  } catch (err) {
+    next(err);
   }
+};
 
-  static async resetPassword(req, res, next) {
-    try {
-      const { token } = req.params;
-      const { password } = resetPasswordSchema.parse(req.body);
+/* Restablece la contraseña de un usuario */
+export const resetPassword = async (req, res, next) => {
+  try {
+    const { token } = req.params;
+    const { password } = resetPasswordSchema.parse(req.body);
+    const user = await getUserByResetToken(token);
 
-      const user = await UserRepository.findByResetToken(token);
-      if (!user) {
-        const err = new Error("Token inválido o expirado");
-        err.status = 400;
-        throw err;
-      }
-
-      const hashed = await bcrypt.hash(password, 10);
-      await UserRepository.updatePassword(user.id, hashed);
-
-      await UserRepository.clearResetToken(user.id);
-
-      return successResponse(
-        res,
-        "Contraseña restablecida correctamente. Vuelve a iniciar sesión.",
-        {},
-        200
-      );
-    } catch (err) {
-      next(err);
+    if (!user) {
+      return errorResponse(res, 400, "Token inválido o expirado");
     }
+
+    const hashed = await bcrypt.hash(password, 10);
+    await updateUserPassword(user.id, hashed);
+    await clearResetToken(user.id);
+
+    return successResponse(
+      res,
+      "Contraseña restablecida correctamente. Vuelve a iniciar sesión.",
+      {},
+      200
+    );
+  } catch (err) {
+    next(err);
   }
-}
+};

@@ -2,13 +2,23 @@
 
 import { pool } from "../config/db.js";
 
+/* UTILIDADES Y VALIDADORES */
+
+/* Valida que un ID sea un número positivo válido */
 const validateId = (id) => {
   const numId = Number(id);
   return isNaN(numId) || numId <= 0 ? null : numId;
 };
 
-const ALLOWED_ZONE_FIELDS = ["name", "description", "image_url", "is_active"];
+/* Valida que un string sea válido y no esté vacío */
+const validateString = (value, fieldName) => {
+  if (!value || typeof value !== "string" || value.trim().length === 0) {
+    throw new Error(`${fieldName} es requerido y no puede estar vacío`);
+  }
+  return value.trim();
+};
 
+/* Filtra solo los campos permitidos de un objeto */
 const filterAllowedFields = (data, allowedFields) => {
   const filtered = {};
   Object.keys(data).forEach((key) => {
@@ -19,167 +29,183 @@ const filterAllowedFields = (data, allowedFields) => {
   return filtered;
 };
 
-export const getAllZones = async () => {
+/* Valida campos específicos según su tipo */
+const validateFields = (data, fieldValidators) => {
+  const validated = { ...data };
+  Object.entries(fieldValidators).forEach(([field, validator]) => {
+    if (validated[field] !== undefined && validated[field] !== null) {
+      validated[field] = validator(validated[field]);
+    }
+  });
+  return validated;
+};
+
+/* Construye una query UPDATE dinámica con validación de campos */
+const buildUpdateQuery = (data, allowedFields, tableName, whereId) => {
+  const filteredData = filterAllowedFields(data, allowedFields);
+  const keys = Object.keys(filteredData);
+  if (keys.length === 0) {
+    throw new Error("No se proporcionaron campos válidos para actualizar");
+  }
+
+  const setClauses = keys.map((key, i) => `${key} = $${i + 1}`);
+  const values = keys.map((key) => filteredData[key]);
+  const query = `
+    UPDATE ${tableName}
+    SET ${setClauses.join(", ")}, updated_at = NOW()
+    WHERE id = $${keys.length + 1}
+    RETURNING *;
+  `;
+  return { query, values: [...values, whereId] };
+};
+
+/* Maneja errores comunes de PostgreSQL */
+const handleDatabaseError = (error) => {
+  if (error.code === "23505") {
+    throw new Error("Este registro ya existe (violación de unicidad)");
+  }
+  if (error.code === "23503") {
+    throw new Error("Referencia a un registro que no existe");
+  }
+  throw error;
+};
+
+/* Campos permitidos para actualizar zonas */
+const ALLOWED_ZONE_FIELDS = [
+  "name",
+  "description",
+  "image_url",
+  "is_active",
+];
+
+/* Validadores para campos de zonas */
+const ZONE_VALIDATORS = {
+  name: (value) => validateString(value, "El nombre de la zona"),
+  description: (value) => (value ? value.trim() : null),
+  image_url: (value) => (value ? value.trim() : null),
+  is_active: (value) => Boolean(value),
+};
+
+/* CRUD BÁSICO - ZONAS */
+
+/* Obtiene todas las zonas con filtro opcional */
+export const getZones = async (filters = {}) => {
   try {
-    const result = await pool.query(`
+    let query = `
       SELECT id, name, description, image_url, is_active, created_at, updated_at
       FROM zones
-      ORDER BY id ASC;
-    `);
-    return result.rows;
+      WHERE 1=1
+    `;
+    const values = [];
+    let paramCount = 1;
+
+    if (filters.is_active !== undefined) {
+      query += ` AND is_active = $${paramCount}`;
+      values.push(Boolean(filters.is_active));
+      paramCount++;
+    }
+
+    query += ` ORDER BY name ASC;`;
+
+    const { rows } = await pool.query(query, values);
+    return rows;
   } catch (error) {
     console.error("Error al obtener zonas:", error);
     throw error;
   }
 };
 
+/* Obtiene una zona específica por ID */
 export const getZoneById = async (id) => {
   try {
     const zoneId = validateId(id);
-    if (!zoneId) return null;
+    if (!zoneId) throw new Error("ID de zona inválido");
 
-    const result = await pool.query(
-      "SELECT * FROM zones WHERE id = $1",
-      [zoneId]
-    );
-    return result.rows[0] || null;
+    const query = `
+      SELECT * FROM zones WHERE id = $1;
+    `;
+    const { rows } = await pool.query(query, [zoneId]);
+    return rows[0] || null;
   } catch (error) {
     console.error("Error al obtener zona por ID:", error);
     throw error;
   }
 };
 
-export const getActiveZones = async () => {
+/* Crea una nueva zona */
+export const createZone = async ({
+  name,
+  description = null,
+  image_url = null,
+  is_active = true,
+}) => {
   try {
-    const result = await pool.query(`
-      SELECT id, name, description, image_url, is_active, created_at, updated_at
-      FROM zones
-      WHERE is_active = true
-      ORDER BY name ASC;
-    `);
-    return result.rows;
-  } catch (error) {
-    console.error("Error al obtener zonas activas:", error);
-    throw error;
-  }
-};
+    validateString(name, "El nombre de la zona");
 
-export const createZone = async ({ name, description = null, image_url = null, is_active = true }) => {
-  try {
-    if (!name || typeof name !== "string" || name.trim().length === 0) {
-      throw new Error("El nombre de la zona es requerido");
-    }
+    const data = {
+      name: name.trim(),
+      description: description ? description.trim() : null,
+      image_url: image_url ? image_url.trim() : null,
+      is_active: Boolean(is_active),
+    };
+
+    const validatedData = validateFields(data, ZONE_VALIDATORS);
+    const filteredData = filterAllowedFields(validatedData, ALLOWED_ZONE_FIELDS);
+
+    const keys = Object.keys(filteredData);
+    const values = Object.values(filteredData);
+    const placeholders = keys.map((_, i) => `$${i + 1}`).join(", ");
 
     const query = `
-      INSERT INTO zones (name, description, image_url, is_active)
-      VALUES ($1, $2, $3, $4)
+      INSERT INTO zones (${keys.join(", ")})
+      VALUES (${placeholders})
       RETURNING *;
     `;
 
-    const { rows } = await pool.query(query, [
-      name.trim(),
-      description,
-      image_url,
-      Boolean(is_active)
-    ]);
+    const { rows } = await pool.query(query, values);
+    return rows[0];
+  } catch (error) {
+    console.error("Error al crear zona:", error);
+    handleDatabaseError(error);
+  }
+};
+
+/* Actualiza una zona (completa o parcial) */
+export const updateZone = async (id, data) => {
+  try {
+    const zoneId = validateId(id);
+    if (!zoneId) throw new Error("ID de zona inválido");
+
+    const validatedData = validateFields(data, ZONE_VALIDATORS);
+    const { query, values } = buildUpdateQuery(
+      validatedData,
+      ALLOWED_ZONE_FIELDS,
+      "zones",
+      zoneId
+    );
+
+    const { rows } = await pool.query(query, values);
+    if (rows.length === 0) {
+      throw new Error("Zona no encontrada");
+    }
 
     return rows[0];
   } catch (error) {
-    if (error.code === "23505") {
-      throw new Error("El nombre de la zona ya existe");
-    }
-    console.error("Error al crear zona:", error);
-    throw error;
-  }
-};
-
-export const updateZone = async (id, { name, description = null, image_url = null, is_active = true }) => {
-  try {
-    const zoneId = validateId(id);
-    if (!zoneId) return null;
-
-    if (!name || typeof name !== "string" || name.trim().length === 0) {
-      throw new Error("El nombre de la zona es requerido");
-    }
-
-    const query = `
-      UPDATE zones
-      SET name = $1, description = $2, image_url = $3, is_active = $4, updated_at = NOW()
-      WHERE id = $5
-      RETURNING *;
-    `;
-
-    const { rows } = await pool.query(query, [
-      name.trim(),
-      description,
-      image_url,
-      Boolean(is_active),
-      zoneId
-    ]);
-
-    return rows[0] || null;
-  } catch (error) {
-    if (error.code === "23505") {
-      throw new Error("El nombre de la zona ya existe");
-    }
     console.error("Error al actualizar zona:", error);
-    throw error;
+    handleDatabaseError(error);
   }
 };
 
-export const updateZonePartial = async (id, data) => {
-  try {
-    const zoneId = validateId(id);
-    if (!zoneId) return null;
-
-    const filteredData = filterAllowedFields(data, ALLOWED_ZONE_FIELDS);
-    const keys = Object.keys(filteredData);
-
-    if (keys.length === 0) {
-      throw new Error("No se proporcionaron campos válidos para actualizar");
-    }
-
-    if (filteredData.name) {
-      filteredData.name = filteredData.name.trim();
-      if (filteredData.name.length === 0) {
-        throw new Error("El nombre no puede estar vacío");
-      }
-    }
-
-    if (filteredData.is_active !== undefined) {
-      filteredData.is_active = Boolean(filteredData.is_active);
-    }
-
-    const setClauses = keys.map((key, i) => `${key} = $${i + 1}`);
-    const values = Object.values(filteredData);
-
-    const query = `
-      UPDATE zones
-      SET ${setClauses.join(", ")}, updated_at = NOW()
-      WHERE id = $${keys.length + 1}
-      RETURNING *;
-    `;
-
-    const { rows } = await pool.query(query, [...values, zoneId]);
-    return rows[0] || null;
-  } catch (error) {
-    if (error.code === "23505") {
-      throw new Error("El nombre de la zona ya existe");
-    }
-    console.error("Error al actualizar parcialmente zona:", error);
-    throw error;
-  }
-};
-
+/* Elimina una zona */
 export const deleteZone = async (id) => {
   const client = await pool.connect();
   try {
     const zoneId = validateId(id);
-    if (!zoneId) return null;
+    if (!zoneId) throw new Error("ID de zona inválido");
 
     await client.query("BEGIN");
 
-    // Eliminar mesas asociadas a la zona
+    /* Eliminar mesas asociadas a la zona */
     await client.query("DELETE FROM tables WHERE zone_id = $1", [zoneId]);
 
     const result = await client.query(
@@ -189,7 +215,7 @@ export const deleteZone = async (id) => {
 
     if (result.rowCount === 0) {
       await client.query("ROLLBACK");
-      return null;
+      throw new Error("Zona no encontrada");
     }
 
     await client.query("COMMIT");

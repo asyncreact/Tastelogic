@@ -90,7 +90,7 @@ export default function Login() {
 
       <div className="login-container">
         <div className="login-box">
-          <IoRestaurantOutline className="logo-icon" />
+          <IoRestaurantOutline  />
           <h1>Bienvenido</h1>
 
           <form onSubmit={handleSubmit}>
@@ -106,6 +106,7 @@ export default function Login() {
               />
             </div>
 
+      
             <div className="form-group">
               <label>Contraseña</label>
               <PasswordInput
@@ -115,6 +116,9 @@ export default function Login() {
                 }
               />
             </div>
+
+
+          
 
             <button type="submit" className="login-btn" disabled={loading}>
               Iniciar Sesión

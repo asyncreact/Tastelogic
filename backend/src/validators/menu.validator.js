@@ -2,13 +2,9 @@
 
 import { z } from "zod";
 
-// ============================================================
-// ESQUEMAS DE VALIDACIÓN
-// ============================================================
+/* ESQUEMAS DE VALIDACIÓN */
 
-/**
- * Esquema para crear/editar categoría
- */
+/* Schema para categoría */
 export const categorySchema = z.object({
   name: z
     .string({
@@ -18,7 +14,6 @@ export const categorySchema = z.object({
     .trim()
     .min(2, "El nombre de la categoría debe tener al menos 2 caracteres")
     .max(100, "El nombre de la categoría no debe superar los 100 caracteres"),
-
   description: z
     .string({
       invalid_type_error: "La descripción debe ser texto",
@@ -27,7 +22,6 @@ export const categorySchema = z.object({
     .max(255, "La descripción no debe superar los 255 caracteres")
     .optional()
     .nullable(),
-
   is_active: z.preprocess(
     (val) => {
       if (typeof val === "string") {
@@ -43,9 +37,7 @@ export const categorySchema = z.object({
   ),
 });
 
-/**
- * Esquema para crear/editar item
- */
+/* Schema para item del menú */
 export const itemSchema = z.object({
   category_id: z
     .preprocess(
@@ -58,7 +50,6 @@ export const itemSchema = z.object({
         .nullable()
         .optional()
     ),
-
   name: z
     .string({
       required_error: "El nombre del plato es obligatorio",
@@ -67,7 +58,6 @@ export const itemSchema = z.object({
     .trim()
     .min(2, "El nombre del plato debe tener al menos 2 caracteres")
     .max(150, "El nombre del plato no debe superar los 150 caracteres"),
-
   description: z
     .string({
       invalid_type_error: "La descripción debe ser texto",
@@ -76,7 +66,6 @@ export const itemSchema = z.object({
     .max(500, "La descripción no debe superar los 500 caracteres")
     .optional()
     .nullable(),
-
   ingredients: z
     .string({
       invalid_type_error: "Los ingredientes deben ser texto",
@@ -85,7 +74,6 @@ export const itemSchema = z.object({
     .max(500, "El campo 'ingredientes' no debe superar los 500 caracteres")
     .optional()
     .nullable(),
-
   price: z.preprocess(
     (val) => (val === "" || val == null ? undefined : Number(val)),
     z
@@ -98,7 +86,6 @@ export const itemSchema = z.object({
         message: "El precio mínimo permitido es 0.01",
       })
   ),
-
   image_url: z
     .string({
       invalid_type_error: "La imagen debe ser texto o URL",
@@ -111,7 +98,6 @@ export const itemSchema = z.object({
         !url || url === "" || /^https?:\/\/[^\s]+$/i.test(url),
       "Debe ser una URL válida o dejarse vacío"
     ),
-
   estimated_prep_time: z.preprocess(
     (val) => (val === "" || val == null ? undefined : Number(val)),
     z
@@ -123,7 +109,6 @@ export const itemSchema = z.object({
       .max(120, "El tiempo máximo es 120 minutos")
       .optional()
   ),
-
   is_available: z.preprocess(
     (val) => {
       if (typeof val === "string") {
@@ -139,115 +124,38 @@ export const itemSchema = z.object({
   ),
 });
 
-/**
- * Esquema para actualizar SOLO tiempo de preparación
- */
-export const estimatedPrepTimeSchema = z.object({
-  estimated_prep_time: z
-    .preprocess(
-      (val) => (val === "" || val == null ? undefined : Number(val)),
-      z
-        .number({
-          required_error: "El tiempo de preparación es obligatorio",
-          invalid_type_error: "El tiempo de preparación debe ser numérico",
-        })
-        .int("El tiempo de preparación debe ser un número entero")
-        .min(5, "El tiempo mínimo es 5 minutos")
-        .max(120, "El tiempo máximo es 120 minutos")
-    )
-});
+/* FUNCIONES DE VALIDACIÓN */
 
-// ============================================================
-// FUNCIONES DE VALIDACIÓN
-// ============================================================
-
-/**
- * Validar categoría completa
- */
-export const validateCategory = (data) => categorySchema.parse(data);
-
-/**
- * Validar item completo
- */
-export const validateItem = (data) => itemSchema.parse(data);
-
-/**
- * Validar categoría parcial (para PATCH)
- */
-export const validatePartialCategory = (data) =>
-  categorySchema.partial().parse(data);
-
-/**
- * Validar item parcial (para PATCH)
- */
-export const validatePartialItem = (data) =>
-  itemSchema.partial().parse(data);
-
-/**
- * Validar tiempo de preparación
- */
-export const validateEstimatedPrepTime = (data) => {
-  return estimatedPrepTimeSchema.parse(data);
+/* Valida categoría completa o parcial según el método HTTP */
+export const validateCategory = (data, isPartial = false) => {
+  const schema = isPartial ? categorySchema.partial() : categorySchema;
+  return schema.parse(data);
 };
 
-// ============================================================
-// MIDDLEWARES DE VALIDACIÓN
-// ============================================================
+/* Valida item completo o parcial según el método HTTP */
+export const validateItem = (data, isPartial = false) => {
+  const schema = isPartial ? itemSchema.partial() : itemSchema;
+  return schema.parse(data);
+};
 
-/**
- * Middleware para validar categoría completa (POST/PUT)
- */
+/* MIDDLEWARES DE VALIDACIÓN */
+
+/* Middleware para validar categoría (completa o parcial según HTTP method) */
 export const validateCategoryMiddleware = (req, res, next) => {
   try {
-    req.body = validateCategory(req.body);
+    const isPartial = req.method === "PATCH";
+    req.body = validateCategory(req.body, isPartial);
     next();
   } catch (error) {
     next(error);
   }
 };
 
-/**
- * Middleware para validar item completo (POST/PUT)
- */
+/* Middleware para validar item (completa o parcial según HTTP method) */
 export const validateItemMiddleware = (req, res, next) => {
   try {
-    req.body = validateItem(req.body);
-    next();
-  } catch (error) {
-    next(error);
-  }
-};
-
-/**
- * Middleware para validar categoría parcial (PATCH)
- */
-export const validatePartialCategoryMiddleware = (req, res, next) => {
-  try {
-    req.body = validatePartialCategory(req.body);
-    next();
-  } catch (error) {
-    next(error);
-  }
-};
-
-/**
- * Middleware para validar item parcial (PATCH)
- */
-export const validatePartialItemMiddleware = (req, res, next) => {
-  try {
-    req.body = validatePartialItem(req.body);
-    next();
-  } catch (error) {
-    next(error);
-  }
-};
-
-/**
- * Middleware para validar tiempo de preparación (PATCH prep-time)
- */
-export const validatePrepTimeMiddleware = (req, res, next) => {
-  try {
-    req.body = validateEstimatedPrepTime(req.body);
+    const isPartial = req.method === "PATCH";
+    req.body = validateItem(req.body, isPartial);
     next();
   } catch (error) {
     next(error);

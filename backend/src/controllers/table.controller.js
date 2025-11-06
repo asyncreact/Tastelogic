@@ -1,178 +1,160 @@
 // src/controllers/table.controller.js
 
 import {
-  getAllTables,
+  getTables,
   getTableById,
-  getTablesByZone,
-  getTablesByStatus,
-  getAvailableTablesByZone,
   createTable,
   updateTable,
-  updateTablePartial,
-  updateTableStatus,
   deleteTable,
+  getTableWithCurrentOrder,
+  getTableStatistics,
 } from "../repositories/table.repository.js";
+
+import { getZoneById } from "../repositories/zone.repository.js";
 import { successResponse, errorResponse } from "../utils/response.js";
 
-// ============================================================
-// MESAS
-// ============================================================
+/* CRUD BÁSICO - MESAS */
 
-export const getTables = async (req, res, next) => {
+/* Obtiene todas las mesas con filtros opcionales */
+export const listTable = async (req, res, next) => {
   try {
-    const tables = await getAllTables();
-    return successResponse(res, "Mesas obtenidas correctamente", { tables });
+    const filters = {};
+
+    if (req.query.zone_id) {
+      filters.zone_id = Number(req.query.zone_id);
+    }
+
+    if (req.query.status) {
+      filters.status = req.query.status;
+    }
+
+    if (req.query.is_active !== undefined) {
+      filters.is_active = req.query.is_active === "true";
+    }
+
+    const tables = await getTables(filters);
+    return successResponse(res, "Mesas obtenidas correctamente", {
+      tables,
+      count: tables.length,
+    });
   } catch (err) {
-    console.error("Error en getTables:", err);
+    console.error("Error en listTable:", err);
     next(err);
   }
 };
 
-export const getTable = async (req, res, next) => {
+/* Obtiene una mesa específica por ID */
+export const showTable = async (req, res, next) => {
   try {
-    const id = Number(req.params.id);
-    if (isNaN(id) || id <= 0) {
+    const table_id = Number(req.params.table_id);
+    if (isNaN(table_id) || table_id <= 0) {
       return errorResponse(res, 400, "ID de mesa inválido");
     }
 
-    const table = await getTableById(id);
+    const table = await getTableById(table_id);
     if (!table) {
       return errorResponse(res, 404, "Mesa no encontrada");
     }
 
     return successResponse(res, "Mesa obtenida correctamente", { table });
   } catch (err) {
-    console.error("Error en getTable:", err);
+    console.error("Error en showTable:", err);
     next(err);
   }
 };
 
+/* Crea una nueva mesa */
 export const addTable = async (req, res, next) => {
   try {
-    const { zone_id = null, table_number, capacity, status = "available", is_active = true } = req.body;
+    const { zone_id, capacity, table_number, status } = req.body;
 
-    const newTable = await createTable({
+    if (!zone_id || !capacity) {
+      return errorResponse(
+        res,
+        400,
+        "zone_id y capacity son requeridos. table_number se genera automáticamente."
+      );
+    }
+
+    const zone = await getZoneById(zone_id);
+    if (!zone) {
+      return errorResponse(res, 404, `Zona con ID ${zone_id} no existe`);
+    }
+
+    const table_data = {
       zone_id,
-      table_number,
       capacity,
-      status,
-      is_active,
-    });
+      ...(table_number && { table_number }),
+      ...(status && { status }),
+    };
 
-    return successResponse(
-      res,
-      "Mesa creada correctamente",
-      { table: newTable },
-      201
-    );
+    console.log("📥 Data para crear mesa:", table_data);
+    const table = await createTable(table_data);
+    return successResponse(res, "Mesa creada correctamente", { table }, 201);
   } catch (err) {
-    if (err.message.includes("ya existe")) {
-      return errorResponse(res, 409, err.message);
-    }
-
-    if (err.message.includes("requerido") || err.message.includes("válido")) {
-      return errorResponse(res, 400, err.message);
-    }
-
-    if (err.code === "23503") {
-      return errorResponse(res, 400, "La zona especificada no existe");
-    }
-
     console.error("Error en addTable:", err);
     next(err);
   }
 };
 
+/* Actualiza una mesa (PUT o PATCH) */
 export const editTable = async (req, res, next) => {
   try {
-    const id = Number(req.params.id);
-    if (isNaN(id) || id <= 0) {
+    const table_id = Number(req.params.table_id);
+    if (isNaN(table_id) || table_id <= 0) {
       return errorResponse(res, 400, "ID de mesa inválido");
     }
 
-    const existing = await getTableById(id);
+    const existing = await getTableById(table_id);
     if (!existing) {
       return errorResponse(res, 404, "Mesa no encontrada");
     }
 
-    const { zone_id, table_number, capacity, status, is_active } = req.body;
+    /* Validar zone_id si se proporciona */
+    const { zone_id } = req.body;
+    if (zone_id && zone_id !== existing.zone_id) {
+      const zone = await getZoneById(zone_id);
+      if (!zone) {
+        return errorResponse(res, 404, `Zona con ID ${zone_id} no existe`);
+      }
+    }
 
-    const updated = await updateTable(id, {
-      zone_id,
-      table_number,
-      capacity,
-      status,
-      is_active,
+    const update_data = {
+      ...(req.body.zone_id && { zone_id: req.body.zone_id }),
+      ...(req.body.capacity && { capacity: req.body.capacity }),
+      ...(req.body.table_number && { table_number: req.body.table_number }),
+      ...(req.body.status && { status: req.body.status }),
+      ...(req.body.is_active !== undefined && { is_active: req.body.is_active }),
+    };
+
+    if (Object.keys(update_data).length === 0) {
+      return errorResponse(res, 400, "No se proporcionaron campos para actualizar");
+    }
+
+    const updated = await updateTable(table_id, update_data);
+    return successResponse(res, "Mesa actualizada correctamente", {
+      table: updated,
     });
-
-    if (!updated) {
-      return errorResponse(res, 404, "Mesa no encontrada");
-    }
-
-    return successResponse(res, "Mesa actualizada correctamente", { table: updated });
   } catch (err) {
-    if (err.message.includes("ya existe")) {
-      return errorResponse(res, 409, err.message);
-    }
-
-    if (err.message.includes("requerido") || err.message.includes("válido")) {
-      return errorResponse(res, 400, err.message);
-    }
-
-    if (err.code === "23503") {
-      return errorResponse(res, 400, "La zona especificada no existe");
-    }
-
     console.error("Error en editTable:", err);
     next(err);
   }
 };
 
-export const patchTable = async (req, res, next) => {
-  try {
-    const id = Number(req.params.id);
-    if (isNaN(id) || id <= 0) {
-      return errorResponse(res, 400, "ID de mesa inválido");
-    }
-
-    const existing = await getTableById(id);
-    if (!existing) {
-      return errorResponse(res, 404, "Mesa no encontrada");
-    }
-
-    const updated = await updateTablePartial(id, req.body);
-    if (!updated) {
-      return errorResponse(res, 400, "No se pudo actualizar la mesa");
-    }
-
-    return successResponse(res, "Mesa actualizada parcialmente", { table: updated });
-  } catch (err) {
-    if (err.message.includes("campo") || err.message.includes("válido")) {
-      return errorResponse(res, 400, err.message);
-    }
-
-    if (err.code === "23503") {
-      return errorResponse(res, 400, "La zona especificada no existe");
-    }
-
-    console.error("Error en patchTable:", err);
-    next(err);
-  }
-};
-
+/* Elimina una mesa */
 export const removeTable = async (req, res, next) => {
   try {
-    const id = Number(req.params.id);
-    if (isNaN(id) || id <= 0) {
+    const table_id = Number(req.params.table_id);
+    if (isNaN(table_id) || table_id <= 0) {
       return errorResponse(res, 400, "ID de mesa inválido");
     }
 
-    const table = await getTableById(id);
+    const table = await getTableById(table_id);
     if (!table) {
       return errorResponse(res, 404, "Mesa no encontrada");
     }
 
-    const result = await deleteTable(id);
+    const result = await deleteTable(table_id);
     return successResponse(res, result.message);
   } catch (err) {
     console.error("Error en removeTable:", err);
@@ -180,98 +162,45 @@ export const removeTable = async (req, res, next) => {
   }
 };
 
-// ============================================================
-// MESAS POR ZONA
-// ============================================================
+/* INFORMACIÓN EN TIEMPO REAL */
 
-export const getTablesByZoneId = async (req, res, next) => {
+/* Obtiene una mesa con su orden actual */
+export const showTableWithOrder = async (req, res, next) => {
   try {
-    const zoneId = Number(req.params.zoneId);
-    if (isNaN(zoneId) || zoneId <= 0) {
-      return errorResponse(res, 400, "ID de zona inválido");
-    }
-
-    const tables = await getTablesByZone(zoneId);
-    if (tables.length === 0) {
-      return successResponse(res, "No hay mesas en esta zona", { tables: [] });
-    }
-
-    return successResponse(res, "Mesas de la zona obtenidas correctamente", { tables });
-  } catch (err) {
-    console.error("Error en getTablesByZoneId:", err);
-    next(err);
-  }
-};
-
-export const getAvailableTablesByZoneId = async (req, res, next) => {
-  try {
-    const zoneId = Number(req.params.zoneId);
-    if (isNaN(zoneId) || zoneId <= 0) {
-      return errorResponse(res, 400, "ID de zona inválido");
-    }
-
-    const tables = await getAvailableTablesByZone(zoneId);
-    if (tables.length === 0) {
-      return successResponse(res, "No hay mesas disponibles en esta zona", { tables: [] });
-    }
-
-    return successResponse(res, "Mesas disponibles obtenidas correctamente", { tables });
-  } catch (err) {
-    console.error("Error en getAvailableTablesByZoneId:", err);
-    next(err);
-  }
-};
-
-// ============================================================
-// MESAS POR ESTADO
-// ============================================================
-
-export const getTablesByStatusQuery = async (req, res, next) => {
-  try {
-    const { status } = req.query;
-
-    if (!status) {
-      return errorResponse(res, 400, "El estado es requerido como parámetro de consulta");
-    }
-
-    if (!["available", "occupied", "reserved"].includes(status)) {
-      return errorResponse(res, 400, "Estado inválido. Debe ser: available, occupied o reserved");
-    }
-
-    const tables = await getTablesByStatus(status);
-    return successResponse(res, `Mesas con estado '${status}' obtenidas correctamente`, { tables });
-  } catch (err) {
-    console.error("Error en getTablesByStatusQuery:", err);
-    next(err);
-  }
-};
-
-export const updateStatus = async (req, res, next) => {
-  try {
-    const id = Number(req.params.id);
-    if (isNaN(id) || id <= 0) {
+    const table_id = Number(req.params.table_id);
+    if (isNaN(table_id) || table_id <= 0) {
       return errorResponse(res, 400, "ID de mesa inválido");
     }
 
-    const existing = await getTableById(id);
-    if (!existing) {
-      return errorResponse(res, 404, "Mesa no encontrada");
+    const table = await getTableWithCurrentOrder(table_id);
+    if (!table) {
+      return errorResponse(res, 404, "Mesa no encontrada o sin órdenes activas");
     }
 
-    const { status } = req.body;
-
-    if (!status || !["available", "occupied", "reserved"].includes(status)) {
-      return errorResponse(res, 400, "Estado inválido. Debe ser: available, occupied o reserved");
-    }
-
-    const updated = await updateTableStatus(id, status);
-    if (!updated) {
-      return errorResponse(res, 400, "No se pudo actualizar el estado de la mesa");
-    }
-
-    return successResponse(res, "Estado de mesa actualizado correctamente", { table: updated });
+    return successResponse(res, "Mesa con orden obtenida correctamente", {
+      table,
+    });
   } catch (err) {
-    console.error("Error en updateStatus:", err);
+    console.error("Error en showTableWithOrder:", err);
+    next(err);
+  }
+};
+
+/* ESTADÍSTICAS */
+
+/* Obtiene estadísticas generales de mesas */
+export const tableStats = async (req, res, next) => {
+  try {
+    const stats = await getTableStatistics();
+    if (!stats) {
+      return errorResponse(res, 404, "No se pudo obtener estadísticas");
+    }
+
+    return successResponse(res, "Estadísticas de mesas obtenidas correctamente", {
+      statistics: stats,
+    });
+  } catch (err) {
+    console.error("Error en tableStats:", err);
     next(err);
   }
 };

@@ -1,81 +1,64 @@
+// src/routes/zone.routes.js
+
 import express from "express";
 import {
-  getZones,
-  getActiveZonesController,
-  getZone,
+  listZone,
+  showZone,
   addZone,
   editZone,
-  patchZone,
   removeZone,
-  uploadImage,
 } from "../controllers/zone.controller.js";
+
 import { authenticate, authorizeRoles } from "../middleware/auth.middleware.js";
 import { upload } from "../config/multer.js";
 import {
-  validateZoneMiddleware,
-  validatePartialZoneMiddleware,
+  validateZoneCreate,
+  validateZoneUpdate,
 } from "../validators/zone.validator.js";
 
 const router = express.Router();
 
-router.get("/public", getZones);
-router.get("/public/active", getActiveZonesController);
-router.get("/public/:id", getZone);
+/* PÚBLICAS */
 
-router.get(
-  "/",
-  authenticate,
-  authorizeRoles("admin"),
-  getZones
-);
+router.get("/public", listZone);
+router.get("/public/active", listZone);
+router.get("/public/:zone_id", showZone);
 
-router.get(
-  "/:id",
-  authenticate,
-  authorizeRoles("admin"),
-  getZone
-);
+/* PROTEGIDAS - ADMIN ONLY */
+
+/* CRUD BÁSICO */
 
 router.post(
   "/",
   authenticate,
   authorizeRoles("admin"),
   upload.single("image"),
-  validateZoneMiddleware,
+  validateZoneCreate,
   addZone
 );
 
+router.get("/", authenticate, authorizeRoles("admin"), listZone);
+
+router.get("/:zone_id", authenticate, authorizeRoles("admin"), showZone);
+
 router.put(
-  "/:id",
+  "/:zone_id",
   authenticate,
   authorizeRoles("admin"),
   upload.single("image"),
-  validateZoneMiddleware,
+  validateZoneUpdate,
   editZone
 );
 
 router.patch(
-  "/:id",
+  "/:zone_id",
   authenticate,
   authorizeRoles("admin"),
   upload.single("image"),
-  validatePartialZoneMiddleware,
-  patchZone
+  validateZoneUpdate,
+  editZone
 );
 
-router.delete(
-  "/:id",
-  authenticate,
-  authorizeRoles("admin"),
-  removeZone
-);
-
-router.post(
-  "/upload-image",
-  authenticate,
-  authorizeRoles("admin"),
-  upload.single("image"),
-  uploadImage
-);
+router.delete("/:zone_id", authenticate, authorizeRoles("admin"), removeZone);
 
 export default router;

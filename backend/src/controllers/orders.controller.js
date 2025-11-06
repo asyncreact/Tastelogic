@@ -1,654 +1,764 @@
 // src/controllers/orders.controller.js
 
-import OrdersRepository from "../repositories/orders.repository.js";
-import { successResponse, errorResponse } from "../utils/response.js";
-
-/**
- * Controller para manejar las operaciones de órdenes
- * Nota: La autenticación y permisos se validan en las rutas
- */
-
-// ============================================================
-// ÓRDENES - CRUD Básico
-// ============================================================
-
-/**
- * POST /api/orders
- * Crear una nueva orden
- */
-export const createOrder = async (req, res, next) => {
-  try {
-    const { totalAmount = 0, deliveryType = 'dine-in', specialInstructions } = req.body;
-    const userId = req.user.id; // Garantizado por middleware authenticate
-
-    // Validar inputs
-    if (!['dine-in', 'delivery', 'takeout'].includes(deliveryType)) {
-      return errorResponse(res, 400, 'Tipo de entrega inválido');
-    }
-
-    const order = await OrdersRepository.createOrder(
-      userId,
-      totalAmount,
-      deliveryType,
-      specialInstructions
-    );
-
-    return successResponse(res, 'Orden creada exitosamente', { order }, 201);
-  } catch (error) {
-    next(error);
-  }
-};
-
-/**
- * GET /api/orders/:orderId
- * Obtener detalles de una orden específica
- * Permisos: propietario o admin (validado en rutas)
- */
-export const getOrderById = async (req, res, next) => {
-  try {
-    const { orderId } = req.params;
-
-    const order = await OrdersRepository.getOrderById(orderId);
-
-    if (!order) {
-      return errorResponse(res, 404, 'Orden no encontrada');
-    }
-
-    // Obtener items de la orden
-    const items = await OrdersRepository.getOrderItems(orderId);
-
-    return successResponse(res, 'Orden obtenida correctamente', { 
-      order: { ...order, items } 
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-/**
- * GET /api/orders/my-orders
- * Obtener todas las órdenes del usuario autenticado
- */
-export const getUserOrders = async (req, res, next) => {
-  try {
-    const userId = req.user.id; // Garantizado por middleware authenticate
-    const { status, limit = 10, offset = 0 } = req.query;
-
-    const orders = await OrdersRepository.getUserOrdersFiltered(
-      userId,
-      status || null,
-      parseInt(limit),
-      parseInt(offset)
-    );
-
-    return successResponse(res, 'Órdenes obtenidas correctamente', { 
-      orders,
-      count: orders.length 
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-/**
- * GET /api/orders
- * Obtener todas las órdenes (admin only)
- * Permisos: admin (validado en rutas)
- */
-export const getAllOrders = async (req, res, next) => {
-  try {
-    const { status, limit = 10, offset = 0 } = req.query;
-
-    const orders = await OrdersRepository.getAllOrders(
-      parseInt(limit),
-      parseInt(offset),
-      status || null
-    );
-
-    return successResponse(res, 'Órdenes obtenidas correctamente', { 
-      orders,
-      count: orders.length 
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-/**
- * PATCH /api/orders/:orderId/status
- * Cambiar estado de una orden (admin only)
- * Permisos: admin (validado en rutas)
- */
-export const updateOrderStatus = async (req, res, next) => {
-  try {
-    const { orderId } = req.params;
-    const { status } = req.body;
-
-    if (!status) {
-      return errorResponse(res, 400, 'El estado es requerido');
-    }
-
-    const order = await OrdersRepository.updateOrderStatus(orderId, status);
-
-    if (!order) {
-      return errorResponse(res, 404, 'Orden no encontrada');
-    }
-
-    return successResponse(res, `Orden actualizada a ${status}`, { order });
-  } catch (error) {
-    if (error.message.includes('Estado inválido')) {
-      return errorResponse(res, 400, error.message);
-    }
-    next(error);
-  }
-};
-
-/**
- * PATCH /api/orders/:orderId/instructions
- * Actualizar instrucciones especiales de una orden
- * Permisos: propietario o admin (pero validado en CONTROLLER para lógica de negocio)
- */
-export const updateOrderInstructions = async (req, res, next) => {
-  try {
-    const { orderId } = req.params;
-    const { specialInstructions } = req.body;
-    const userId = req.user.id;
-    const userRole = req.user.role;
-
-    // Verificar que la orden existe
-    const order = await OrdersRepository.getOrderById(orderId);
-
-    if (!order) {
-      return errorResponse(res, 404, 'Orden no encontrada');
-    }
-
-    // ⚠️ Validación de negocio: solo el propietario o admin pueden modificar
-    if (order.user_id !== userId && userRole !== 'admin') {
-      return errorResponse(res, 403, 'No tienes permiso para modificar esta orden');
-    }
-
-    // No permitir modificar órdenes completadas
-    if (order.status === 'completed' || order.status === 'cancelled') {
-      return errorResponse(res, 400, 'No puedes modificar una orden completada o cancelada');
-    }
-
-    const updatedOrder = await OrdersRepository.updateSpecialInstructions(
-      orderId,
-      specialInstructions
-    );
-
-    return successResponse(res, 'Instrucciones actualizadas correctamente', { order: updatedOrder });
-  } catch (error) {
-    next(error);
-  }
-};
-
-/**
- * DELETE /api/orders/:orderId
- * Eliminar una orden
- * Permisos: propietario o admin (validación de negocio)
- */
-export const deleteOrder = async (req, res, next) => {
-  try {
-    const { orderId } = req.params;
-    const userId = req.user.id;
-    const userRole = req.user.role;
-
-    const order = await OrdersRepository.getOrderById(orderId);
-
-    if (!order) {
-      return errorResponse(res, 404, 'Orden no encontrada');
-    }
-
-    // Validación de negocio: solo el propietario o admin
-    if (order.user_id !== userId && userRole !== 'admin') {
-      return errorResponse(res, 403, 'No tienes permiso para eliminar esta orden');
-    }
-
-    // Validación de lógica: solo órdenes pending
-    if (order.status !== 'pending') {
-      return errorResponse(res, 400, 'Solo se pueden eliminar órdenes en estado pending');
-    }
-
-    const deletedOrder = await OrdersRepository.deleteOrder(orderId);
-
-    return successResponse(res, 'Orden eliminada correctamente', { order: deletedOrder });
-  } catch (error) {
-    next(error);
-  }
-};
-
-// ============================================================
-// ORDER ITEMS - Gestión de items en órdenes
-// ============================================================
-
-/**
- * POST /api/orders/:orderId/items
- * Agregar un item a una orden
- */
-export const addOrderItem = async (req, res, next) => {
-  try {
-    const { orderId } = req.params;
-    const { menuItemId, quantity = 1, specialRequests } = req.body;
-    const userId = req.user.id;
-    const userRole = req.user.role;
-
-    // Validar inputs
-    if (!menuItemId || quantity < 1) {
-      return errorResponse(res, 400, 'menuItemId y quantity son requeridos y válidos');
-    }
-
-    // Verificar que la orden existe
-    const order = await OrdersRepository.getOrderById(orderId);
-
-    if (!order) {
-      return errorResponse(res, 404, 'Orden no encontrada');
-    }
-
-    // Validación de negocio: solo propietario o admin
-    if (order.user_id !== userId && userRole !== 'admin') {
-      return errorResponse(res, 403, 'No tienes permiso para modificar esta orden');
-    }
-
-    // No permitir agregar items a órdenes completadas
-    if (order.status === 'completed' || order.status === 'cancelled') {
-      return errorResponse(res, 400, 'No puedes agregar items a una orden completada o cancelada');
-    }
-
-    // Validar que el item existe y está disponible
-    const validationResult = await OrdersRepository.validateCartItems([{ menuItemId, quantity }]);
-
-    if (!validationResult.valid) {
-      if (validationResult.notFound.length > 0) {
-        return errorResponse(res, 404, 'Item no encontrado', validationResult.notFound);
-      }
-      if (validationResult.unavailable.length > 0) {
-        return errorResponse(res, 400, 'Item no disponible', validationResult.unavailable);
-      }
-    }
-
-    // Obtener precio del item (necesitas acceder a menu_items)
-    const { pool } = await import("../config/db.js");
-    const priceResult = await pool.query(
-      'SELECT price FROM public.menu_items WHERE id = $1',
-      [menuItemId]
-    );
-
-    if (!priceResult.rows[0]) {
-      return errorResponse(res, 404, 'Item no encontrado');
-    }
-
-    const price = priceResult.rows[0].price;
-    const subtotal = price * quantity;
-
-    // Agregar item
-    const item = await OrdersRepository.addOrderItem(
-      orderId,
-      menuItemId,
-      quantity,
-      price,
-      subtotal,
-      specialRequests
-    );
-
-    // Sincronizar el total de la orden
-    await OrdersRepository.syncOrderTotal(orderId);
-
-    return successResponse(res, 'Item agregado a la orden', { item }, 201);
-  } catch (error) {
-    next(error);
-  }
-};
-
-/**
- * GET /api/orders/:orderId/items
- * Obtener todos los items de una orden
- */
-export const getOrderItems = async (req, res, next) => {
-  try {
-    const { orderId } = req.params;
-
-    // Verificar que la orden existe
-    const order = await OrdersRepository.getOrderById(orderId);
-
-    if (!order) {
-      return errorResponse(res, 404, 'Orden no encontrada');
-    }
-
-    const items = await OrdersRepository.getOrderItems(orderId);
-
-    return successResponse(res, 'Items obtenidos correctamente', { 
-      items,
-      count: items.length 
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-/**
- * PATCH /api/orders/:orderId/items/:itemId/quantity
- * Actualizar cantidad de un item
- */
-export const updateOrderItemQuantity = async (req, res, next) => {
-  try {
-    const { orderId, itemId } = req.params;
-    const { quantity } = req.body;
-    const userId = req.user.id;
-    const userRole = req.user.role;
-
-    // Validar input
-    if (!quantity || quantity < 1) {
-      return errorResponse(res, 400, 'La cantidad debe ser un número mayor a 0');
-    }
-
-    // Verificar que la orden existe
-    const order = await OrdersRepository.getOrderById(orderId);
-
-    if (!order) {
-      return errorResponse(res, 404, 'Orden no encontrada');
-    }
-
-    // Validación de negocio
-    if (order.user_id !== userId && userRole !== 'admin') {
-      return errorResponse(res, 403, 'No tienes permiso para modificar esta orden');
-    }
-
-    // No permitir modificar órdenes completadas
-    if (order.status === 'completed' || order.status === 'cancelled') {
-      return errorResponse(res, 400, 'No puedes modificar una orden completada o cancelada');
-    }
-
-    // Verificar que el item existe en la orden
-    const item = await OrdersRepository.getOrderItem(itemId);
-
-    if (!item) {
-      return errorResponse(res, 404, 'Item no encontrado en la orden');
-    }
-
-    // Actualizar cantidad
-    const updatedItem = await OrdersRepository.updateOrderItemQuantity(itemId, quantity);
-
-    // Sincronizar el total de la orden
-    await OrdersRepository.syncOrderTotal(orderId);
-
-    return successResponse(res, 'Cantidad actualizada correctamente', { item: updatedItem });
-  } catch (error) {
-    next(error);
-  }
-};
-
-/**
- * DELETE /api/orders/:orderId/items/:itemId
- * Eliminar un item de la orden
- */
-export const removeOrderItem = async (req, res, next) => {
-  try {
-    const { orderId, itemId } = req.params;
-    const userId = req.user.id;
-    const userRole = req.user.role;
-
-    // Verificar que la orden existe
-    const order = await OrdersRepository.getOrderById(orderId);
-
-    if (!order) {
-      return errorResponse(res, 404, 'Orden no encontrada');
-    }
-
-    // Validación de negocio
-    if (order.user_id !== userId && userRole !== 'admin') {
-      return errorResponse(res, 403, 'No tienes permiso para modificar esta orden');
-    }
-
-    // No permitir modificar órdenes completadas
-    if (order.status === 'completed' || order.status === 'cancelled') {
-      return errorResponse(res, 400, 'No puedes modificar una orden completada o cancelada');
-    }
-
-    // Verificar que el item existe
-    const item = await OrdersRepository.getOrderItem(itemId);
-
-    if (!item) {
-      return errorResponse(res, 404, 'Item no encontrado en la orden');
-    }
-
-    const deletedItem = await OrdersRepository.removeOrderItem(itemId);
-
-    // Sincronizar el total de la orden
-    await OrdersRepository.syncOrderTotal(orderId);
-
-    return successResponse(res, 'Item eliminado correctamente', { item: deletedItem });
-  } catch (error) {
-    next(error);
-  }
-};
-
-/**
- * DELETE /api/orders/:orderId/items
- * Limpiar todos los items de una orden
- */
-export const clearOrderItems = async (req, res, next) => {
-  try {
-    const { orderId } = req.params;
-    const userId = req.user.id;
-    const userRole = req.user.role;
-
-    // Verificar que la orden existe
-    const order = await OrdersRepository.getOrderById(orderId);
-
-    if (!order) {
-      return errorResponse(res, 404, 'Orden no encontrada');
-    }
-
-    // Validación de negocio
-    if (order.user_id !== userId && userRole !== 'admin') {
-      return errorResponse(res, 403, 'No tienes permiso para modificar esta orden');
-    }
-
-    // No permitir modificar órdenes completadas
-    if (order.status === 'completed' || order.status === 'cancelled') {
-      return errorResponse(res, 400, 'No puedes modificar una orden completada o cancelada');
-    }
-
-    const count = await OrdersRepository.clearOrderItems(orderId);
-
-    // Actualizar total a 0
-    await OrdersRepository.updateOrderTotal(orderId, 0);
-
-    return successResponse(res, `${count} items eliminados de la orden`, { count });
-  } catch (error) {
-    next(error);
-  }
-};
-
-// ============================================================
-// CHECKOUT - Crear orden con items
-// ============================================================
-
-/**
- * POST /api/orders/checkout
- * Crear una orden completa con todos los items del carrito
- */
-export const checkoutCart = async (req, res, next) => {
-  try {
-    const userId = req.user.id;
-    const { cartItems, deliveryType = 'dine-in', specialInstructions } = req.body;
-
-    // Validar que el carrito no esté vacío
-    if (!cartItems || cartItems.length === 0) {
-      return errorResponse(res, 400, 'El carrito no puede estar vacío');
-    }
-
-    // Validar tipo de entrega
-    if (!['dine-in', 'delivery', 'takeout'].includes(deliveryType)) {
-      return errorResponse(res, 400, 'Tipo de entrega inválido');
-    }
-
-    // Validar disponibilidad de items
-    const validationResult = await OrdersRepository.validateCartItems(cartItems);
-
-    if (!validationResult.valid) {
-      const details = [...validationResult.unavailable, ...validationResult.notFound];
-      return errorResponse(res, 400, 'Algunos items no están disponibles', details);
-    }
-
-    // Crear orden con items
-    const order = await OrdersRepository.createOrderWithItems(
-      userId,
-      cartItems,
-      deliveryType,
-      specialInstructions
-    );
-
-    return successResponse(res, 'Orden creada exitosamente', { order }, 201);
-  } catch (error) {
-    if (error.message.includes('El carrito no puede estar vacío')) {
-      return errorResponse(res, 400, error.message);
-    }
-    if (error.message.includes('Item no encontrado')) {
-      return errorResponse(res, 404, error.message);
-    }
-    if (error.message.includes('Item no disponible')) {
-      return errorResponse(res, 400, error.message);
-    }
-    next(error);
-  }
-};
-
-// ============================================================
-// ANÁLISIS Y ESTADÍSTICAS
-// ============================================================
-
-/**
- * GET /api/orders/public/top-items
- * Obtener items más vendidos
- */
-export const getTopSellingItems = async (req, res, next) => {
-  try {
-    const { limit = 10 } = req.query;
-
-    const items = await OrdersRepository.getTopSellingItems(parseInt(limit));
-
-    return successResponse(res, 'Items más vendidos obtenidos', { items });
-  } catch (error) {
-    next(error);
-  }
-};
-
-/**
- * GET /api/orders/public/demand
- * Obtener demanda por hora y día
- */
-export const getDemandByTime = async (req, res, next) => {
-  try {
-    const data = await OrdersRepository.getDemandByTime();
-
-    return successResponse(res, 'Datos de demanda obtenidos', { data });
-  } catch (error) {
-    next(error);
-  }
-};
-
-/**
- * GET /api/orders/public/statistics
- * Obtener estadísticas generales
- */
-export const getOrdersStatistics = async (req, res, next) => {
-  try {
-    const stats = await OrdersRepository.getOrdersStatistics();
-
-    return successResponse(res, 'Estadísticas obtenidas', { statistics: stats });
-  } catch (error) {
-    next(error);
-  }
-};
-
-/**
- * GET /api/orders/analytics/summary
- * Obtener resumen de órdenes por usuario (admin only)
- */
-export const getUserOrdersSummary = async (req, res, next) => {
-  try {
-    const summary = await OrdersRepository.getUserOrdersSummary();
-
-    return successResponse(res, 'Resumen de órdenes por usuario', { summary });
-  } catch (error) {
-    next(error);
-  }
-};
-
-/**
- * GET /api/orders/analytics/recent
- * Obtener órdenes recientes (admin only)
- */
-export const getRecentOrders = async (req, res, next) => {
-  try {
-    const { limit = 10 } = req.query;
-
-    const orders = await OrdersRepository.getRecentOrders(parseInt(limit));
-
-    return successResponse(res, 'Órdenes recientes obtenidas', { orders });
-  } catch (error) {
-    next(error);
-  }
-};
-
-/**
- * GET /api/orders/analytics/by-delivery
- * Obtener estadísticas por tipo de entrega (admin only)
- */
-export const getStatisticsByDeliveryType = async (req, res, next) => {
-  try {
-    const stats = await OrdersRepository.getStatisticsByDeliveryType();
-
-    return successResponse(res, 'Estadísticas por tipo de entrega', { statistics: stats });
-  } catch (error) {
-    next(error);
-  }
-};
-
-/**
- * GET /api/orders/analytics/by-date
- * Obtener órdenes por rango de fechas (admin only)
- */
-export const getOrdersByDateRange = async (req, res, next) => {
-  try {
-    const { startDate, endDate } = req.query;
-
-    if (!startDate || !endDate) {
-      return errorResponse(res, 400, 'startDate y endDate son requeridos (YYYY-MM-DD)');
-    }
-
-    const orders = await OrdersRepository.getOrdersByDateRange(startDate, endDate);
-
-    return successResponse(res, 'Órdenes obtenidas por rango de fechas', { 
-      orders,
-      count: orders.length 
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-export default {
+import {
   createOrder,
   getOrderById,
-  getUserOrders,
+  getOrdersByUserId,
   getAllOrders,
   updateOrderStatus,
-  updateOrderInstructions,
+  updateOrder,
+  updateOrderPartial,
   deleteOrder,
+  cancelOrder,
   addOrderItem,
   getOrderItems,
-  updateOrderItemQuantity,
-  removeOrderItem,
+  getOrderItemById,
+  updateOrderItem,
+  updateOrderItemPartial,
+  deleteOrderItem,
   clearOrderItems,
-  checkoutCart,
-  getTopSellingItems,
-  getDemandByTime,
+  createOrderWithItems,
+  validateCartItems,
+  calculateOrderTotal,
+  syncOrderTotal,
+  calculateOrderETA,
+  getUserOrdersFiltered,
+  createDineInOrderWithTable,
+  getOrderWithTable,
+  getTableWithOrders,
+  moveOrderToTable,
+  getOccupiedTables,
   getOrdersStatistics,
-  getUserOrdersSummary,
   getRecentOrders,
   getStatisticsByDeliveryType,
-  getOrdersByDateRange
+  getOrdersByDateRange,
+} from "../repositories/orders.repository.js";
+
+import { successResponse, errorResponse } from "../utils/response.js";
+
+// ============================================================
+// ÓRDENES - CRUD BÁSICO
+// ============================================================
+
+export const createNewOrder = async (req, res, next) => {
+  try {
+    const { user_id, total_amount, delivery_type, special_instructions } = req.body;
+    if (!user_id) {
+      return errorResponse(res, 400, "user_id es requerido");
+    }
+
+    const order = await createOrder(user_id, total_amount, delivery_type, special_instructions);
+    return successResponse(res, "Orden creada correctamente", { order }, 201);
+  } catch (err) {
+    console.error("Error en createNewOrder:", err);
+    next(err);
+  }
+};
+
+export const getOrder = async (req, res, next) => {
+  try {
+    const order_id = Number(req.params.order_id);
+    if (isNaN(order_id) || order_id <= 0) {
+      return errorResponse(res, 400, "ID de orden inválido");
+    }
+
+    const order = await getOrderById(order_id);
+    if (!order) {
+      return errorResponse(res, 404, "Orden no encontrada");
+    }
+
+    return successResponse(res, "Orden obtenida correctamente", { order }, 200);
+  } catch (err) {
+    console.error("Error en getOrder:", err);
+    next(err);
+  }
+};
+
+export const getUserOrders = async (req, res, next) => {
+  try {
+    const user_id = Number(req.params.user_id);
+    const limit = Number(req.query.limit) || 10;
+    const offset = Number(req.query.offset) || 0;
+
+    if (isNaN(user_id) || user_id <= 0) {
+      return errorResponse(res, 400, "ID de usuario inválido");
+    }
+
+    const orders = await getOrdersByUserId(user_id, limit, offset);
+    return successResponse(
+      res,
+      "Órdenes del usuario obtenidas correctamente",
+      {
+        orders,
+        count: orders.length,
+        limit,
+        offset,
+      },
+      200
+    );
+  } catch (err) {
+    console.error("Error en getUserOrders:", err);
+    next(err);
+  }
+};
+
+export const getOrders = async (req, res, next) => {
+  try {
+    const limit = Number(req.query.limit) || 10;
+    const offset = Number(req.query.offset) || 0;
+    const status = req.query.status || null;
+
+    const orders = await getAllOrders(limit, offset, status);
+    return successResponse(
+      res,
+      "Órdenes obtenidas correctamente",
+      {
+        orders,
+        count: orders.length,
+        limit,
+        offset,
+      },
+      200
+    );
+  } catch (err) {
+    console.error("Error en getOrders:", err);
+    next(err);
+  }
+};
+
+export const updateOrderState = async (req, res, next) => {
+  try {
+    const order_id = Number(req.params.order_id);
+    const { status } = req.body;
+
+    if (isNaN(order_id) || order_id <= 0) {
+      return errorResponse(res, 400, "ID de orden inválido");
+    }
+
+    if (!status) {
+      return errorResponse(res, 400, "status es requerido");
+    }
+
+    const updated = await updateOrderStatus(order_id, status);
+    if (!updated) {
+      return errorResponse(res, 404, "Orden no encontrada");
+    }
+
+    return successResponse(res, "Estado de orden actualizado correctamente", { order: updated }, 200);
+  } catch (err) {
+    if (err.message.includes("Estado inválido")) {
+      return errorResponse(res, 400, err.message);
+    }
+
+    console.error("Error en updateOrderState:", err);
+    next(err);
+  }
+};
+
+export const editOrder = async (req, res, next) => {
+  try {
+    const order_id = Number(req.params.order_id);
+    if (isNaN(order_id) || order_id <= 0) {
+      return errorResponse(res, 400, "ID de orden inválido");
+    }
+
+    const existing = await getOrderById(order_id);
+    if (!existing) {
+      return errorResponse(res, 404, "Orden no encontrada");
+    }
+
+    const updated = await updateOrder(order_id, req.body);
+    return successResponse(res, "Orden actualizada correctamente", { order: updated }, 200);
+  } catch (err) {
+    if (err.message.includes("Estado inválido")) {
+      return errorResponse(res, 400, err.message);
+    }
+
+    console.error("Error en editOrder:", err);
+    next(err);
+  }
+};
+
+export const patchOrder = async (req, res, next) => {
+  try {
+    const order_id = Number(req.params.order_id);
+    if (isNaN(order_id) || order_id <= 0) {
+      return errorResponse(res, 400, "ID de orden inválido");
+    }
+
+    const existing = await getOrderById(order_id);
+    if (!existing) {
+      return errorResponse(res, 404, "Orden no encontrada");
+    }
+
+    const updated = await updateOrderPartial(order_id, req.body);
+    if (!updated) {
+      return errorResponse(res, 400, "No se pudo actualizar la orden");
+    }
+
+    return successResponse(res, "Orden actualizada parcialmente", { order: updated }, 200);
+  } catch (err) {
+    if (err.message.includes("campos válidos")) {
+      return errorResponse(res, 400, err.message);
+    }
+
+    console.error("Error en patchOrder:", err);
+    next(err);
+  }
+};
+
+export const removeOrder = async (req, res, next) => {
+  try {
+    const order_id = Number(req.params.order_id);
+    if (isNaN(order_id) || order_id <= 0) {
+      return errorResponse(res, 400, "ID de orden inválido");
+    }
+
+    const order = await getOrderById(order_id);
+    if (!order) {
+      return errorResponse(res, 404, "Orden no encontrada");
+    }
+
+    const result = await deleteOrder(order_id);
+    return successResponse(res, result.message, {}, 200);
+  } catch (err) {
+    console.error("Error en removeOrder:", err);
+    next(err);
+  }
+};
+
+export const cancelOrderHandler = async (req, res, next) => {
+  try {
+    const order_id = Number(req.params.order_id);
+    if (isNaN(order_id) || order_id <= 0) {
+      return errorResponse(res, 400, "ID de orden inválido");
+    }
+
+    const result = await cancelOrder(order_id);
+    if (!result) {
+      return errorResponse(res, 404, "Orden no encontrada");
+    }
+
+    return successResponse(res, "Orden cancelada correctamente", { order: result }, 200);
+  } catch (err) {
+    console.error("Error en cancelOrderHandler:", err);
+    next(err);
+  }
+};
+
+// ============================================================
+// ORDER ITEMS
+// ============================================================
+
+export const addItemToOrder = async (req, res, next) => {
+  try {
+    const order_id = Number(req.params.order_id);
+    const { menu_item_id, quantity, special_requests } = req.body;
+
+    if (isNaN(order_id) || order_id <= 0) {
+      return errorResponse(res, 400, "ID de orden inválido");
+    }
+
+    if (!menu_item_id || menu_item_id <= 0) {
+      return errorResponse(res, 400, "menu_item_id es requerido y debe ser positivo");
+    }
+
+    if (!quantity || quantity <= 0 || quantity > 99) {
+      return errorResponse(res, 400, "quantity debe estar entre 1 y 99");
+    }
+
+    const order = await getOrderById(order_id);
+    if (!order) {
+      return errorResponse(res, 404, "Orden no encontrada");
+    }
+
+    const item_query = `SELECT price, is_available FROM public.menu_items WHERE id = $1;`;
+    const { pool } = await import("../config/db.js");
+    const item_result = await pool.query(item_query, [menu_item_id]);
+
+    if (!item_result.rows[0]) {
+      return errorResponse(res, 404, "Item del menú no encontrado");
+    }
+
+    if (!item_result.rows[0].is_available) {
+      return errorResponse(res, 400, "Item no está disponible");
+    }
+
+    const price = item_result.rows[0].price;
+    const item = await addOrderItem(order_id, menu_item_id, quantity, price, special_requests);
+    await syncOrderTotal(order_id);
+
+    return successResponse(res, "Item agregado a la orden", { item }, 201);
+  } catch (err) {
+    console.error("Error en addItemToOrder:", err);
+    next(err);
+  }
+};
+
+export const getOrderItemsByOrder = async (req, res, next) => {
+  try {
+    const order_id = Number(req.params.order_id);
+    if (isNaN(order_id) || order_id <= 0) {
+      return errorResponse(res, 400, "ID de orden inválido");
+    }
+
+    const items = await getOrderItems(order_id);
+    return successResponse(
+      res,
+      "Items de la orden obtenidos correctamente",
+      {
+        items,
+        count: items.length,
+      },
+      200
+    );
+  } catch (err) {
+    console.error("Error en getOrderItemsByOrder:", err);
+    next(err);
+  }
+};
+
+export const editOrderItem = async (req, res, next) => {
+  try {
+    const order_id = Number(req.params.order_id);
+    const item_id = Number(req.params.item_id);
+
+    if (isNaN(order_id) || order_id <= 0) {
+      return errorResponse(res, 400, "ID de orden inválido");
+    }
+
+    if (isNaN(item_id) || item_id <= 0) {
+      return errorResponse(res, 400, "ID de item inválido");
+    }
+
+    const updated = await updateOrderItem(item_id, req.body);
+    if (!updated) {
+      return errorResponse(res, 404, "Item de orden no encontrado");
+    }
+
+    const item = await getOrderItemById(item_id);
+    if (item) {
+      await syncOrderTotal(item.order_id);
+    }
+
+    return successResponse(res, "Item de orden actualizado correctamente", { item: updated }, 200);
+  } catch (err) {
+    console.error("Error en editOrderItem:", err);
+    next(err);
+  }
+};
+
+export const patchOrderItem = async (req, res, next) => {
+  try {
+    const order_id = Number(req.params.order_id);
+    const item_id = Number(req.params.item_id);
+
+    if (isNaN(order_id) || order_id <= 0) {
+      return errorResponse(res, 400, "ID de orden inválido");
+    }
+
+    if (isNaN(item_id) || item_id <= 0) {
+      return errorResponse(res, 400, "ID de item inválido");
+    }
+
+    const updated = await updateOrderItemPartial(item_id, req.body);
+    if (!updated) {
+      return errorResponse(res, 400, "No se pudo actualizar el item de orden");
+    }
+
+    return successResponse(res, "Item de orden actualizado parcialmente", { item: updated }, 200);
+  } catch (err) {
+    console.error("Error en patchOrderItem:", err);
+    next(err);
+  }
+};
+
+export const removeOrderItem = async (req, res, next) => {
+  try {
+    const order_id = Number(req.params.order_id);
+    const item_id = Number(req.params.item_id);
+
+    if (isNaN(order_id) || order_id <= 0) {
+      return errorResponse(res, 400, "ID de orden inválido");
+    }
+
+    if (isNaN(item_id) || item_id <= 0) {
+      return errorResponse(res, 400, "ID de item inválido");
+    }
+
+    const result = await deleteOrderItem(item_id);
+    if (!result) {
+      return errorResponse(res, 404, "Item de orden no encontrado");
+    }
+
+    return successResponse(res, result.message, {}, 200);
+  } catch (err) {
+    console.error("Error en removeOrderItem:", err);
+    next(err);
+  }
+};
+
+export const clearOrderItemsHandler = async (req, res, next) => {
+  try {
+    const order_id = Number(req.params.order_id);
+    if (isNaN(order_id) || order_id <= 0) {
+      return errorResponse(res, 400, "ID de orden inválido");
+    }
+
+    const order = await getOrderById(order_id);
+    if (!order) {
+      return errorResponse(res, 404, "Orden no encontrada");
+    }
+
+    const count = await clearOrderItems(order_id);
+    await syncOrderTotal(order_id);
+
+    return successResponse(
+      res,
+      "Todos los items de la orden han sido eliminados",
+      {
+        order_id,
+        items_removed: count,
+      },
+      200
+    );
+  } catch (err) {
+    console.error("Error en clearOrderItemsHandler:", err);
+    next(err);
+  }
+};
+
+// ============================================================
+// OPERACIONES COMPLEJAS
+// ============================================================
+
+export const createFullOrder = async (req, res, next) => {
+  try {
+    const { user_id, cart_items, delivery_type = "dine-in", special_instructions } = req.body;
+
+    if (!user_id || !cart_items || cart_items.length === 0) {
+      return errorResponse(res, 400, "user_id y cart_items son requeridos");
+    }
+
+    const validation = await validateCartItems(cart_items);
+    if (!validation.valid) {
+      return errorResponse(res, 400, "Algunos items no están disponibles", {
+        unavailable: validation.unavailable,
+        not_found: validation.not_found,
+      });
+    }
+
+    const order = await createOrderWithItems(user_id, cart_items, delivery_type, special_instructions);
+    return successResponse(
+      res,
+      "Orden creada correctamente con items",
+      {
+        order,
+        estimated_prep_time: order.estimated_prep_time || 0,
+      },
+      201
+    );
+  } catch (err) {
+    if (err.message.includes("no encontrado") || err.message.includes("no disponible")) {
+      return errorResponse(res, 400, err.message);
+    }
+
+    console.error("Error en createFullOrder:", err);
+    next(err);
+  }
+};
+
+export const validateCart = async (req, res, next) => {
+  try {
+    const { cart_items } = req.body;
+
+    if (!cart_items || !Array.isArray(cart_items)) {
+      return errorResponse(res, 400, "cart_items debe ser un array");
+    }
+
+    for (const item of cart_items) {
+      if (!item.menu_item_id || item.menu_item_id <= 0) {
+        return errorResponse(res, 400, `Item debe incluir menu_item_id válido: ${JSON.stringify(item)}`);
+      }
+    }
+
+    const validation = await validateCartItems(cart_items);
+    return successResponse(
+      res,
+      "Carrito validado correctamente",
+      {
+        valid: validation.valid,
+        not_found: validation.not_found || [],
+        unavailable: validation.unavailable || [],
+        total_items: cart_items.length,
+      },
+      200
+    );
+  } catch (err) {
+    console.error("Error en validateCart:", err);
+    next(err);
+  }
+};
+
+export const recalculateTotal = async (req, res, next) => {
+  try {
+    const order_id = Number(req.params.order_id);
+    if (isNaN(order_id) || order_id <= 0) {
+      return errorResponse(res, 400, "ID de orden inválido");
+    }
+
+    const order = await getOrderById(order_id);
+    if (!order) {
+      return errorResponse(res, 404, "Orden no encontrada");
+    }
+
+    const updated = await syncOrderTotal(order_id);
+    return successResponse(res, "Total de orden recalculado correctamente", { order: updated }, 200);
+  } catch (err) {
+    console.error("Error en recalculateTotal:", err);
+    next(err);
+  }
+};
+
+export const getOrderTotalHandler = async (req, res, next) => {
+  try {
+    const order_id = Number(req.params.order_id);
+    if (isNaN(order_id) || order_id <= 0) {
+      return errorResponse(res, 400, "ID de orden inválido");
+    }
+
+    const order = await getOrderById(order_id);
+    if (!order) {
+      return errorResponse(res, 404, "Orden no encontrada");
+    }
+
+    const totals = await calculateOrderTotal(order_id);
+    return successResponse(
+      res,
+      "Total de orden calculado correctamente",
+      {
+        order_id,
+        total_amount: totals.total_amount,
+        items_count: totals.items_count,
+        total_quantity: totals.total_quantity,
+      },
+      200
+    );
+  } catch (err) {
+    console.error("Error en getOrderTotalHandler:", err);
+    next(err);
+  }
+};
+
+// ============================================================
+// DINE-IN CON MESAS
+// ============================================================
+
+export const createDineInOrder = async (req, res, next) => {
+  try {
+    const { user_id, table_id, cart_items, special_instructions } = req.body;
+
+    if (!user_id || !table_id || !cart_items) {
+      return errorResponse(res, 400, "user_id, table_id y cart_items son requeridos");
+    }
+
+    const order = await createDineInOrderWithTable(user_id, table_id, cart_items, special_instructions);
+    return successResponse(res, "Orden dine-in creada correctamente", { order }, 201);
+  } catch (err) {
+    if (err.message.includes("no disponible") || err.message.includes("no existe")) {
+      return errorResponse(res, 400, err.message);
+    }
+
+    console.error("Error en createDineInOrder:", err);
+    next(err);
+  }
+};
+
+export const getOrderWithTableInfo = async (req, res, next) => {
+  try {
+    const order_id = Number(req.params.order_id);
+    if (isNaN(order_id) || order_id <= 0) {
+      return errorResponse(res, 400, "ID de orden inválido");
+    }
+
+    const order = await getOrderWithTable(order_id);
+    if (!order) {
+      return errorResponse(res, 404, "Orden no encontrada");
+    }
+
+    return successResponse(res, "Orden con información de mesa obtenida", { order }, 200);
+  } catch (err) {
+    console.error("Error en getOrderWithTableInfo:", err);
+    next(err);
+  }
+};
+
+export const getTableWithOrderInfo = async (req, res, next) => {
+  try {
+    const table_id = Number(req.params.table_id);
+    if (isNaN(table_id) || table_id <= 0) {
+      return errorResponse(res, 400, "ID de mesa inválido");
+    }
+
+    const table = await getTableWithOrders(table_id);
+    if (!table) {
+      return errorResponse(res, 404, "Mesa no encontrada o sin órdenes activas");
+    }
+
+    return successResponse(res, "Mesa con información de orden obtenida", { table }, 200);
+  } catch (err) {
+    console.error("Error en getTableWithOrderInfo:", err);
+    next(err);
+  }
+};
+
+export const moveOrder = async (req, res, next) => {
+  try {
+    const order_id = Number(req.params.order_id);
+    const { new_table_id } = req.body;
+
+    if (isNaN(order_id) || order_id <= 0) {
+      return errorResponse(res, 400, "ID de orden inválido");
+    }
+
+    if (!new_table_id) {
+      return errorResponse(res, 400, "new_table_id es requerido");
+    }
+
+    const result = await moveOrderToTable(order_id, new_table_id);
+    if (!result?.success) {
+      return errorResponse(res, 400, result?.message || "No se pudo mover la orden");
+    }
+
+    return successResponse(
+      res,
+      result.message,
+      {
+        order_id,
+        table_id: new_table_id,
+      },
+      200
+    );
+  } catch (err) {
+    console.error("Error en moveOrder:", err);
+    next(err);
+  }
+};
+
+export const getOccupied = async (req, res, next) => {
+  try {
+    const tables = await getOccupiedTables();
+    return successResponse(
+      res,
+      "Mesas ocupadas obtenidas correctamente",
+      {
+        tables,
+        count: tables.length,
+      },
+      200
+    );
+  } catch (err) {
+    console.error("Error en getOccupied:", err);
+    next(err);
+  }
+};
+
+// ============================================================
+// ESTADÍSTICAS Y REPORTES
+// ============================================================
+
+export const getStatistics = async (req, res, next) => {
+  try {
+    const stats = await getOrdersStatistics();
+    return successResponse(res, "Estadísticas de órdenes obtenidas correctamente", { statistics: stats }, 200);
+  } catch (err) {
+    console.error("Error en getStatistics:", err);
+    next(err);
+  }
+};
+
+export const getRecentOrdersList = async (req, res, next) => {
+  try {
+    const limit = Number(req.query.limit) || 10;
+    const orders = await getRecentOrders(limit);
+
+    return successResponse(
+      res,
+      "Órdenes recientes obtenidas correctamente",
+      {
+        orders,
+        count: orders.length,
+      },
+      200
+    );
+  } catch (err) {
+    console.error("Error en getRecentOrdersList:", err);
+    next(err);
+  }
+};
+
+export const getStatisticsByType = async (req, res, next) => {
+  try {
+    const stats = await getStatisticsByDeliveryType();
+    return successResponse(res, "Estadísticas por tipo de entrega obtenidas", { statistics: stats }, 200);
+  } catch (err) {
+    console.error("Error en getStatisticsByType:", err);
+    next(err);
+  }
+};
+
+export const getOrdersByDateRangeHandler = async (req, res, next) => {
+  try {
+    const { start_date, end_date } = req.query;
+
+    if (!start_date || !end_date) {
+      return errorResponse(res, 400, "start_date y end_date son requeridos");
+    }
+
+    const orders = await getOrdersByDateRange(start_date, end_date);
+    return successResponse(
+      res,
+      "Órdenes por rango de fechas obtenidas",
+      {
+        orders,
+        count: orders.length,
+        start_date,
+        end_date,
+      },
+      200
+    );
+  } catch (err) {
+    console.error("Error en getOrdersByDateRangeHandler:", err);
+    next(err);
+  }
+};
+
+export const getFilteredUserOrders = async (req, res, next) => {
+  try {
+    const user_id = Number(req.params.user_id);
+    const status = req.query.status || null;
+    const limit = Number(req.query.limit) || 10;
+    const offset = Number(req.query.offset) || 0;
+
+    if (isNaN(user_id) || user_id <= 0) {
+      return errorResponse(res, 400, "ID de usuario inválido");
+    }
+
+    const orders = await getUserOrdersFiltered(user_id, status, limit, offset);
+    return successResponse(
+      res,
+      "Órdenes filtradas del usuario obtenidas",
+      {
+        orders,
+        count: orders.length,
+        status,
+        limit,
+        offset,
+      },
+      200
+    );
+  } catch (err) {
+    console.error("Error en getFilteredUserOrders:", err);
+    next(err);
+  }
 };
