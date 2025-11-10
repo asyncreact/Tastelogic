@@ -30,14 +30,17 @@ const router = express.Router();
 
 /* RUTAS PÚBLICAS */
 
+// Mesas disponibles (pública)
 router.get("/public/available-tables", getAvailableTables);
+
+// Verificar disponibilidad (pública)
 router.post(
-  "/check-availability",
+  "/public/check-availability",
   validateCheckAvailabilityMiddleware,
   checkAvailability
 );
 
-/* ESTADÍSTICAS - SOLO ADMIN */
+/* ESTADÍSTICAS - SOLO ADMIN (Deben ir antes de /:reservation_id) */
 
 router.get(
   "/statistics/general",
@@ -67,8 +70,28 @@ router.get(
   reservationStatsByStatus
 );
 
+/* RUTAS AUTENTICADAS CON NOMBRES ESPECÍFICOS (Antes de /:reservation_id) */
+
+// Mesas disponibles (autenticada) - alternativa
+router.get(
+  "/available-tables",
+  authenticate,
+  authorizeRoles("admin", "customer"),
+  getAvailableTables
+);
+
+// Verificar disponibilidad (autenticada) - alternativa
+router.post(
+  "/check-availability",
+  authenticate,
+  authorizeRoles("admin", "customer"),
+  validateCheckAvailabilityMiddleware,
+  checkAvailability
+);
+
 /* CRUD DE RESERVAS */
 
+// Listar reservas
 router.get(
   "/",
   authenticate,
@@ -77,6 +100,7 @@ router.get(
   listReservations
 );
 
+// Crear reserva
 router.post(
   "/",
   authenticate,
@@ -85,31 +109,9 @@ router.post(
   addReservation
 );
 
-router.get(
-  "/:reservation_id",
-  authenticate,
-  authorizeRoles("admin", "customer"),
-  showReservation
-);
+/* ACCIONES ESPECIALES CON :reservation_id (Deben ir ANTES de GET /:reservation_id) */
 
-router.put(
-  "/:reservation_id",
-  authenticate,
-  authorizeRoles("admin", "customer"),
-  validateReservationUpdate,
-  editReservation
-);
-
-router.patch(
-  "/:reservation_id",
-  authenticate,
-  authorizeRoles("admin", "customer"),
-  validateReservationUpdate,
-  editReservation
-);
-
-/* ACCIONES ESPECIALES */
-
+// Actualizar estado
 router.patch(
   "/:reservation_id/status",
   authenticate,
@@ -118,6 +120,7 @@ router.patch(
   updateStatus
 );
 
+// Cancelar reserva
 router.patch(
   "/:reservation_id/cancel",
   authenticate,
@@ -125,6 +128,35 @@ router.patch(
   cancelReservationHandler
 );
 
+/* RUTAS CON PARÁMETRO :reservation_id (Al final) */
+
+// Obtener reserva por ID
+router.get(
+  "/:reservation_id",
+  authenticate,
+  authorizeRoles("admin", "customer"),
+  showReservation
+);
+
+// Actualizar reserva (PUT)
+router.put(
+  "/:reservation_id",
+  authenticate,
+  authorizeRoles("admin", "customer"),
+  validateReservationUpdate,
+  editReservation
+);
+
+// Actualizar reserva (PATCH)
+router.patch(
+  "/:reservation_id",
+  authenticate,
+  authorizeRoles("admin", "customer"),
+  validateReservationUpdate,
+  editReservation
+);
+
+// Eliminar reserva
 router.delete(
   "/:reservation_id",
   authenticate,

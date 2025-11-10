@@ -391,24 +391,24 @@ export const checkTableAvailability = async (
  * OBTENER MESAS DISPONIBLES POR ZONA
  */
 
+// Obtiene mesas disponibles por zona y capacidad mínima
 export const getAvailableTablesByZone = async (zone_id, guest_count) => {
   try {
     const query = `
-      SELECT t.* FROM public.tables t
+      SELECT t.*, z.name AS zone_name
+      FROM public.tables t
+      LEFT JOIN public.zones z ON t.zone_id = z.id
       WHERE t.zone_id = $1
-      AND t.capacity >= $2
-      AND t.is_active = TRUE
-      AND t.id NOT IN (
-        SELECT r.table_id FROM public.reservations r
-        WHERE r.zone_id = $1
-        AND r.status IN ('confirmed', 'pending')
-      )
+        AND t.capacity >= $2
+        AND t.status = 'available'
+        AND t.is_active = true
+      ORDER BY t.capacity ASC;
     `;
 
-    const result = await pool.query(query, [zone_id, guest_count]);
-    return result.rows;
+    const { rows } = await pool.query(query, [zone_id, guest_count]);
+    return rows;
   } catch (error) {
-    console.error("Error en getAvailableTablesByZone:", error);
+    console.error("Error al obtener mesas disponibles por zona:", error);
     throw error;
   }
 };

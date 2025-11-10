@@ -168,10 +168,14 @@ export const getTables = async (filters = {}) => {
       paramCount++;
     }
 
+    // FILTRAR POR is_active
     if (filters.is_active !== undefined) {
       query += ` AND t.is_active = $${paramCount}`;
       values.push(Boolean(filters.is_active));
       paramCount++;
+    } else if (filters.include_inactive !== true) {
+      // Por defecto, solo mostrar mesas activas
+      query += ` AND t.is_active = true`;
     }
 
     query += ` ORDER BY t.zone_id, t.table_number ASC;`;
@@ -336,13 +340,12 @@ export const getTableStatistics = async () => {
   }
 };
 
-/* Actualiza el estado de una mesa */
+// Actualiza el estado de una mesa
 export const updateTableStatus = async (table_id, status) => {
   try {
     const validatedTableId = validateId(table_id);
     if (!validatedTableId) throw new Error("ID de mesa inválido");
 
-    // Validar que el status sea válido
     const validStatuses = ["available", "reserved"];
     if (!validStatuses.includes(status)) {
       throw new Error(

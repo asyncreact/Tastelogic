@@ -169,6 +169,13 @@ export const checkAvailability = async (req, res, next) => {
       throw error;
     }
 
+    // VALIDAR QUE LA MESA ESTÉ ACTIVA
+    if (!table.is_active) {
+      const error = new Error("La mesa seleccionada no está disponible en este momento");
+      error.status = 400;
+      throw error;
+    }
+
     const availability = await checkTableAvailability(
       Number(table_id),
       reservation_date,
@@ -211,12 +218,18 @@ export const addReservation = async (req, res, next) => {
       special_requirements,
     } = req.body;
 
-    // Customer crea reservas para sí mismo, admin puede crear para otros
+    // Customer crea reservas para sí mismo, admin DEBE especificar user_id
     let user_id;
     if (req.user.role === "customer") {
       user_id = req.user.id;
     } else {
-      user_id = req.body.user_id || req.user.id;
+      // ADMIN DEBE PROPORCIONAR user_id
+      if (!req.body.user_id) {
+        const error = new Error("Como administrador, debes especificar el ID del usuario para crear la reserva");
+        error.status = 400;
+        throw error;
+      }
+      user_id = req.body.user_id;
     }
 
     // Validación de campos requeridos
@@ -235,7 +248,7 @@ export const addReservation = async (req, res, next) => {
 
     const user = await getUserById(Number(user_id));
     if (!user) {
-      const error = new Error("Tu cuenta no está registrada. Por favor, inicia sesión nuevamente.");
+      const error = new Error("El usuario especificado no está registrado. Por favor, verifica el ID del usuario.");
       error.status = 404;
       throw error;
     }
@@ -251,6 +264,13 @@ export const addReservation = async (req, res, next) => {
     if (!table) {
       const error = new Error("La mesa seleccionada no está disponible");
       error.status = 404;
+      throw error;
+    }
+
+    // VALIDAR QUE LA MESA ESTÉ ACTIVA
+    if (!table.is_active) {
+      const error = new Error("La mesa seleccionada no está disponible en este momento");
+      error.status = 400;
       throw error;
     }
 
@@ -313,7 +333,8 @@ export const addReservation = async (req, res, next) => {
           zone_name: zone.name,
           date: formattedDate,
           time: reservation_time,
-          guests: guest_count
+          guests: guest_count,
+          user_name: user.name // Incluir nombre del usuario
         }
       },
       201
@@ -383,6 +404,14 @@ export const editReservation = async (req, res, next) => {
         error.status = 404;
         throw error;
       }
+      
+      // VALIDAR QUE LA NUEVA MESA ESTÉ ACTIVA
+      if (!newTable.is_active) {
+        const error = new Error("La mesa seleccionada no está disponible en este momento");
+        error.status = 400;
+        throw error;
+      }
+      
       tableToValidate = newTable;
     } else if (req.body.table_id === existing.table_id) {
       const table = await getTableById(Number(existing.table_id));
