@@ -20,7 +20,7 @@ import {
   loginSchema,
   resetPasswordSchema,
 } from "../validators/auth.validator.js";
-import { successResponse, errorResponse } from "../utils/response.js";
+import { successResponse } from "../utils/response.js";
 
 /* AUTENTICACIÓN - REGISTRO */
 
@@ -31,7 +31,9 @@ export const register = async (req, res, next) => {
     const existing = await getUserByEmail(email);
 
     if (existing) {
-      return errorResponse(res, 409, "El correo ya está registrado");
+      const error = new Error("Este correo electrónico ya está registrado. Por favor, usa otro o inicia sesión.");
+      error.status = 409;
+      throw error;
     }
 
     const hashed_password = await bcrypt.hash(password, 10);
@@ -62,7 +64,7 @@ export const register = async (req, res, next) => {
 
     return successResponse(
       res,
-      "Usuario registrado correctamente. Revisa tu correo para verificar la cuenta.",
+      "¡Registro exitoso! Revisa tu correo para verificar tu cuenta.",
       {},
       201
     );
@@ -78,10 +80,12 @@ export const verify = async (req, res, next) => {
     const user = await verifyUserAccount(token);
 
     if (!user) {
-      return errorResponse(res, 400, "Token inválido o expirado");
+      const error = new Error("El enlace de verificación es inválido o ha expirado. Solicita uno nuevo.");
+      error.status = 400;
+      throw error;
     }
 
-    return successResponse(res, "Cuenta verificada correctamente", {}, 200);
+    return successResponse(res, "¡Tu cuenta ha sido verificada exitosamente! Ya puedes iniciar sesión.", {}, 200);
   } catch (err) {
     next(err);
   }
@@ -96,21 +100,23 @@ export const login = async (req, res, next) => {
     const user = await getUserByEmail(email);
 
     if (!user) {
-      return errorResponse(res, 404, "Usuario no encontrado");
+      const error = new Error("No encontramos una cuenta con este correo electrónico.");
+      error.status = 404;
+      throw error;
     }
 
     if (!user.is_verified) {
-      return errorResponse(
-        res,
-        403,
-        "Cuenta no verificada. Revisa tu correo."
-      );
+      const error = new Error("Tu cuenta aún no está verificada. Por favor, revisa tu correo.");
+      error.status = 403;
+      throw error;
     }
 
     const valid = await bcrypt.compare(password, user.password);
 
     if (!valid) {
-      return errorResponse(res, 400, "Contraseña incorrecta");
+      const error = new Error("La contraseña es incorrecta. Por favor, intenta de nuevo.");
+      error.status = 400;
+      throw error;
     }
 
     const token = generateToken({
@@ -119,7 +125,7 @@ export const login = async (req, res, next) => {
       token_version: user.token_version,
     });
 
-    return successResponse(res, "Inicio de sesión exitoso", {
+    return successResponse(res, "¡Bienvenido de nuevo!", {
       token,
       user: {
         id: user.id,
@@ -139,7 +145,7 @@ export const logout = async (req, res, next) => {
     const user_id = req.user.id;
     await incrementTokenVersion(user_id);
 
-    return successResponse(res, "Sesión cerrada correctamente", {}, 200);
+    return successResponse(res, "Has cerrado sesión correctamente. ¡Hasta pronto!", {}, 200);
   } catch (err) {
     next(err);
   }
@@ -154,7 +160,9 @@ export const forgotPassword = async (req, res, next) => {
     const user = await getUserByEmail(email);
 
     if (!user) {
-      return errorResponse(res, 404, "Usuario no encontrado");
+      const error = new Error("No encontramos una cuenta asociada a este correo electrónico.");
+      error.status = 404;
+      throw error;
     }
 
     const reset_token = crypto.randomBytes(40).toString("hex");
@@ -178,7 +186,7 @@ export const forgotPassword = async (req, res, next) => {
 
     return successResponse(
       res,
-      "Se ha enviado un enlace de restablecimiento a tu correo.",
+      "Te hemos enviado un enlace para restablecer tu contraseña. Revisa tu correo.",
       {},
       200
     );
@@ -195,7 +203,9 @@ export const resetPassword = async (req, res, next) => {
     const user = await getUserByResetToken(token);
 
     if (!user) {
-      return errorResponse(res, 400, "Token inválido o expirado");
+      const error = new Error("El enlace para restablecer contraseña es inválido o ha expirado.");
+      error.status = 400;
+      throw error;
     }
 
     const hashed = await bcrypt.hash(password, 10);
@@ -204,7 +214,7 @@ export const resetPassword = async (req, res, next) => {
 
     return successResponse(
       res,
-      "Contraseña restablecida correctamente. Vuelve a iniciar sesión.",
+      "¡Tu contraseña ha sido actualizada exitosamente! Ya puedes iniciar sesión.",
       {},
       200
     );

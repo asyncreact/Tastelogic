@@ -12,8 +12,7 @@ import {
   updateItem,
   deleteItem,
 } from "../repositories/menu.repository.js";
-
-import { successResponse, errorResponse } from "../utils/response.js";
+import { successResponse } from "../utils/response.js";
 
 /* CATEGORÍAS */
 
@@ -25,7 +24,6 @@ export const listMenu = async (req, res, next) => {
       categories,
     });
   } catch (err) {
-    console.error("Error en listMenu:", err);
     next(err);
   }
 };
@@ -33,21 +31,25 @@ export const listMenu = async (req, res, next) => {
 /* Obtiene una categoría específica por ID */
 export const showMenu = async (req, res, next) => {
   try {
+    // VALIDAR ID PRIMERO
     const categoryId = Number(req.params.category_id);
     if (isNaN(categoryId) || categoryId <= 0) {
-      return errorResponse(res, 400, "ID de categoría inválido");
+      const error = new Error("El ID de la categoría debe ser un número válido");
+      error.status = 400;
+      throw error;
     }
 
     const category = await getCategoryById(categoryId);
     if (!category) {
-      return errorResponse(res, 404, "Categoría no encontrada");
+      const error = new Error("No encontramos la categoría que buscas");
+      error.status = 404;
+      throw error;
     }
 
     return successResponse(res, "Categoría obtenida correctamente", {
       category,
     });
   } catch (err) {
-    console.error("Error en showMenu:", err);
     next(err);
   }
 };
@@ -56,7 +58,6 @@ export const showMenu = async (req, res, next) => {
 export const addMenu = async (req, res, next) => {
   try {
     const { name, description, is_active } = req.body;
-
     const category = await createCategory({
       name,
       description: description || null,
@@ -70,13 +71,6 @@ export const addMenu = async (req, res, next) => {
       201
     );
   } catch (err) {
-    if (err.code === "23505") {
-      return errorResponse(res, 409, "El nombre de la categoría ya existe");
-    }
-    if (err.message.includes("requerido")) {
-      return errorResponse(res, 400, err.message);
-    }
-    console.error("Error en addMenu:", err);
     next(err);
   }
 };
@@ -84,26 +78,26 @@ export const addMenu = async (req, res, next) => {
 /* Actualiza una categoría (PUT o PATCH - completo o parcial) */
 export const editMenu = async (req, res, next) => {
   try {
+    // VALIDAR ID PRIMERO
     const categoryId = Number(req.params.category_id);
     if (isNaN(categoryId) || categoryId <= 0) {
-      return errorResponse(res, 400, "ID de categoría inválido");
+      const error = new Error("El ID de la categoría debe ser un número válido");
+      error.status = 400;
+      throw error;
     }
 
     const existing = await getCategoryById(categoryId);
     if (!existing) {
-      return errorResponse(res, 404, "Categoría no encontrada");
+      const error = new Error("No encontramos la categoría que deseas actualizar");
+      error.status = 404;
+      throw error;
     }
 
     const updated = await updateCategory(categoryId, req.body);
-
     return successResponse(res, "Categoría actualizada correctamente", {
       category: updated,
     });
   } catch (err) {
-    if (err.code === "23505") {
-      return errorResponse(res, 409, "El nombre de la categoría ya existe");
-    }
-    console.error("Error en editMenu:", err);
     next(err);
   }
 };
@@ -111,20 +105,24 @@ export const editMenu = async (req, res, next) => {
 /* Elimina una categoría */
 export const removeMenu = async (req, res, next) => {
   try {
+    // VALIDAR ID PRIMERO
     const categoryId = Number(req.params.category_id);
     if (isNaN(categoryId) || categoryId <= 0) {
-      return errorResponse(res, 400, "ID de categoría inválido");
+      const error = new Error("El ID de la categoría debe ser un número válido");
+      error.status = 400;
+      throw error;
     }
 
     const category = await getCategoryById(categoryId);
     if (!category) {
-      return errorResponse(res, 404, "Categoría no encontrada");
+      const error = new Error("No encontramos la categoría que deseas eliminar");
+      error.status = 404;
+      throw error;
     }
 
     const result = await deleteCategory(categoryId);
     return successResponse(res, result.message);
   } catch (err) {
-    console.error("Error en removeMenu:", err);
     next(err);
   }
 };
@@ -137,7 +135,6 @@ export const listItem = async (req, res, next) => {
     const items = await getAllItems();
     return successResponse(res, "Items obtenidos correctamente", { items });
   } catch (err) {
-    console.error("Error en listItem:", err);
     next(err);
   }
 };
@@ -145,19 +142,23 @@ export const listItem = async (req, res, next) => {
 /* Obtiene un item específico por ID */
 export const showItem = async (req, res, next) => {
   try {
+    // ✅ VALIDAR ID PRIMERO
     const itemId = Number(req.params.item_id);
     if (isNaN(itemId) || itemId <= 0) {
-      return errorResponse(res, 400, "ID de item inválido");
+      const error = new Error("El ID del producto debe ser un número válido");
+      error.status = 400;
+      throw error;
     }
 
     const item = await getItemById(itemId);
     if (!item) {
-      return errorResponse(res, 404, "Item no encontrado");
+      const error = new Error("No encontramos el producto que buscas");
+      error.status = 404;
+      throw error;
     }
 
     return successResponse(res, "Item obtenido correctamente", { item });
   } catch (err) {
-    console.error("Error en showItem:", err);
     next(err);
   }
 };
@@ -175,6 +176,23 @@ export const addItem = async (req, res, next) => {
       is_available,
     } = req.body;
 
+    // VALIDAR QUE category_id EXISTA SI SE PROPORCIONA
+    if (category_id) {
+      const categoryExists = await getCategoryById(category_id);
+      if (!categoryExists) {
+        const error = new Error("La categoría especificada no existe");
+        error.status = 400;
+        throw error;
+      }
+    }
+
+    // VALIDAR QUE PRICE SEA POSITIVO
+    if (price !== undefined && Number(price) < 0) {
+      const error = new Error("El precio no puede ser negativo");
+      error.status = 400;
+      throw error;
+    }
+
     let imageUrl = null;
     if (req.file) {
       imageUrl = `/uploads/menu/${req.file.filename}`;
@@ -191,9 +209,8 @@ export const addItem = async (req, res, next) => {
       is_available: is_available ?? true,
     });
 
-    return successResponse(res, "Item creado correctamente", { item }, 201);
+    return successResponse(res, "Producto creado correctamente", { item }, 201);
   } catch (err) {
-    console.error("Error en addItem:", err);
     next(err);
   }
 };
@@ -201,16 +218,39 @@ export const addItem = async (req, res, next) => {
 /* Actualiza un item (PUT o PATCH - completo o parcial) */
 export const editItem = async (req, res, next) => {
   try {
+    // VALIDAR ID PRIMERO ANTES DE VALIDAR EL BODY
     const itemId = Number(req.params.item_id);
     if (isNaN(itemId) || itemId <= 0) {
-      return errorResponse(res, 400, "ID de item inválido");
+      const error = new Error("El ID del producto debe ser un número válido");
+      error.status = 400;
+      throw error;
     }
 
     const existing = await getItemById(itemId);
     if (!existing) {
-      return errorResponse(res, 404, "Item no encontrado");
+      const error = new Error("No encontramos el producto que deseas actualizar");
+      error.status = 404;
+      throw error;
     }
 
+    // VALIDAR QUE category_id EXISTA SI SE PROPORCIONA
+    if (req.body.category_id) {
+      const categoryExists = await getCategoryById(req.body.category_id);
+      if (!categoryExists) {
+        const error = new Error("La categoría especificada no existe");
+        error.status = 400;
+        throw error;
+      }
+    }
+
+    // VALIDAR QUE PRICE SEA POSITIVO SI SE PROPORCIONA
+    if (req.body.price !== undefined && Number(req.body.price) < 0) {
+      const error = new Error("El precio no puede ser negativo");
+      error.status = 400;
+      throw error;
+    }
+
+    // PRESERVAR category_id SI NO SE ENVÍA (evitar null)
     let imageUrl = existing.image_url;
     if (req.file) {
       imageUrl = `/uploads/menu/${req.file.filename}`;
@@ -218,16 +258,16 @@ export const editItem = async (req, res, next) => {
 
     const data = {
       ...req.body,
+      // Si no se envía category_id, mantener el existente
+      category_id: req.body.category_id !== undefined ? req.body.category_id : existing.category_id,
       ...(req.file && { image_url: imageUrl }),
     };
 
     const updated = await updateItem(itemId, data);
-
-    return successResponse(res, "Item actualizado correctamente", {
+    return successResponse(res, "Producto actualizado correctamente", {
       item: updated,
     });
   } catch (err) {
-    console.error("Error en editItem:", err);
     next(err);
   }
 };
@@ -237,18 +277,21 @@ export const removeItem = async (req, res, next) => {
   try {
     const itemId = Number(req.params.item_id);
     if (isNaN(itemId) || itemId <= 0) {
-      return errorResponse(res, 400, "ID de item inválido");
+      const error = new Error("El ID del producto debe ser un número válido");
+      error.status = 400;
+      throw error;
     }
 
     const item = await getItemById(itemId);
     if (!item) {
-      return errorResponse(res, 404, "Item no encontrado");
+      const error = new Error("No encontramos el producto que deseas eliminar");
+      error.status = 404;
+      throw error;
     }
 
     const result = await deleteItem(itemId);
     return successResponse(res, result.message);
   } catch (err) {
-    console.error("Error en removeItem:", err);
     next(err);
   }
 };

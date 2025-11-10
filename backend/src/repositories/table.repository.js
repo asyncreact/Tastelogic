@@ -128,7 +128,7 @@ const generateTableNumber = async (zone_id) => {
     const next_number = count_result.rows[0].next_number;
 
     const table_number = `${prefix}-${String(next_number).padStart(2, "0")}`;
-    console.log(`✅ Mesa generada: ${table_number} para zona ${zone_name}`);
+    console.log(`Mesa generada: ${table_number} para zona ${zone_name}`);
     return table_number;
   } catch (error) {
     console.error("Error al generar número de mesa:", error);
@@ -213,7 +213,7 @@ export const createTable = async ({
   is_active = true,
 }) => {
   try {
-    console.log("📥 Data recibida:", {
+    console.log("Data recibida:", {
       zone_id,
       table_number,
       capacity,
@@ -224,7 +224,7 @@ export const createTable = async ({
     let finalTableNumber = table_number;
     if (!finalTableNumber && zone_id) {
       finalTableNumber = await generateTableNumber(zone_id);
-      console.log("✅ table_number generado:", finalTableNumber);
+      console.log("table_number generado:", finalTableNumber);
     }
 
     validateNumber(zone_id, "zone_id");
@@ -252,12 +252,12 @@ export const createTable = async ({
       RETURNING *;
     `;
 
-    console.log("🔧 Query:", query);
+    console.log("Query:", query);
     const { rows } = await pool.query(query, values);
-    console.log("✅ Mesa creada:", rows[0]);
+    console.log("Mesa creada:", rows[0]);
     return rows[0];
   } catch (error) {
-    console.error("❌ Error al crear mesa:", error);
+    console.error("Error al crear mesa:", error);
     handleDatabaseError(error);
   }
 };
@@ -332,6 +332,41 @@ export const getTableStatistics = async () => {
     return rows[0] || {};
   } catch (error) {
     console.error("Error al obtener estadísticas de mesas:", error);
+    throw error;
+  }
+};
+
+/* Actualiza el estado de una mesa */
+export const updateTableStatus = async (table_id, status) => {
+  try {
+    const validatedTableId = validateId(table_id);
+    if (!validatedTableId) throw new Error("ID de mesa inválido");
+
+    // Validar que el status sea válido
+    const validStatuses = ["available", "reserved"];
+    if (!validStatuses.includes(status)) {
+      throw new Error(
+        `Estado inválido: ${status}. Debe ser uno de: ${validStatuses.join(", ")}`
+      );
+    }
+
+    const query = `
+      UPDATE public.tables
+      SET status = $1, updated_at = NOW()
+      WHERE id = $2
+      RETURNING *;
+    `;
+
+    const { rows } = await pool.query(query, [status, validatedTableId]);
+    
+    if (rows.length === 0) {
+      throw new Error("Mesa no encontrada");
+    }
+
+    console.log(`Estado de mesa ${validatedTableId} actualizado a: ${status}`);
+    return rows[0];
+  } catch (error) {
+    console.error("Error al actualizar estado de mesa:", error);
     throw error;
   }
 };

@@ -15,154 +15,159 @@ import {
   getReservationStatisticsByZone,
   getReservationStatisticsByStatus,
 } from "../repositories/reservation.repository.js";
-
 import { getZoneById } from "../repositories/zone.repository.js";
-import { getTableById } from "../repositories/table.repository.js";
+import { getTableById, updateTableStatus } from "../repositories/table.repository.js";
 import { getUserById } from "../repositories/user.repository.js";
-import { successResponse, errorResponse } from "../utils/response.js";
+import { successResponse } from "../utils/response.js";
 
-// Función auxiliar para auditoría
-const logAudit = (action, userId, reservationId, changes = null) => {
-  console.log(`📋 AUDIT [${new Date().toISOString()}] - USER: ${userId} | ACTION: ${action} | RESERVATION: ${reservationId}${changes ? ` | CHANGES: ${JSON.stringify(changes)}` : ""}`);
-};
+/* RESERVAS */
 
-/**
- * LISTAR RESERVAS
- */
-
+/* Obtiene todas las reservas con filtros opcionales */
 export const listReservations = async (req, res, next) => {
   try {
     const filters = {};
 
-    // Si es cliente, solo sus reservas
+    // Customer solo ve sus propias reservas, admin puede filtrar por user_id
     if (req.user.role === "customer") {
       filters.user_id = req.user.id;
-    } else if (req.query.user_id) {
-      filters.user_id = Number(req.query.user_id);
+    } else {
+      if (req.query.user_id) {
+        filters.user_id = Number(req.query.user_id);
+      }
     }
 
-    if (req.query.zone_id) filters.zone_id = Number(req.query.zone_id);
-    if (req.query.table_id) filters.table_id = Number(req.query.table_id);
-    if (req.query.status) filters.status = req.query.status;
-    if (req.query.reservation_date)
+    if (req.query.zone_id) {
+      filters.zone_id = Number(req.query.zone_id);
+    }
+    if (req.query.table_id) {
+      filters.table_id = Number(req.query.table_id);
+    }
+    if (req.query.status) {
+      filters.status = req.query.status;
+    }
+    if (req.query.reservation_date) {
       filters.reservation_date = req.query.reservation_date;
+    }
 
     const reservations = await getReservations(filters);
-
-    return successResponse(res, "Reservas obtenidas correctamente", {
-      reservations,
-      count: reservations.length,
-    });
+    return successResponse(
+      res,
+      "Reservas obtenidas correctamente",
+      {
+        reservations,
+        count: reservations.length,
+      }
+    );
   } catch (err) {
-    console.error("Error en listReservations:", err);
     next(err);
   }
 };
 
-/**
- * MOSTRAR UNA RESERVA
- */
-
+/* Obtiene una reserva específica por ID */
 export const showReservation = async (req, res, next) => {
   try {
     const reservation_id = Number(req.params.reservation_id);
-
-    if (isNaN(reservation_id) || reservation_id <= 0)
-      return errorResponse(res, 400, "ID de reserva inválido");
-
-    const reservation = await getReservationById(reservation_id);
-
-    if (!reservation)
-      return errorResponse(res, 404, "Reserva no encontrada");
-
-    // Si es cliente, validar propiedad
-    if (
-      req.user.role === "customer" &&
-      reservation.user_id !== req.user.id
-    ) {
-      logAudit("UNAUTHORIZED_VIEW", req.user.id, reservation_id);
-      return errorResponse(
-        res,
-        403,
-        "No tienes permiso para ver esta reserva"
-      );
+    
+    if (isNaN(reservation_id) || reservation_id <= 0) {
+      const error = new Error("No se pudo encontrar la reserva solicitada");
+      error.status = 400;
+      throw error;
     }
 
-    return successResponse(res, "Reserva obtenida correctamente", {
-      reservation,
-    });
+    const reservation = await getReservationById(reservation_id);
+    
+    if (!reservation) {
+      const error = new Error("No encontramos tu reserva. Por favor, verifica tus datos.");
+      error.status = 404;
+      throw error;
+    }
+
+    // Customer solo puede ver sus propias reservas
+    if (req.user.role === "customer" && reservation.user_id !== req.user.id) {
+      const error = new Error("No tienes permiso para ver esta reserva");
+      error.status = 403;
+      throw error;
+    }
+
+    return successResponse(
+      res,
+      "Reserva encontrada",
+      { reservation }
+    );
   } catch (err) {
-    console.error("Error en showReservation:", err);
     next(err);
   }
 };
 
-/**
- * MESAS DISPONIBLES (público)
- */
-
+/* Obtiene mesas disponibles por zona */
 export const getAvailableTables = async (req, res, next) => {
   try {
     const { zone_id, guest_count } = req.query;
-
-    if (!zone_id || !guest_count)
-      return errorResponse(
-        res,
-        400,
-        "zone_id y guest_count son requeridos"
-      );
+    
+    if (!zone_id || !guest_count) {
+      const error = new Error("Por favor, selecciona una zona y el número de personas");
+      error.status = 400;
+      throw error;
+    }
 
     const validatedGuestCount = Number(guest_count);
-
-    if (
-      isNaN(validatedGuestCount) ||
-      validatedGuestCount < 1 ||
-      validatedGuestCount > 50
-    )
-      return errorResponse(
-        res,
-        400,
-        "guest_count debe estar entre 1 y 50"
-      );
+    if (isNaN(validatedGuestCount) || validatedGuestCount < 1 || validatedGuestCount > 50) {
+      const error = new Error("El número de personas debe estar entre 1 y 50");
+      error.status = 400;
+      throw error;
+    }
 
     const zone = await getZoneById(Number(zone_id));
-
-    if (!zone)
-      return errorResponse(res, 404, `Zona con ID ${zone_id} no existe`);
+    if (!zone) {
+      const error = new Error("La zona seleccionada no está disponible");
+      error.status = 404;
+      throw error;
+    }
 
     const availableTables = await getAvailableTablesByZone(
       Number(zone_id),
       validatedGuestCount
     );
 
+    if (availableTables.length === 0) {
+      return successResponse(
+        res,
+        `Lo sentimos, no hay mesas disponibles en ${zone.name} para ${validatedGuestCount} persona${validatedGuestCount > 1 ? 's' : ''}`,
+        { tables: [], count: 0, zone_name: zone.name }
+      );
+    }
+
     return successResponse(
       res,
-      "Mesas disponibles obtenidas correctamente",
+      `Tenemos ${availableTables.length} mesa${availableTables.length > 1 ? 's' : ''} disponible${availableTables.length > 1 ? 's' : ''} en ${zone.name}`,
       {
         tables: availableTables,
         count: availableTables.length,
+        zone_name: zone.name,
       }
     );
   } catch (err) {
-    console.error("Error en getAvailableTables:", err);
     next(err);
   }
 };
 
-/**
- * VERIFICAR DISPONIBILIDAD DE MESA (público)
- */
-
+/* Verifica disponibilidad de una mesa específica */
 export const checkAvailability = async (req, res, next) => {
   try {
     const { table_id, reservation_date, reservation_time } = req.body;
+    
+    if (!table_id || !reservation_date || !reservation_time) {
+      const error = new Error("Por favor, completa todos los campos: mesa, fecha y hora");
+      error.status = 400;
+      throw error;
+    }
 
-    if (!table_id || !reservation_date || !reservation_time)
-      return errorResponse(
-        res,
-        400,
-        "table_id, reservation_date y reservation_time son requeridos"
-      );
+    const table = await getTableById(Number(table_id));
+    if (!table) {
+      const error = new Error("La mesa seleccionada no está disponible");
+      error.status = 404;
+      throw error;
+    }
 
     const availability = await checkTableAvailability(
       Number(table_id),
@@ -170,25 +175,33 @@ export const checkAvailability = async (req, res, next) => {
       reservation_time
     );
 
-    return successResponse(res, "Disponibilidad verificada correctamente", {
+    const dateObj = new Date(reservation_date);
+    const formattedDate = dateObj.toLocaleDateString('es-ES', { 
+      weekday: 'long', 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
+
+    const message = availability.available
+      ? `¡Perfecto! La mesa ${table.table_number} está disponible para el ${formattedDate} a las ${reservation_time}`
+      : `Lo sentimos, la mesa ${table.table_number} ya está reservada para esa fecha y hora. Por favor, elige otro horario.`;
+
+    return successResponse(res, message, {
       available: availability.available,
-      table: availability.table,
+      table_number: table.table_number,
+      table_capacity: table.capacity,
       conflict: availability.conflict,
     });
   } catch (err) {
-    console.error("Error en checkAvailability:", err);
     next(err);
   }
 };
 
-/**
- * CREAR RESERVA
- */
-
+/* Crea una nueva reserva */
 export const addReservation = async (req, res, next) => {
   try {
     const {
-      user_id,
       zone_id,
       table_id,
       reservation_date,
@@ -198,382 +211,532 @@ export const addReservation = async (req, res, next) => {
       special_requirements,
     } = req.body;
 
-    if (
-      !zone_id ||
-      !table_id ||
-      !reservation_date ||
-      !reservation_time ||
-      !guest_count
-    )
-      return errorResponse(res, 400, "Faltan campos obligatorios");
-
-    // Determinar el usuario que crea la reserva
-    let effectiveUserId = user_id;
-
+    // Customer crea reservas para sí mismo, admin puede crear para otros
+    let user_id;
     if (req.user.role === "customer") {
-      effectiveUserId = req.user.id; // forzar su propio ID
+      user_id = req.user.id;
+    } else {
+      user_id = req.body.user_id || req.user.id;
     }
 
-    // Validar existencia
-    const user = await getUserById(Number(effectiveUserId));
-    if (!user)
-      return errorResponse(res, 404, `Usuario con ID ${effectiveUserId} no existe`);
+    // Validación de campos requeridos
+    const missingFields = [];
+    if (!zone_id) missingFields.push("zona");
+    if (!table_id) missingFields.push("mesa");
+    if (!reservation_date) missingFields.push("fecha");
+    if (!reservation_time) missingFields.push("hora");
+    if (!guest_count) missingFields.push("número de personas");
+
+    if (missingFields.length > 0) {
+      const error = new Error(`Por favor, completa los siguientes campos: ${missingFields.join(", ")}`);
+      error.status = 400;
+      throw error;
+    }
+
+    const user = await getUserById(Number(user_id));
+    if (!user) {
+      const error = new Error("Tu cuenta no está registrada. Por favor, inicia sesión nuevamente.");
+      error.status = 404;
+      throw error;
+    }
 
     const zone = await getZoneById(Number(zone_id));
-    if (!zone)
-      return errorResponse(res, 404, `Zona con ID ${zone_id} no existe`);
+    if (!zone) {
+      const error = new Error("La zona seleccionada no está disponible");
+      error.status = 404;
+      throw error;
+    }
 
     const table = await getTableById(Number(table_id));
-    if (!table)
-      return errorResponse(res, 404, `Mesa con ID ${table_id} no existe`);
+    if (!table) {
+      const error = new Error("La mesa seleccionada no está disponible");
+      error.status = 404;
+      throw error;
+    }
 
-    if (guest_count > table.capacity)
-      return errorResponse(
-        res,
-        400,
-        `La mesa ${table.table_number} tiene capacidad de ${table.capacity} personas`
+    if (guest_count > table.capacity) {
+      const error = new Error(
+        `Lo sentimos, la mesa ${table.table_number} tiene capacidad para ${table.capacity} persona${table.capacity > 1 ? 's' : ''}, pero seleccionaste ${guest_count} persona${guest_count > 1 ? 's' : ''}. Por favor, elige una mesa más grande.`
       );
+      error.status = 400;
+      throw error;
+    }
+
+    const availability = await checkTableAvailability(
+      Number(table_id),
+      reservation_date,
+      reservation_time
+    );
+
+    if (!availability.available) {
+      const dateObj = new Date(reservation_date);
+      const formattedDate = dateObj.toLocaleDateString('es-ES', { 
+        weekday: 'long', 
+        day: 'numeric', 
+        month: 'long' 
+      });
+
+      const error = new Error(
+        `Lo sentimos, la mesa ${table.table_number} ya está reservada para el ${formattedDate} a las ${reservation_time}. Por favor, elige otro horario o mesa.`
+      );
+      error.status = 409;
+      throw error;
+    }
 
     const reservation_data = {
-      user_id: Number(effectiveUserId),
+      user_id: Number(user_id),
       zone_id: Number(zone_id),
       table_id: Number(table_id),
       reservation_date,
       reservation_time,
       guest_count: Number(guest_count),
-      special_requirements,
-      status:
-        req.user.role === "customer" ? "pending" : status || "confirmed",
+      ...(status && req.user.role === "admin" && { status }),
+      ...(special_requirements && { special_requirements }),
     };
 
     const reservation = await createReservation(reservation_data);
-
-    logAudit("CREATE", req.user.id, reservation.id, {
-      user_id: effectiveUserId,
-      zone_id,
-      table_id,
-      guest_count,
+    
+    const dateObj = new Date(reservation_date);
+    const formattedDate = dateObj.toLocaleDateString('es-ES', { 
+      weekday: 'long', 
+      day: 'numeric', 
+      month: 'long' 
     });
 
-    return successResponse(res, "Reserva creada correctamente", { reservation }, 201);
+    return successResponse(
+      res,
+      `¡Reserva confirmada! Mesa ${table.table_number} en ${zone.name} para el ${formattedDate} a las ${reservation_time}`,
+      { 
+        reservation,
+        details: {
+          table_number: table.table_number,
+          zone_name: zone.name,
+          date: formattedDate,
+          time: reservation_time,
+          guests: guest_count
+        }
+      },
+      201
+    );
   } catch (err) {
-    console.error("Error en addReservation:", err);
     next(err);
   }
 };
 
-/**
- * EDITAR RESERVA
- */
-
+/* Actualiza una reserva */
 export const editReservation = async (req, res, next) => {
   try {
     const reservation_id = Number(req.params.reservation_id);
-
-    if (isNaN(reservation_id) || reservation_id <= 0)
-      return errorResponse(res, 400, "ID de reserva inválido");
+    
+    if (isNaN(reservation_id) || reservation_id <= 0) {
+      const error = new Error("No se pudo encontrar la reserva que deseas modificar");
+      error.status = 400;
+      throw error;
+    }
 
     const existing = await getReservationById(reservation_id);
-
-    if (!existing) return errorResponse(res, 404, "Reserva no encontrada");
-
-    // ✅ NUEVO: Validar propiedad para clientes
-    if (
-      req.user.role === "customer" &&
-      existing.user_id !== req.user.id
-    ) {
-      logAudit("UNAUTHORIZED_EDIT", req.user.id, reservation_id);
-      return errorResponse(
-        res,
-        403,
-        "No tienes permiso para modificar esta reserva"
-      );
+    if (!existing) {
+      const error = new Error("No encontramos tu reserva. Por favor, verifica tus datos.");
+      error.status = 404;
+      throw error;
     }
 
-    // Validaciones
+    // Customer solo puede editar sus propias reservas
+    if (req.user.role === "customer" && existing.user_id !== req.user.id) {
+      const error = new Error("No tienes permiso para modificar esta reserva");
+      error.status = 403;
+      throw error;
+    }
+
+    // Validar cambio de usuario (solo admin)
+    if (req.body.user_id && req.user.role !== "admin") {
+      const error = new Error("No tienes permiso para cambiar el usuario de la reserva");
+      error.status = 403;
+      throw error;
+    }
+
+    if (req.body.user_id && req.body.user_id !== existing.user_id) {
+      const user = await getUserById(Number(req.body.user_id));
+      if (!user) {
+        const error = new Error("El usuario especificado no está registrado");
+        error.status = 404;
+        throw error;
+      }
+    }
+
+    let newZone = null;
+    if (req.body.zone_id && req.body.zone_id !== existing.zone_id) {
+      newZone = await getZoneById(Number(req.body.zone_id));
+      if (!newZone) {
+        const error = new Error("La zona seleccionada no está disponible");
+        error.status = 404;
+        throw error;
+      }
+    }
+
     let tableToValidate = null;
-
+    let newTable = null;
     if (req.body.table_id && req.body.table_id !== existing.table_id) {
-      const table = await getTableById(Number(req.body.table_id));
-      if (!table)
-        return errorResponse(
-          res,
-          404,
-          `Mesa con ID ${req.body.table_id} no existe`
-        );
+      newTable = await getTableById(Number(req.body.table_id));
+      if (!newTable) {
+        const error = new Error("La mesa seleccionada no está disponible");
+        error.status = 404;
+        throw error;
+      }
+      tableToValidate = newTable;
+    } else if (req.body.table_id === existing.table_id) {
+      const table = await getTableById(Number(existing.table_id));
       tableToValidate = table;
-    } else {
-      tableToValidate = await getTableById(Number(existing.table_id));
     }
 
-    const guestCount = req.body.guest_count || existing.guest_count;
+    if (tableToValidate) {
+      const guestCount = req.body.guest_count || existing.guest_count;
+      if (guestCount > tableToValidate.capacity) {
+        const error = new Error(
+          `Lo sentimos, la mesa ${tableToValidate.table_number} tiene capacidad para ${tableToValidate.capacity} persona${tableToValidate.capacity > 1 ? 's' : ''}, pero seleccionaste ${guestCount} persona${guestCount > 1 ? 's' : ''}. Por favor, elige una mesa más grande.`
+        );
+        error.status = 400;
+        throw error;
+      }
+    }
 
-    if (guestCount > tableToValidate.capacity)
-      return errorResponse(
-        res,
-        400,
-        `La mesa ${tableToValidate.table_number} tiene capacidad de ${tableToValidate.capacity} personas`
-      );
+    if (req.body.guest_count && !req.body.table_id) {
+      const currentTable = await getTableById(Number(existing.table_id));
+      if (req.body.guest_count > currentTable.capacity) {
+        const error = new Error(
+          `Lo sentimos, la mesa ${currentTable.table_number} tiene capacidad para ${currentTable.capacity} persona${currentTable.capacity > 1 ? 's' : ''}, pero seleccionaste ${req.body.guest_count} persona${req.body.guest_count > 1 ? 's' : ''}. Por favor, elige una mesa más grande.`
+        );
+        error.status = 400;
+        throw error;
+      }
+    }
+
+    const statusNames = {
+      pending: "pendiente",
+      confirmed: "confirmada",
+      completed: "completada",
+      cancelled: "cancelada"
+    };
+
+    if (req.body.status !== undefined) {
+      const validStatuses = ["pending", "confirmed", "completed", "cancelled"];
+      if (!validStatuses.includes(req.body.status)) {
+        const error = new Error(
+          `El estado seleccionado no es válido. Elige entre: ${Object.values(statusNames).join(", ")}`
+        );
+        error.status = 400;
+        throw error;
+      }
+    }
 
     const update_data = {
       ...(req.body.zone_id && { zone_id: req.body.zone_id }),
       ...(req.body.table_id && { table_id: req.body.table_id }),
-      ...(req.body.reservation_date && {
-        reservation_date: req.body.reservation_date,
-      }),
-      ...(req.body.reservation_time && {
-        reservation_time: req.body.reservation_time,
-      }),
+      ...(req.body.reservation_date && { reservation_date: req.body.reservation_date }),
+      ...(req.body.reservation_time && { reservation_time: req.body.reservation_time }),
       ...(req.body.guest_count && { guest_count: req.body.guest_count }),
-      ...(req.body.special_requirements && {
-        special_requirements: req.body.special_requirements,
-      }),
+      ...(req.body.special_requirements !== undefined && { special_requirements: req.body.special_requirements }),
     };
 
-    if (Object.keys(update_data).length === 0)
-      return errorResponse(
-        res,
-        400,
-        "No se proporcionaron campos para actualizar"
-      );
+    // Solo admin puede cambiar status y user_id
+    if (req.user.role === "admin") {
+      if (req.body.status !== undefined) update_data.status = req.body.status;
+      if (req.body.user_id) update_data.user_id = req.body.user_id;
+    }
+
+    if (Object.keys(update_data).length === 0) {
+      const error = new Error("No realizaste ningún cambio. Por favor, modifica al menos un campo.");
+      error.status = 400;
+      throw error;
+    }
 
     const updated = await updateReservation(reservation_id, update_data);
-
-    logAudit("UPDATE", req.user.id, reservation_id, update_data);
-
-    return successResponse(res, "Reserva actualizada correctamente", {
-      reservation: updated,
-    });
+    
+    // ACTUALIZAR ESTADO DE MESA SI SE CAMBIÓ EL STATUS
+    if (req.body.status && req.body.status !== existing.status) {
+      if (req.body.status === "confirmed") {
+        await updateTableStatus(updated.table_id, "reserved");
+      } else if (req.body.status === "completed" || req.body.status === "cancelled") {
+        await updateTableStatus(updated.table_id, "available");
+      }
+    }
+    
+    let message = "¡Reserva actualizada correctamente!";
+    if (newTable && newZone) {
+      message = `Tu reserva fue actualizada: Mesa ${newTable.table_number} en ${newZone.name}`;
+    } else if (newTable) {
+      message = `Tu reserva fue actualizada: Mesa ${newTable.table_number}`;
+    } else if (newZone) {
+      message = `Tu reserva fue actualizada: ${newZone.name}`;
+    }
+    
+    return successResponse(
+      res,
+      message,
+      { reservation: updated }
+    );
   } catch (err) {
-    console.error("Error en editReservation:", err);
     next(err);
   }
 };
 
-/**
- * ACTUALIZAR ESTADO (solo admin)
- */
-
+/* Actualiza el estado de una reserva */
 export const updateStatus = async (req, res, next) => {
   try {
     const reservation_id = Number(req.params.reservation_id);
     const { status } = req.body;
 
-    if (isNaN(reservation_id) || reservation_id <= 0)
-      return errorResponse(res, 400, "ID de reserva inválido");
+    if (isNaN(reservation_id) || reservation_id <= 0) {
+      const error = new Error("No se pudo encontrar la reserva que deseas modificar");
+      error.status = 400;
+      throw error;
+    }
 
-    if (!status) return errorResponse(res, 400, "status es requerido");
+    if (!status) {
+      const error = new Error("Por favor, selecciona un estado para la reserva");
+      error.status = 400;
+      throw error;
+    }
+
+    const statusNames = {
+      pending: "pendiente",
+      confirmed: "confirmada",
+      completed: "completada",
+      cancelled: "cancelada"
+    };
 
     const validStatuses = ["pending", "confirmed", "completed", "cancelled"];
-
-    if (!validStatuses.includes(status))
-      return errorResponse(res, 400, `Estado inválido: ${status}`);
+    if (!validStatuses.includes(status)) {
+      const error = new Error(
+        `El estado seleccionado no es válido. Elige entre: ${Object.values(statusNames).join(", ")}`
+      );
+      error.status = 400;
+      throw error;
+    }
 
     const existing = await getReservationById(reservation_id);
+    if (!existing) {
+      const error = new Error("No encontramos tu reserva. Por favor, verifica tus datos.");
+      error.status = 404;
+      throw error;
+    }
 
-    if (!existing) return errorResponse(res, 404, "Reserva no encontrada");
+    if (existing.status === status) {
+      const error = new Error(`Tu reserva ya está ${statusNames[status]}. No se realizaron cambios.`);
+      error.status = 400;
+      throw error;
+    }
 
     const updated = await updateReservationStatus(reservation_id, status);
-
-    logAudit("STATUS_CHANGE", req.user.id, reservation_id, {
-      old_status: existing.status,
-      new_status: status,
-    });
-
+    
+    // ACTUALIZAR ESTADO DE LA MESA SEGÚN EL ESTADO DE LA RESERVA
+    if (status === "confirmed") {
+      await updateTableStatus(existing.table_id, "reserved");
+    } else if (status === "completed" || status === "cancelled") {
+      await updateTableStatus(existing.table_id, "available");
+    }
+    
     return successResponse(
       res,
-      `Estado de reserva actualizado a ${status}`,
-      { reservation: updated }
+      `Estado de tu reserva actualizado a "${statusNames[status]}"`,
+      { 
+        reservation: updated,
+        table_status: status === "confirmed" ? "reserved" : 
+                     (status === "completed" || status === "cancelled" ? "available" : "unchanged")
+      }
     );
   } catch (err) {
-    console.error("Error en updateStatus:", err);
     next(err);
   }
 };
 
-/**
- * CANCELAR RESERVA
- */
-
+/* Cancela una reserva */
 export const cancelReservationHandler = async (req, res, next) => {
   try {
     const reservation_id = Number(req.params.reservation_id);
-
-    if (isNaN(reservation_id) || reservation_id <= 0)
-      return errorResponse(res, 400, "ID de reserva inválido");
-
-    const existing = await getReservationById(reservation_id);
-
-    if (!existing) return errorResponse(res, 404, "Reserva no encontrada");
-
-    // Validar permisos
-    if (
-      req.user.role === "customer" &&
-      existing.user_id !== req.user.id
-    ) {
-      logAudit("UNAUTHORIZED_CANCEL", req.user.id, reservation_id);
-      return errorResponse(
-        res,
-        403,
-        "No tienes permiso para cancelar esta reserva"
-      );
+    
+    if (isNaN(reservation_id) || reservation_id <= 0) {
+      const error = new Error("No se pudo encontrar la reserva que deseas cancelar");
+      error.status = 400;
+      throw error;
     }
 
-    if (existing.status === "completed")
-      return errorResponse(
-        res,
-        400,
-        "No se puede cancelar una reserva completada"
-      );
+    const existing = await getReservationById(reservation_id);
+    if (!existing) {
+      const error = new Error("No encontramos tu reserva. Por favor, verifica tus datos.");
+      error.status = 404;
+      throw error;
+    }
+
+    // Customer solo puede cancelar sus propias reservas
+    if (req.user.role === "customer" && existing.user_id !== req.user.id) {
+      const error = new Error("No tienes permiso para cancelar esta reserva");
+      error.status = 403;
+      throw error;
+    }
+
+    if (existing.status === "cancelled") {
+      const error = new Error("Esta reserva ya fue cancelada anteriormente");
+      error.status = 400;
+      throw error;
+    }
+
+    if (existing.status === "completed") {
+      const error = new Error("No puedes cancelar una reserva que ya fue completada");
+      error.status = 400;
+      throw error;
+    }
 
     const cancelled = await cancelReservation(reservation_id);
-
-    logAudit("CANCEL", req.user.id, reservation_id, {
-      previous_status: existing.status,
-    });
-
-    return successResponse(res, "Reserva cancelada correctamente", {
-      reservation: cancelled,
-    });
+    
+    // LIBERAR LA MESA
+    await updateTableStatus(existing.table_id, "available");
+    
+    return successResponse(
+      res,
+      "Tu reserva ha sido cancelada correctamente y la mesa está disponible nuevamente",
+      { 
+        reservation: cancelled,
+        table_status: "available"
+      }
+    );
   } catch (err) {
-    console.error("Error en cancelReservationHandler:", err);
     next(err);
   }
 };
 
-/**
- * ELIMINAR RESERVA (solo admin)
- */
-
+/* Elimina una reserva */
 export const removeReservation = async (req, res, next) => {
   try {
     const reservation_id = Number(req.params.reservation_id);
-
-    if (isNaN(reservation_id) || reservation_id <= 0)
-      return errorResponse(res, 400, "ID de reserva inválido");
+    
+    if (isNaN(reservation_id) || reservation_id <= 0) {
+      const error = new Error("No se pudo encontrar la reserva que deseas eliminar");
+      error.status = 400;
+      throw error;
+    }
 
     const reservation = await getReservationById(reservation_id);
+    if (!reservation) {
+      const error = new Error("No encontramos tu reserva. Por favor, verifica tus datos.");
+      error.status = 404;
+      throw error;
+    }
 
-    if (!reservation)
-      return errorResponse(res, 404, "Reserva no encontrada");
+    // SI LA RESERVA ESTABA CONFIRMADA, LIBERAR LA MESA
+    if (reservation.status === "confirmed") {
+      await updateTableStatus(reservation.table_id, "available");
+    }
 
-    const result = await deleteReservation(reservation_id);
-
-    logAudit("DELETE", req.user.id, reservation_id, {
-      user_id: reservation.user_id,
-      status: reservation.status,
-    });
-
-    return successResponse(res, result.message);
+    await deleteReservation(reservation_id);
+    
+    return successResponse(
+      res,
+      "Tu reserva ha sido eliminada permanentemente"
+    );
   } catch (err) {
-    console.error("Error en removeReservation:", err);
     next(err);
   }
 };
 
-/**
- * ESTADÍSTICAS (solo admin)
- */
-
+/* Obtiene estadísticas generales de reservas */
 export const reservationStats = async (req, res, next) => {
   try {
     const filters = {};
-
-    if (req.query.zone_id) filters.zone_id = Number(req.query.zone_id);
-    if (req.query.reservation_date)
+    if (req.query.zone_id) {
+      filters.zone_id = Number(req.query.zone_id);
+    }
+    if (req.query.reservation_date) {
       filters.reservation_date = req.query.reservation_date;
+    }
 
     const stats = await getReservationStatistics(filters);
-
-    if (!stats || Object.keys(stats).length === 0)
-      return errorResponse(res, 404, "No se pudo obtener estadísticas");
+    
+    if (!stats || Object.keys(stats).length === 0) {
+      const error = new Error("No hay datos disponibles para mostrar estadísticas");
+      error.status = 404;
+      throw error;
+    }
 
     return successResponse(
       res,
-      "Estadísticas de reservas obtenidas correctamente",
+      "Estadísticas generadas correctamente",
       { statistics: stats }
     );
   } catch (err) {
-    console.error("Error en reservationStats:", err);
     next(err);
   }
 };
 
+/* Obtiene estadísticas de reservas por fecha */
 export const reservationStatsByDate = async (req, res, next) => {
   try {
     const filters = {};
-
-    if (req.query.zone_id) filters.zone_id = Number(req.query.zone_id);
+    if (req.query.zone_id) {
+      filters.zone_id = Number(req.query.zone_id);
+    }
 
     const stats = await getReservationStatisticsByDate(filters);
-
-    if (!stats || stats.length === 0)
-      return errorResponse(
-        res,
-        404,
-        "No hay datos de estadísticas por fecha"
-      );
+    
+    if (!stats || stats.length === 0) {
+      const error = new Error("No hay datos disponibles para mostrar estadísticas por fecha");
+      error.status = 404;
+      throw error;
+    }
 
     return successResponse(
       res,
-      "Estadísticas por fecha obtenidas correctamente",
-      {
-        statistics: stats,
-        count: stats.length,
-      }
+      `Estadísticas generadas: ${stats.length} período${stats.length > 1 ? 's' : ''}`,
+      { statistics: stats, count: stats.length }
     );
   } catch (err) {
-    console.error("Error en reservationStatsByDate:", err);
     next(err);
   }
 };
 
+/* Obtiene estadísticas de reservas por zona */
 export const reservationStatsByZone = async (req, res, next) => {
   try {
     const stats = await getReservationStatisticsByZone();
-
-    if (!stats || stats.length === 0)
-      return errorResponse(res, 404, "No hay datos de estadísticas por zona");
+    
+    if (!stats || stats.length === 0) {
+      const error = new Error("No hay datos disponibles para mostrar estadísticas por zona");
+      error.status = 404;
+      throw error;
+    }
 
     return successResponse(
       res,
-      "Estadísticas por zona obtenidas correctamente",
-      {
-        statistics: stats,
-        count: stats.length,
-      }
+      `Estadísticas generadas: ${stats.length} zona${stats.length > 1 ? 's' : ''}`,
+      { statistics: stats, count: stats.length }
     );
   } catch (err) {
-    console.error("Error en reservationStatsByZone:", err);
     next(err);
   }
 };
 
+/* Obtiene estadísticas de reservas por estado */
 export const reservationStatsByStatus = async (req, res, next) => {
   try {
     const filters = {};
-
-    if (req.query.zone_id) filters.zone_id = Number(req.query.zone_id);
+    if (req.query.zone_id) {
+      filters.zone_id = Number(req.query.zone_id);
+    }
 
     const stats = await getReservationStatisticsByStatus(filters);
-
-    if (!stats || stats.length === 0)
-      return errorResponse(
-        res,
-        404,
-        "No hay datos de estadísticas por estado"
-      );
+    
+    if (!stats || stats.length === 0) {
+      const error = new Error("No hay datos disponibles para mostrar estadísticas por estado");
+      error.status = 404;
+      throw error;
+    }
 
     return successResponse(
       res,
-      "Estadísticas por estado obtenidas correctamente",
-      {
-        statistics: stats,
-        count: stats.length,
-      }
+      `Estadísticas generadas: ${stats.length} estado${stats.length > 1 ? 's' : ''}`,
+      { statistics: stats, count: stats.length }
     );
   } catch (err) {
-    console.error("Error en reservationStatsByStatus:", err);
     next(err);
   }
 };

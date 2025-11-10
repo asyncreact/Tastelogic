@@ -94,8 +94,7 @@ export const itemSchema = z.object({
     .optional()
     .nullable()
     .refine(
-      (url) =>
-        !url || url === "" || /^https?:\/\/[^\s]+$/i.test(url),
+      (url) => !url || url === "" || /^https?:\/\/[^\s]+$/i.test(url),
       "Debe ser una URL válida o dejarse vacío"
     ),
   estimated_prep_time: z.preprocess(
@@ -151,10 +150,14 @@ export const validateCategoryMiddleware = (req, res, next) => {
   }
 };
 
-/* Middleware para validar item (completa o parcial según HTTP method) */
+/* ✅ Middleware mejorado para validar item */
 export const validateItemMiddleware = (req, res, next) => {
   try {
-    const isPartial = req.method === "PATCH";
+    // ✅ PATCH y PUT con form-data se tratan como parciales
+    // PUT con JSON sigue siendo completo
+    const isPartial = req.method === "PATCH" || 
+                     (req.method === "PUT" && req.is("multipart/form-data"));
+    
     req.body = validateItem(req.body, isPartial);
     next();
   } catch (error) {

@@ -28,10 +28,17 @@ import {
 
 const router = express.Router();
 
-// Rutas públicas sin autenticación
-router.get("/public/available-tables", getAvailableTables);
+/* RUTAS PÚBLICAS */
 
-// Rutas de estadísticas (solo admin)
+router.get("/public/available-tables", getAvailableTables);
+router.post(
+  "/check-availability",
+  validateCheckAvailabilityMiddleware,
+  checkAvailability
+);
+
+/* ESTADÍSTICAS - SOLO ADMIN */
+
 router.get(
   "/statistics/general",
   authenticate,
@@ -60,14 +67,8 @@ router.get(
   reservationStatsByStatus
 );
 
-// Ruta para verificar disponibilidad (público)
-router.post(
-  "/check-availability",
-  validateCheckAvailabilityMiddleware,
-  checkAvailability
-);
+/* CRUD DE RESERVAS */
 
-// Obtener todas las reservas (filtrado por rol)
 router.get(
   "/",
   authenticate,
@@ -76,7 +77,6 @@ router.get(
   listReservations
 );
 
-// Crear nueva reserva (cliente o admin)
 router.post(
   "/",
   authenticate,
@@ -85,7 +85,6 @@ router.post(
   addReservation
 );
 
-// Obtener una reserva específica (propietario o admin)
 router.get(
   "/:reservation_id",
   authenticate,
@@ -93,7 +92,6 @@ router.get(
   showReservation
 );
 
-// Actualizar reserva (propietario o admin)
 router.put(
   "/:reservation_id",
   authenticate,
@@ -110,7 +108,8 @@ router.patch(
   editReservation
 );
 
-// Cambiar estado (solo admin)
+/* ACCIONES ESPECIALES */
+
 router.patch(
   "/:reservation_id/status",
   authenticate,
@@ -119,7 +118,6 @@ router.patch(
   updateStatus
 );
 
-// Cancelar reserva (propietario o admin)
 router.patch(
   "/:reservation_id/cancel",
   authenticate,
@@ -127,7 +125,6 @@ router.patch(
   cancelReservationHandler
 );
 
-// Eliminar reserva (solo admin)
 router.delete(
   "/:reservation_id",
   authenticate,

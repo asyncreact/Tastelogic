@@ -9,7 +9,7 @@ import {
 } from "../repositories/zone.repository.js";
 
 import { deleteImage } from "../config/multer.js";
-import { successResponse, errorResponse } from "../utils/response.js";
+import { successResponse } from "../utils/response.js";
 
 /* ZONAS */
 
@@ -25,7 +25,6 @@ export const listZone = async (req, res, next) => {
     const zones = await getZones(filters);
     return successResponse(res, "Zonas obtenidas correctamente", { zones });
   } catch (err) {
-    console.error("Error en listZone:", err);
     next(err);
   }
 };
@@ -34,18 +33,23 @@ export const listZone = async (req, res, next) => {
 export const showZone = async (req, res, next) => {
   try {
     const zone_id = Number(req.params.zone_id);
+    
     if (isNaN(zone_id) || zone_id <= 0) {
-      return errorResponse(res, 400, "ID de zona inválido");
+      const error = new Error("El ID de la zona debe ser un número válido");
+      error.status = 400;
+      throw error;
     }
 
     const zone = await getZoneById(zone_id);
+    
     if (!zone) {
-      return errorResponse(res, 404, "Zona no encontrada");
+      const error = new Error("No encontramos la zona que buscas");
+      error.status = 404;
+      throw error;
     }
 
     return successResponse(res, "Zona obtenida correctamente", { zone });
   } catch (err) {
-    console.error("Error en showZone:", err);
     next(err);
   }
 };
@@ -69,18 +73,10 @@ export const addZone = async (req, res, next) => {
 
     return successResponse(res, "Zona creada correctamente", { zone: new_zone }, 201);
   } catch (err) {
+    // Limpiar imagen subida si hay error
     if (req.file) {
       deleteImage(`uploads/zones/${req.file.filename}`);
     }
-
-    if (err.message.includes("ya existe")) {
-      return errorResponse(res, 409, err.message);
-    }
-    if (err.message.includes("requerido") || err.message.includes("válido")) {
-      return errorResponse(res, 400, err.message);
-    }
-
-    console.error("Error en addZone:", err);
     next(err);
   }
 };
@@ -89,19 +85,26 @@ export const addZone = async (req, res, next) => {
 export const editZone = async (req, res, next) => {
   try {
     const zone_id = Number(req.params.zone_id);
+    
     if (isNaN(zone_id) || zone_id <= 0) {
-      return errorResponse(res, 400, "ID de zona inválido");
+      const error = new Error("El ID de la zona debe ser un número válido");
+      error.status = 400;
+      throw error;
     }
 
     const existing = await getZoneById(zone_id);
+    
     if (!existing) {
-      return errorResponse(res, 404, "Zona no encontrada");
+      const error = new Error("No encontramos la zona que deseas actualizar");
+      error.status = 404;
+      throw error;
     }
 
     let image_url = existing.image_url;
 
     if (req.file) {
       image_url = `/uploads/zones/${req.file.filename}`;
+      // Eliminar imagen anterior si existe
       if (existing.image_url) {
         deleteImage(existing.image_url);
       }
@@ -115,33 +118,31 @@ export const editZone = async (req, res, next) => {
     };
 
     if (Object.keys(update_data).length === 0) {
-      return errorResponse(res, 400, "No se proporcionaron campos para actualizar");
+      const error = new Error("Debes proporcionar al menos un campo para actualizar");
+      error.status = 400;
+      throw error;
     }
 
     const updated = await updateZone(zone_id, update_data);
+    
     if (!updated) {
+      // Limpiar nueva imagen si la actualización falló
       if (req.file) {
         deleteImage(image_url);
       }
-      return errorResponse(res, 404, "Zona no encontrada");
+      const error = new Error("No se pudo actualizar la zona");
+      error.status = 404;
+      throw error;
     }
 
     return successResponse(res, "Zona actualizada correctamente", {
       zone: updated,
     });
   } catch (err) {
-    if (req.file) {
+    // Limpiar imagen subida si hay error
+    if (req.file && err.status !== 404) {
       deleteImage(`uploads/zones/${req.file.filename}`);
     }
-
-    if (err.message.includes("ya existe")) {
-      return errorResponse(res, 409, err.message);
-    }
-    if (err.message.includes("requerido") || err.message.includes("válido")) {
-      return errorResponse(res, 400, err.message);
-    }
-
-    console.error("Error en editZone:", err);
     next(err);
   }
 };
@@ -150,15 +151,22 @@ export const editZone = async (req, res, next) => {
 export const removeZone = async (req, res, next) => {
   try {
     const zone_id = Number(req.params.zone_id);
+    
     if (isNaN(zone_id) || zone_id <= 0) {
-      return errorResponse(res, 400, "ID de zona inválido");
+      const error = new Error("El ID de la zona debe ser un número válido");
+      error.status = 400;
+      throw error;
     }
 
     const zone = await getZoneById(zone_id);
+    
     if (!zone) {
-      return errorResponse(res, 404, "Zona no encontrada");
+      const error = new Error("No encontramos la zona que deseas eliminar");
+      error.status = 404;
+      throw error;
     }
 
+    // Eliminar imagen asociada si existe
     if (zone.image_url) {
       deleteImage(zone.image_url);
     }
@@ -166,7 +174,6 @@ export const removeZone = async (req, res, next) => {
     const result = await deleteZone(zone_id);
     return successResponse(res, result.message);
   } catch (err) {
-    console.error("Error en removeZone:", err);
     next(err);
   }
 };
