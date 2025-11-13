@@ -387,6 +387,33 @@ export const checkTableAvailability = async (
   }
 };
 
+export const getActiveReservationByUserId = async (user_id) => {
+  const query = `
+    SELECT 
+      r.id,
+      r.user_id,
+      r.zone_id,
+      r.table_id,
+      r.reservation_date,
+      r.reservation_time,
+      r.guest_count,  -- ⭐ CORREGIDO: era "number_of_guests"
+      r.status,
+      t.table_number,
+      z.name AS zone_name
+    FROM reservations r
+    LEFT JOIN tables t ON r.table_id = t.id
+    LEFT JOIN zones z ON r.zone_id = z.id
+    WHERE r.user_id = $1
+      AND r.status IN ('confirmed', 'seated')
+      AND r.reservation_date = CURRENT_DATE
+    ORDER BY r.reservation_time ASC
+    LIMIT 1
+  `;
+
+  const result = await pool.query(query, [user_id]);
+  return result.rows[0] || null;
+};
+
 /**
  * OBTENER MESAS DISPONIBLES POR ZONA
  */

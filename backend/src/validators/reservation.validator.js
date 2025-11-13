@@ -18,7 +18,7 @@ export const reservationCreateSchema = z.object({
         })
         .int("El ID de usuario debe ser un número entero")
         .positive("El ID de usuario debe ser positivo")
-        .optional() // ✅ CAMBIO: ahora es opcional
+        .optional()
     ),
   zone_id: z.preprocess(
     (val) => {
@@ -65,7 +65,8 @@ export const reservationCreateSchema = z.object({
     )
     .refine(
       (val) => {
-        const reservationDate = new Date(val);
+        // ✅ FIX: Normalizar ambas fechas a medianoche para permitir HOY
+        const reservationDate = new Date(val + 'T00:00:00');
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         return reservationDate >= today;
@@ -299,7 +300,7 @@ export const validateCheckAvailabilityMiddleware = (req, res, next) => {
 // Middleware para validar filtros de reservas
 export const validateReservationFilters = (req, res, next) => {
   try {
-    validateFilters(req.query); // ✅ SOLO VALIDA - Sin asignación
+    validateFilters(req.query);
     next();
   } catch (error) {
     next(error);
