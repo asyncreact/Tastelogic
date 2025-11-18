@@ -1,12 +1,3 @@
-# Dependencias
-node_modules/
-**/node_modules
-
-# Build / Dist
-dist/
-dist-ssr/
-build/
-
 # Logs
 logs
 *.log
@@ -16,33 +7,18 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-# Cache
-.cache/
+node_modules
+dist
+dist-ssr
 *.local
 
-# Archivos del sistema operativo
-.DS_Store
-Thumbs.db
-
-# IDEs y editores
+# Editor directories and files
 .vscode/*
 !.vscode/extensions.json
-.idea/
+.idea
+.DS_Store
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
-
-# Variables de entorno
-.env
-.env.local
-.env.*.local
-
-# Cobertura de tests
-coverage/
-*.lcov
-
-# Archivos temporales
-*.tmp
-*.temp

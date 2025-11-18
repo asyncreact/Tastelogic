@@ -1,20 +1,17 @@
 // main.jsx
-import React from "react";
-import ReactDOM from "react-dom/client";
-import AppRouter from "./routes/AppRouter";
-import { AuthProvider } from "./context/AuthContext";
+import { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
+import { BrowserRouter } from 'react-router-dom';
+import 'bootstrap/dist/css/bootstrap.min.css';
+import { AuthProvider } from './context/AuthContext.jsx';
+import App from './App.jsx';
 
-// ✅ IMPORTAR BOOTSTRAP CSS (primero)
-
-
-// ✅ IMPORTAR BOOTSTRAP JS (para componentes interactivos)
-
-// ✅ TUS ESTILOS PERSONALIZADOS (después de Bootstrap)
-import "./styles/global.css";
-
-// ✅ Versión sin StrictMode (recomendada para desarrollo local)
-ReactDOM.createRoot(document.getElementById("root")).render(
-  <AuthProvider>
-    <AppRouter />
-  </AuthProvider>
+createRoot(document.getElementById('root')).render(
+  <StrictMode>
+    <BrowserRouter>
+      <AuthProvider>
+        <App />
+      </AuthProvider>
+    </BrowserRouter>
+  </StrictMode>
 );

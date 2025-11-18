@@ -156,14 +156,14 @@ export const createUser = async ({
 
 /* VERIFICACIÓN DE CUENTA */
 
-// Verifica la cuenta de un usuario usando su token
+// ✅ Verifica la cuenta de un usuario usando su token (IDEMPOTENTE)
 export const verifyUserAccount = async (token) => {
   try {
     if (!token || typeof token !== "string") {
       throw new Error("Token inválido");
     }
 
-    // Limpiar tokens expirados
+    // Limpiar tokens expirados de verificación
     await pool.query(`
       UPDATE users
       SET verification_token = NULL,
@@ -171,18 +171,51 @@ export const verifyUserAccount = async (token) => {
       WHERE verification_expires_at < NOW();
     `);
 
-    const query = `
+    // ✅ PASO 1: Buscar el usuario por token de verificación
+    const searchQuery = `
+      SELECT id, name, email, role, is_verified, verification_token, verification_expires_at
+      FROM users
+      WHERE verification_token = $1;
+    `;
+    
+    const searchResult = await pool.query(searchQuery, [token]);
+
+    // Si no existe el usuario con ese token, retornar null
+    if (searchResult.rows.length === 0) {
+      return null;
+    }
+
+    const user = searchResult.rows[0];
+
+    // ✅ PASO 2: Si ya está verificado, retornar éxito (IDEMPOTENTE)
+    if (user.is_verified) {
+      return {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        is_verified: true,
+      };
+    }
+
+    // ✅ PASO 3: Verificar que el token no haya expirado
+    if (user.verification_expires_at && new Date(user.verification_expires_at) < new Date()) {
+      return null; // Token expirado
+    }
+
+    // ✅ PASO 4: Verificar por primera vez
+    const updateQuery = `
       UPDATE users
       SET is_verified = TRUE,
-      verification_token = NULL,
-      verification_expires_at = NULL
-      WHERE verification_token = $1
-      AND verification_expires_at > NOW()
+          verification_token = NULL,
+          verification_expires_at = NULL,
+          updated_at = NOW()
+      WHERE id = $1
       RETURNING id, name, email, role, is_verified;
     `;
     
-    const result = await pool.query(query, [token]);
-    return result.rows[0] || null;
+    const updateResult = await pool.query(updateQuery, [user.id]);
+    return updateResult.rows[0];
   } catch (error) {
     console.error("Error al verificar cuenta:", error);
     throw error;

@@ -2,11 +2,12 @@
 
 import axios from "axios";
 
-const API_URL = import.meta.env.VITE_API_URL;
+// ✅ Remover la barra final si existe
+const API_URL = (import.meta.env.VITE_API_URL || "http://localhost:4000").replace(/\/$/, "");
 
 // ✅ Crear instancia con configuración
 const api = axios.create({
-  baseURL: API_URL,
+  baseURL: `${API_URL}/api`,  // Ahora no habrá doble barra
 });
 
 // ✅ Interceptor para agregar token automáticamente
@@ -22,7 +23,7 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    if (error.response?.status === 401 && !error.config?.silentAuth) {
       // Token expirado o inválido
       localStorage.removeItem("token");
       localStorage.removeItem("user");
@@ -51,8 +52,8 @@ export const forgotPassword = (data) =>
 export const resetPassword = (token, data) =>
   api.post(`/auth/reset-password/${token}`, data);
 
-export const getProfile = () => 
-  api.get("/auth/me");
+export const getProfile = (silentAuth = false) => 
+  api.get("/auth/me", { silentAuth });
 
 export const logoutUser = () => 
   api.post("/auth/logout");

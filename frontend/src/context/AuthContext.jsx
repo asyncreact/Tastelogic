@@ -1,67 +1,146 @@
 // context/AuthContext.jsx
 import { createContext, useState, useEffect } from "react";
-import { jwtDecode } from "jwt-decode";
-import { getProfile } from "../api/auth";
+import {
+  loginUser,
+  registerUser,
+  logoutUser,
+  getProfile,
+} from "../api/auth";
 
-export const AuthContext = createContext();
+export const AuthContext = createContext(null);
 
-export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
+export const AuthProvider = ({ children }) => {
+  // ✅ Inicializar desde localStorage
+  const [user, setUser] = useState(() => {
+    const savedUser = localStorage.getItem("user");
+    return savedUser ? JSON.parse(savedUser) : null;
+  });
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // 🔹 Cargar el usuario desde el token almacenado
-  const loadUser = async () => {
-    const token = localStorage.getItem("token");
-
-    if (!token) {
-      setLoading(false);
-      return;
-    }
-
-    try {
-      // ✅ Primero intenta obtener del backend
-      const res = await getProfile();
-      setUser(res.data.user);
-    } catch (error) {
-      console.log("⚠️ Error al obtener perfil del backend, decodificando token...");
-
-      // ✅ Si falla, decodifica el JWT localmente
-      try {
-        const decoded = jwtDecode(token);
-        const userData = {
-          id: decoded.id,
-          email: decoded.email,
-          role: decoded.role,
-          name: decoded.name,
-        };
-        setUser(userData);
-      } catch (decodeError) {
-        console.error("❌ Token inválido");
-        localStorage.removeItem("token");
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // ✅ Verificar sesión al cargar (si hay token en localStorage)
   useEffect(() => {
-    loadUser();
+    const checkAuth = async () => {
+      const token = localStorage.getItem("token");
+
+      if (!token) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const response = await getProfile(true);
+        const userData = response.data?.user || response.user || response.data;
+        setUser(userData);
+        localStorage.setItem("user", JSON.stringify(userData));
+      } catch (err) {
+        // Token inválido o expirado
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        setUser(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkAuth();
   }, []);
 
-  // ✅ Actualizar usuario tras login
-  const login = (userData) => {
-    setUser(userData);
+  // ✅ Registro
+  const register = async (data) => {
+    try {
+      setError(null);
+      const response = await registerUser(data);
+      return { success: true, data: response.data };
+    } catch (err) {
+      const message = err.response?.data?.message || err.message || "Error al registrar";
+      setError(message);
+      throw new Error(message);
+    }
   };
 
-  // 🔹 Cerrar sesión
-  const logout = () => {
-    localStorage.removeItem("token");
-    setUser(null);
+  // ✅ Login
+  const login = async (credentials) => {
+    try {
+      setError(null);
+      const response = await loginUser(credentials);
+      
+      // Extraer token y user de la respuesta
+      const token = response.data?.token || response.data?.data?.token;
+      const userData = response.data?.user || response.data?.data?.user;
+
+      if (!token || !userData) {
+        throw new Error("Respuesta del servidor inválida");
+      }
+
+      // ✅ Guardar en localStorage
+      localStorage.setItem("token", token);
+      localStorage.setItem("user", JSON.stringify(userData));
+      setUser(userData);
+
+      return { success: true, user: userData };
+    } catch (err) {
+      const message = err.response?.data?.message || err.message || "Error al iniciar sesión";
+      setError(message);
+      throw new Error(message);
+    }
   };
 
-  return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
-      {children}
-    </AuthContext.Provider>
-  );
-}
+  // ✅ Logout
+  const logout = async () => {
+    try {
+      await logoutUser();
+    } catch (err) {
+      console.error("Error al cerrar sesión:", err);
+    } finally {
+      // Limpiar localStorage
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      setUser(null);
+      setError(null);
+    }
+  };
+
+  // ✅ Verificar si está autenticado
+  const isAuthenticated = () => {
+    return !!user && !!localStorage.getItem("token");
+  };
+
+  // ✅ Verificar roles (CRÍTICO - esta función faltaba)
+  const hasRole = (role) => {
+    if (!user) return false;
+    // Soporta tanto user.role como user.roles (array)
+    if (user.role === role) return true;
+    if (Array.isArray(user.roles) && user.roles.includes(role)) return true;
+    return false;
+  };
+
+  // ✅ Refrescar perfil manualmente
+  const refreshUser = async () => {
+    try {
+      const response = await getProfile();
+      const userData = response.data?.user || response.user || response.data;
+      setUser(userData);
+      localStorage.setItem("user", JSON.stringify(userData));
+    } catch (err) {
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      setUser(null);
+    }
+  };
+
+  // ✅ IMPORTANTE: Exportar hasRole en el value
+  const value = {
+    user,
+    loading,
+    error,
+    register,
+    login,
+    logout,
+    isAuthenticated,
+    hasRole,        // ✅ Asegurarse de que está aquí
+    refreshUser,
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+};

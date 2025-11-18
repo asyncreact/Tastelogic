@@ -1,9 +1,9 @@
-// src/routes/PublicRoute.jsx
+// src/routes/PrivateRoute.jsx
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 
-function PublicRoute({ children }) {
-  const { user, loading } = useAuth();
+function PrivateRoute({ children, requiredRole }) {
+  const { user, loading, hasRole } = useAuth();
   
   if (loading) {
     return (
@@ -15,14 +15,15 @@ function PublicRoute({ children }) {
     );
   }
 
-  // Si está autenticado, redirige según rol
-  if (user) {
-    return user.role === 'admin' 
-      ? <Navigate to="/admin/dashboard" replace />
-      : <Navigate to="/dashboard" replace />;
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (requiredRole && !hasRole(requiredRole)) {
+    return <Navigate to="/unauthorized" replace />;
   }
 
   return children;
 }
 
-export default PublicRoute;
+export default PrivateRoute;
