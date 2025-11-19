@@ -2,6 +2,15 @@
 import { Container, Row, Col, Card, Button, Badge } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
+import { 
+  MdRestaurantMenu, 
+  MdTableRestaurant, 
+  MdShoppingCart,
+  MdEventNote,
+  MdLogout,
+  MdVisibility,
+  MdAdminPanelSettings
+} from "react-icons/md";
 
 function AdminDashboard() {
   const { user, logout } = useAuth();
@@ -16,110 +25,82 @@ function AdminDashboard() {
     <Container className="py-5">
       <Row>
         <Col lg={10} className="mx-auto">
-          <Card className="shadow">
-            <Card.Header className="bg-danger text-white">
+          <Card className="shadow-lg border-0">
+            <Card.Header 
+              className="text-white border-0" 
+              style={{ 
+                background: 'linear-gradient(135deg, #1f2937 0%, #111827 100%)',
+                padding: '1.5rem'
+              }}
+            >
               <div className="d-flex justify-content-between align-items-center">
-                <h3 className="mb-0">🔐 Panel de Administración</h3>
-                <Badge bg="light" text="dark">Admin</Badge>
+                <div className="d-flex align-items-center">
+                  <MdAdminPanelSettings size={32} className="me-2" />
+                  <h3 className="mb-0">Panel de Administración</h3>
+                </div>
+                <Badge bg="light" text="dark" style={{ fontSize: '0.875rem' }}>
+                  Admin
+                </Badge>
               </div>
             </Card.Header>
             <Card.Body className="p-4">
               {/* Información del admin */}
               <div className="mb-4">
-                <h4>Bienvenido, {user?.name}! 👋</h4>
+                <h4>Bienvenido, {user?.name}!</h4>
                 <p className="text-muted mb-2">
                   <strong>Email:</strong> {user?.email}
                 </p>
                 <p className="text-muted mb-0">
                   <strong>Rol:</strong>{" "}
-                  <Badge bg="danger">Administrador</Badge>
+                  <Badge 
+                    style={{ 
+                      backgroundColor: '#1f2937',
+                      fontSize: '0.875rem'
+                    }}
+                  >
+                    Administrador
+                  </Badge>
                 </p>
               </div>
 
               <hr />
 
-              {/* Tarjetas de estadísticas rápidas */}
-              <Row className="mb-4">
-                <Col md={3}>
-                  <Card className="text-center border-primary">
-                    <Card.Body>
-                      <div className="display-6 text-primary mb-2">👥</div>
-                      <h3 className="mb-1">150</h3>
-                      <p className="text-muted mb-0 small">Usuarios</p>
-                    </Card.Body>
-                  </Card>
-                </Col>
-                <Col md={3}>
-                  <Card className="text-center border-success">
-                    <Card.Body>
-                      <div className="display-6 text-success mb-2">📦</div>
-                      <h3 className="mb-1">48</h3>
-                      <p className="text-muted mb-0 small">Órdenes Hoy</p>
-                    </Card.Body>
-                  </Card>
-                </Col>
-                <Col md={3}>
-                  <Card className="text-center border-warning">
-                    <Card.Body>
-                      <div className="display-6 text-warning mb-2">🍽️</div>
-                      <h3 className="mb-1">32</h3>
-                      <p className="text-muted mb-0 small">Platos Menú</p>
-                    </Card.Body>
-                  </Card>
-                </Col>
-                <Col md={3}>
-                  <Card className="text-center border-info">
-                    <Card.Body>
-                      <div className="display-6 text-info mb-2">💰</div>
-                      <h3 className="mb-1">$2,450</h3>
-                      <p className="text-muted mb-0 small">Ventas Hoy</p>
-                    </Card.Body>
-                  </Card>
-                </Col>
-              </Row>
-
-              <hr />
-
-              {/* Módulos de administración */}
-              <h5 className="mb-3">Módulos de Gestión</h5>
+              {/* Módulos implementados */}
+              <h5 className="mb-3">Módulos Disponibles</h5>
               <Row className="g-3 mb-4">
-                <Col md={6} lg={4}>
-                  <Card className="h-100 border-primary">
+                <Col md={6} lg={3}>
+                  <Card 
+                    className="h-100 shadow-sm border-0" 
+                    style={{ 
+                      borderLeft: '4px solid #1f2937',
+                      transition: 'transform 0.2s'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-5px)'}
+                    onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+                  >
                     <Card.Body>
                       <div className="d-flex align-items-center mb-3">
-                        <div className="display-6 text-primary me-3">👥</div>
-                        <h5 className="mb-0">Usuarios</h5>
-                      </div>
-                      <p className="text-muted small mb-3">
-                        Gestiona usuarios, roles y permisos del sistema
-                      </p>
-                      <Button 
-                        variant="primary" 
-                        size="sm" 
-                        className="w-100"
-                        onClick={() => navigate("/admin/users")}
-                      >
-                        Gestionar usuarios
-                      </Button>
-                    </Card.Body>
-                  </Card>
-                </Col>
-
-                <Col md={6} lg={4}>
-                  <Card className="h-100 border-success">
-                    <Card.Body>
-                      <div className="d-flex align-items-center mb-3">
-                        <div className="display-6 text-success me-3">🍽️</div>
+                        <MdRestaurantMenu 
+                          size={40} 
+                          style={{ color: '#1f2937' }} 
+                          className="me-3"
+                        />
                         <h5 className="mb-0">Menú</h5>
                       </div>
                       <p className="text-muted small mb-3">
-                        Administra platos, categorías, precios y disponibilidad
+                        Gestiona categorías, platos e imágenes del menú
                       </p>
                       <Button 
-                        variant="success" 
+                        style={{ 
+                          backgroundColor: '#1f2937', 
+                          borderColor: '#1f2937',
+                          color: 'white'
+                        }}
                         size="sm" 
                         className="w-100"
                         onClick={() => navigate("/admin/menu")}
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#111827'}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#1f2937'}
                       >
                         Gestionar menú
                       </Button>
@@ -127,43 +108,39 @@ function AdminDashboard() {
                   </Card>
                 </Col>
 
-                <Col md={6} lg={4}>
-                  <Card className="h-100 border-warning">
+                <Col md={6} lg={3}>
+                  <Card 
+                    className="h-100 shadow-sm border-0" 
+                    style={{ 
+                      borderLeft: '4px solid #1f2937',
+                      transition: 'transform 0.2s'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-5px)'}
+                    onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+                  >
                     <Card.Body>
                       <div className="d-flex align-items-center mb-3">
-                        <div className="display-6 text-warning me-3">📦</div>
-                        <h5 className="mb-0">Órdenes</h5>
-                      </div>
-                      <p className="text-muted small mb-3">
-                        Visualiza y gestiona todas las órdenes del restaurante
-                      </p>
-                      <Button 
-                        variant="warning" 
-                        size="sm" 
-                        className="w-100"
-                        onClick={() => navigate("/admin/orders")}
-                      >
-                        Ver órdenes
-                      </Button>
-                    </Card.Body>
-                  </Card>
-                </Col>
-
-                <Col md={6} lg={4}>
-                  <Card className="h-100 border-info">
-                    <Card.Body>
-                      <div className="d-flex align-items-center mb-3">
-                        <div className="display-6 text-info me-3">🪑</div>
+                        <MdTableRestaurant 
+                          size={40} 
+                          style={{ color: '#1f2937' }} 
+                          className="me-3"
+                        />
                         <h5 className="mb-0">Mesas</h5>
                       </div>
                       <p className="text-muted small mb-3">
-                        Gestiona mesas, zonas y disponibilidad del restaurante
+                        Administra mesas, zonas e imágenes del restaurante
                       </p>
                       <Button 
-                        variant="info" 
+                        style={{ 
+                          backgroundColor: '#1f2937', 
+                          borderColor: '#1f2937',
+                          color: 'white'
+                        }}
                         size="sm" 
                         className="w-100"
                         onClick={() => navigate("/admin/tables")}
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#111827'}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#1f2937'}
                       >
                         Gestionar mesas
                       </Button>
@@ -171,45 +148,81 @@ function AdminDashboard() {
                   </Card>
                 </Col>
 
-                <Col md={6} lg={4}>
-                  <Card className="h-100 border-secondary">
+                <Col md={6} lg={3}>
+                  <Card 
+                    className="h-100 shadow-sm border-0" 
+                    style={{ 
+                      borderLeft: '4px solid #1f2937',
+                      transition: 'transform 0.2s'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-5px)'}
+                    onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+                  >
                     <Card.Body>
                       <div className="d-flex align-items-center mb-3">
-                        <div className="display-6 text-secondary me-3">📅</div>
-                        <h5 className="mb-0">Reservas</h5>
+                        <MdShoppingCart 
+                          size={40} 
+                          style={{ color: '#1f2937' }} 
+                          className="me-3"
+                        />
+                        <h5 className="mb-0">Órdenes</h5>
                       </div>
                       <p className="text-muted small mb-3">
-                        Administra reservaciones y disponibilidad de horarios
+                        Gestiona pedidos, estados y pagos de clientes
                       </p>
                       <Button 
-                        variant="secondary" 
+                        style={{ 
+                          backgroundColor: '#1f2937', 
+                          borderColor: '#1f2937',
+                          color: 'white'
+                        }}
                         size="sm" 
                         className="w-100"
-                        onClick={() => navigate("/admin/reservations")}
+                        onClick={() => navigate("/admin/orders")}
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#111827'}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#1f2937'}
                       >
-                        Ver reservas
+                        Ver órdenes
                       </Button>
                     </Card.Body>
                   </Card>
                 </Col>
 
-                <Col md={6} lg={4}>
-                  <Card className="h-100 border-dark">
+                <Col md={6} lg={3}>
+                  <Card 
+                    className="h-100 shadow-sm border-0" 
+                    style={{ 
+                      borderLeft: '4px solid #1f2937',
+                      transition: 'transform 0.2s'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-5px)'}
+                    onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+                  >
                     <Card.Body>
                       <div className="d-flex align-items-center mb-3">
-                        <div className="display-6 text-dark me-3">📊</div>
-                        <h5 className="mb-0">Reportes</h5>
+                        <MdEventNote 
+                          size={40} 
+                          style={{ color: '#1f2937' }} 
+                          className="me-3"
+                        />
+                        <h5 className="mb-0">Reservas</h5>
                       </div>
                       <p className="text-muted small mb-3">
-                        Estadísticas detalladas y reportes de ventas
+                        Gestiona reservas de mesas y horarios
                       </p>
                       <Button 
-                        variant="dark" 
+                        style={{ 
+                          backgroundColor: '#1f2937', 
+                          borderColor: '#1f2937',
+                          color: 'white'
+                        }}
                         size="sm" 
                         className="w-100"
-                        disabled
+                        onClick={() => navigate("/admin/reservations")}
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#111827'}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#1f2937'}
                       >
-                        Próximamente
+                        Ver reservas
                       </Button>
                     </Card.Body>
                   </Card>
@@ -223,13 +236,17 @@ function AdminDashboard() {
                 <Button 
                   variant="outline-secondary"
                   onClick={() => navigate("/dashboard")}
+                  className="d-flex align-items-center"
                 >
+                  <MdVisibility size={20} className="me-2" />
                   Ver como cliente
                 </Button>
                 <Button 
-                  variant="outline-danger" 
+                  variant="outline-dark"
                   onClick={handleLogout}
+                  className="d-flex align-items-center"
                 >
+                  <MdLogout size={20} className="me-2" />
                   Cerrar sesión
                 </Button>
               </div>

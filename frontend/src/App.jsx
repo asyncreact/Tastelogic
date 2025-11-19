@@ -19,6 +19,10 @@ import Dashboard from './pages/Dashboard';
 
 // Pages admin
 import AdminDashboard from './pages/admin/AdminDashboard';
+import AdminMenu from './pages/admin/AdminMenu';
+import AdminTables from './pages/admin/AdminTables';
+import AdminOrders from './pages/admin/AdminOrders';
+import AdminReservations from './pages/admin/AdminReservations'; // ✅ Importar AdminReservations
 
 // Pages de error
 import Unauthorized from './pages/Unauthorized';
@@ -71,7 +75,7 @@ function App() {
         element={<Navigate to="/admin/dashboard" replace />}
       />
       
-      {/* ✅ Dashboard de admin */}
+      {/* Dashboard de admin */}
       <Route
         path="/admin/dashboard"
         element={
@@ -89,7 +93,7 @@ function App() {
             <div className="container py-5">
               <div className="card shadow">
                 <div className="card-header bg-danger text-white">
-                  <h4>👥 Gestión de Usuarios</h4>
+                  <h4>Gestión de Usuarios</h4>
                 </div>
                 <div className="card-body">
                   <p>Próximamente: Lista de usuarios</p>
@@ -99,71 +103,43 @@ function App() {
           </AdminRoute>
         }
       />
+      
+      {/* ✅ Menú de admin */}
       <Route
         path="/admin/menu"
         element={
           <AdminRoute>
-            <div className="container py-5">
-              <div className="card shadow">
-                <div className="card-header bg-success text-white">
-                  <h4>🍽️ Gestión de Menú</h4>
-                </div>
-                <div className="card-body">
-                  <p>Próximamente: Administración de menú</p>
-                </div>
-              </div>
-            </div>
+            <AdminMenu />
           </AdminRoute>
         }
       />
+      
+      {/* ✅ Órdenes de admin */}
       <Route
         path="/admin/orders"
         element={
           <AdminRoute>
-            <div className="container py-5">
-              <div className="card shadow">
-                <div className="card-header bg-warning">
-                  <h4>📦 Gestión de Órdenes</h4>
-                </div>
-                <div className="card-body">
-                  <p>Próximamente: Lista de órdenes</p>
-                </div>
-              </div>
-            </div>
+            <AdminOrders />
           </AdminRoute>
         }
       />
+      
+      {/* ✅ Mesas y Zonas de admin */}
       <Route
         path="/admin/tables"
         element={
           <AdminRoute>
-            <div className="container py-5">
-              <div className="card shadow">
-                <div className="card-header bg-info text-white">
-                  <h4>🪑 Gestión de Mesas</h4>
-                </div>
-                <div className="card-body">
-                  <p>Próximamente: Administración de mesas</p>
-                </div>
-              </div>
-            </div>
+            <AdminTables />
           </AdminRoute>
         }
       />
+      
+      {/* ✅ Reservas de admin */}
       <Route
         path="/admin/reservations"
         element={
           <AdminRoute>
-            <div className="container py-5">
-              <div className="card shadow">
-                <div className="card-header bg-secondary text-white">
-                  <h4>📅 Gestión de Reservas</h4>
-                </div>
-                <div className="card-body">
-                  <p>Próximamente: Lista de reservas</p>
-                </div>
-              </div>
-            </div>
+            <AdminReservations />
           </AdminRoute>
         }
       />
@@ -182,7 +158,7 @@ function App() {
   );
 }
 
-// ✅ Componente auxiliar para redirigir home según rol
+// Componente auxiliar para redirigir home según rol
 function HomeRedirect() {
   const { user, loading } = useAuth();
 
@@ -197,7 +173,7 @@ function HomeRedirect() {
   }
 
   if (!user) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/login" replace />; 
   }
 
   return user.role === 'admin' 
