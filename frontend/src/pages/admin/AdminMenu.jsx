@@ -1,8 +1,22 @@
 // src/pages/admin/AdminMenu.jsx
 import { useState, useEffect } from "react";
-import { Container, Row, Col, Card, Button, Table, Modal, Form, Alert, Badge, Tabs, Tab, Image } from "react-bootstrap";
+import {
+  Container,
+  Row,
+  Col,
+  Card,
+  Button,
+  Table,
+  Modal,
+  Form,
+  Alert,
+  Badge,
+  Tabs,
+  Tab,
+  Image,
+} from "react-bootstrap";
 import { Link } from "react-router-dom";
-import { 
+import {
   MdRestaurantMenu,
   MdAdd,
   MdEdit,
@@ -10,122 +24,80 @@ import {
   MdArrowBack,
   MdCategory,
   MdImage,
-  MdCheckCircle
+  MdCheckCircle,
 } from "react-icons/md";
-import { 
-  getCategories, 
-  createCategory, 
-  updateCategory, 
-  deleteCategory,
-  getMenuItems,
-  createMenuItem,
-  updateMenuItem,
-  deleteMenuItem
-} from "../../api/menu";
+import { useMenu } from "../../hooks/useMenu";
+
+import Swal from "sweetalert2";
+import withReactContent from "sweetalert2-react-content";
+
+const MySwal = withReactContent(Swal);
 
 function AdminMenu() {
-  const [activeTab, setActiveTab] = useState('items');
-  
-  // Estados para items
-  const [items, setItems] = useState([]);
-  const [categories, setCategories] = useState([]);
-  const [loadingItems, setLoadingItems] = useState(true);
+  const {
+    categories,
+    items,
+    loading,
+    error,
+    fetchCategories,
+    fetchItems,
+    addCategory,
+    editCategory,
+    removeCategory,
+    addItem,
+    editItem,
+    removeItem,
+    clearError,
+  } = useMenu();
+
+  const [activeTab, setActiveTab] = useState("items");
+
+  // Modal states and forms
   const [showItemModal, setShowItemModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [itemForm, setItemForm] = useState({
-    name: '',
-    description: '',
-    price: '',
-    category_id: '',
+    name: "",
+    description: "",
+    ingredients: "",
+    price: "",
+    category_id: "",
+    estimated_prep_time: "",
     is_available: true,
-    image: null
+    image: null,
   });
   const [imagePreview, setImagePreview] = useState(null);
 
-  // Estados para categorías
-  const [loadingCategories, setLoadingCategories] = useState(true);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
-  const [categoryForm, setCategoryForm] = useState({
-    name: '',
-    description: ''
-  });
-
-  // Estados generales
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-
-  const API_URL = (import.meta.env.VITE_API_URL || "http://localhost:4000").replace(/\/$/, "");
+  const [categoryForm, setCategoryForm] = useState({ name: "", description: "" });
 
   useEffect(() => {
-    loadCategories();
-    loadItems();
+    fetchCategories();
+    fetchItems();
   }, []);
 
-  const loadCategories = async () => {
-    try {
-      setLoadingCategories(true);
-      const response = await getCategories();
-      
-      let categoriesData = response.data?.categories || response.data?.data || [];
-      
-      if (!Array.isArray(categoriesData)) {
-        console.warn('Categories no es un array:', categoriesData);
-        categoriesData = [];
-      }
-      
-      setCategories(categoriesData);
-    } catch (err) {
-      setError('Error al cargar categorías');
-      console.error('Error loadCategories:', err);
-      setCategories([]);
-    } finally {
-      setLoadingCategories(false);
-    }
-  };
-
-  const loadItems = async () => {
-    try {
-      setLoadingItems(true);
-      const response = await getMenuItems();
-      
-      let itemsData = response.data?.items || response.data?.data || [];
-      
-      if (!Array.isArray(itemsData)) {
-        console.warn('Items no es un array:', itemsData);
-        itemsData = [];
-      }
-      
-      setItems(itemsData);
-    } catch (err) {
-      setError('Error al cargar items del menú');
-      console.error('Error loadItems:', err);
-      setItems([]);
-    } finally {
-      setLoadingItems(false);
-    }
-  };
-
-  // ============ CATEGORÍAS ============
   const handleCategorySubmit = async (e) => {
     e.preventDefault();
-    setError('');
-    setSuccess('');
-
+    clearError();
     try {
       if (editingCategory) {
-        await updateCategory(editingCategory.id, categoryForm);
-        setSuccess('Categoría actualizada exitosamente');
+        await editCategory(editingCategory.id, categoryForm);
+        setShowCategoryModal(false);
+        await MySwal.fire({ icon: "success", title: "Categoría actualizada" });
       } else {
-        await createCategory(categoryForm);
-        setSuccess('Categoría creada exitosamente');
+        await addCategory(categoryForm);
+        setShowCategoryModal(false);
+        await MySwal.fire({ icon: "success", title: "Categoría creada" });
       }
-      setShowCategoryModal(false);
-      setCategoryForm({ name: '', description: '' });
+      setCategoryForm({ name: "", description: "" });
       setEditingCategory(null);
-      loadCategories();
+      await fetchCategories();
     } catch (err) {
-      setError(err.response?.data?.message || 'Error al guardar categoría');
+      await MySwal.fire({
+        icon: "error",
+        title: "Error",
+        text: err.message || "Error al guardar categoría",
+      });
     }
   };
 
@@ -133,51 +105,76 @@ function AdminMenu() {
     setEditingCategory(category);
     setCategoryForm({
       name: category.name,
-      description: category.description || ''
+      description: category.description || "",
     });
     setShowCategoryModal(true);
   };
 
   const handleDeleteCategory = async (categoryId) => {
-    if (!window.confirm('¿Estás seguro de eliminar esta categoría?')) return;
+    clearError();
+    const result = await MySwal.fire({
+      title: "¿Estás seguro?",
+      text: "Esta acción eliminará la categoría permanentemente.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
+      confirmButtonText: "Sí, eliminar",
+      cancelButtonText: "Cancelar",
+    });
 
-    try {
-      await deleteCategory(categoryId);
-      setSuccess('Categoría eliminada exitosamente');
-      loadCategories();
-    } catch (err) {
-      setError(err.response?.data?.message || 'Error al eliminar categoría');
+    if (result.isConfirmed) {
+      try {
+        await removeCategory(categoryId);
+        await fetchCategories();
+        await MySwal.fire({
+          icon: "success",
+          title: "Categoría eliminada",
+          timer: 1500,
+          showConfirmButton: false,
+        });
+      } catch (err) {
+        await MySwal.fire({
+          icon: "error",
+          title: "Error",
+          text: err.message || "No se pudo eliminar la categoría",
+        });
+      }
     }
   };
 
-  // ============ ITEMS ============
   const handleItemSubmit = async (e) => {
     e.preventDefault();
-    setError('');
-    setSuccess('');
-
+    clearError();
     try {
       if (editingItem) {
-        await updateMenuItem(editingItem.id, itemForm);
-        setSuccess('Plato actualizado exitosamente');
+        await editItem(editingItem.id, itemForm);
+        setShowItemModal(false);
+        await MySwal.fire({ icon: "success", title: "Plato actualizado" });
       } else {
-        await createMenuItem(itemForm);
-        setSuccess('Plato creado exitosamente');
+        await addItem(itemForm);
+        setShowItemModal(false);
+        await MySwal.fire({ icon: "success", title: "Plato creado" });
       }
-      setShowItemModal(false);
       setItemForm({
-        name: '',
-        description: '',
-        price: '',
-        category_id: '',
+        name: "",
+        description: "",
+        ingredients: "",
+        price: "",
+        category_id: "",
+        estimated_prep_time: "",
         is_available: true,
-        image: null
+        image: null,
       });
       setImagePreview(null);
       setEditingItem(null);
-      loadItems();
+      await fetchItems();
     } catch (err) {
-      setError(err.response?.data?.message || 'Error al guardar plato');
+      await MySwal.fire({
+        icon: "error",
+        title: "Error",
+        text: err.message || "Error al guardar plato",
+      });
     }
   };
 
@@ -185,11 +182,13 @@ function AdminMenu() {
     setEditingItem(item);
     setItemForm({
       name: item.name,
-      description: item.description || '',
+      description: item.description || "",
+      ingredients: item.ingredients || "",
       price: item.price,
       category_id: item.category_id,
+      estimated_prep_time: item.estimated_prep_time || "",
       is_available: item.is_available,
-      image: null
+      image: null,
     });
     if (item.image_url) {
       setImagePreview(getImageUrl(item.image_url));
@@ -200,14 +199,35 @@ function AdminMenu() {
   };
 
   const handleDeleteItem = async (itemId) => {
-    if (!window.confirm('¿Estás seguro de eliminar este plato?')) return;
+    clearError();
+    const result = await MySwal.fire({
+      title: "¿Estás seguro?",
+      text: "Esta acción eliminará el plato permanentemente.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
+      confirmButtonText: "Sí, eliminar",
+      cancelButtonText: "Cancelar",
+    });
 
-    try {
-      await deleteMenuItem(itemId);
-      setSuccess('Plato eliminado exitosamente');
-      loadItems();
-    } catch (err) {
-      setError(err.response?.data?.message || 'Error al eliminar plato');
+    if (result.isConfirmed) {
+      try {
+        await removeItem(itemId);
+        await fetchItems();
+        await MySwal.fire({
+          icon: "success",
+          title: "Plato eliminado",
+          timer: 1500,
+          showConfirmButton: false,
+        });
+      } catch (err) {
+        await MySwal.fire({
+          icon: "error",
+          title: "Error",
+          text: err.message || "No se pudo eliminar el plato",
+        });
+      }
     }
   };
 
@@ -221,21 +241,23 @@ function AdminMenu() {
     }
   };
 
+  const API_URL = (import.meta.env.VITE_API_URL || "http://localhost:4000").replace(/\/$/, "");
+
   const getImageUrl = (imageUrl) => {
     if (!imageUrl) return null;
-    if (imageUrl.startsWith('http')) return imageUrl;
-    const cleanPath = imageUrl.startsWith('/') ? imageUrl : `/${imageUrl}`;
+    if (imageUrl.startsWith("http")) return imageUrl;
+    const cleanPath = imageUrl.startsWith("/") ? imageUrl : `/${imageUrl}`;
     return `${API_URL}${cleanPath}`;
   };
 
   return (
     <Container className="py-5">
       <Card className="shadow-lg border-0">
-        <Card.Header 
-          className="text-white border-0" 
-          style={{ 
-            background: 'linear-gradient(135deg, #1f2937 0%, #111827 100%)',
-            padding: '1.5rem'
+        <Card.Header
+          className="text-white border-0"
+          style={{
+            background: "linear-gradient(135deg, #1f2937 0%, #111827 100%)",
+            padding: "1.5rem",
           }}
         >
           <div className="d-flex justify-content-between align-items-center">
@@ -243,10 +265,10 @@ function AdminMenu() {
               <MdRestaurantMenu size={32} className="me-2" />
               <h4 className="mb-0">Gestión de Menú</h4>
             </div>
-            <Button 
-              as={Link} 
-              to="/admin/dashboard" 
-              variant="light" 
+            <Button
+              as={Link}
+              to="/admin/dashboard"
+              variant="light"
               size="sm"
               className="d-flex align-items-center"
             >
@@ -256,13 +278,15 @@ function AdminMenu() {
           </div>
         </Card.Header>
         <Card.Body>
-          {error && <Alert variant="danger" dismissible onClose={() => setError('')}>{error}</Alert>}
-          {success && <Alert variant="success" dismissible onClose={() => setSuccess('')}>{success}</Alert>}
+          {error && (
+            <Alert variant="danger" dismissible onClose={clearError}>
+              {error}
+            </Alert>
+          )}
 
           <Tabs activeKey={activeTab} onSelect={(k) => setActiveTab(k)} className="mb-4">
-            {/* TAB DE PLATOS */}
-            <Tab 
-              eventKey="items" 
+            <Tab
+              eventKey="items"
               title={
                 <span className="d-flex align-items-center">
                   <MdRestaurantMenu size={18} className="me-2" />
@@ -272,26 +296,28 @@ function AdminMenu() {
             >
               <div className="d-flex justify-content-between align-items-center mb-3">
                 <h5>Lista de Platos</h5>
-                <Button 
-                  style={{ 
-                    backgroundColor: '#1f2937', 
-                    borderColor: '#1f2937'
+                <Button
+                  style={{
+                    backgroundColor: "#1f2937",
+                    borderColor: "#1f2937",
                   }}
                   onClick={() => {
                     setEditingItem(null);
                     setItemForm({
-                      name: '',
-                      description: '',
-                      price: '',
-                      category_id: '',
+                      name: "",
+                      description: "",
+                      ingredients: "",
+                      price: "",
+                      category_id: "",
+                      estimated_prep_time: "",
                       is_available: true,
-                      image: null
+                      image: null,
                     });
                     setImagePreview(null);
                     setShowItemModal(true);
                   }}
-                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#111827'}
-                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#1f2937'}
+                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#111827")}
+                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#1f2937")}
                   className="d-flex align-items-center"
                 >
                   <MdAdd size={20} className="me-1" />
@@ -299,20 +325,22 @@ function AdminMenu() {
                 </Button>
               </div>
 
-              {loadingItems ? (
+              {loading ? (
                 <div className="text-center py-5">
-                  <div className="spinner-border" style={{ color: '#1f2937' }} />
+                  <div className="spinner-border" style={{ color: "#1f2937" }} />
                 </div>
               ) : items.length === 0 ? (
                 <Alert variant="info">No hay platos registrados. Crea el primero.</Alert>
               ) : (
                 <Table striped bordered hover responsive>
-                  <thead style={{ backgroundColor: '#f3f4f6' }}>
+                  <thead style={{ backgroundColor: "#f3f4f6" }}>
                     <tr>
                       <th>ID</th>
                       <th>Imagen</th>
                       <th>Nombre</th>
                       <th>Categoría</th>
+                      <th>Ingredientes</th>
+                      <th>Tiempo Prep.</th>
                       <th>Precio</th>
                       <th>Disponible</th>
                       <th>Acciones</th>
@@ -324,43 +352,45 @@ function AdminMenu() {
                         <td>{item.id}</td>
                         <td>
                           {item.image_url ? (
-                            <Image 
-                              src={getImageUrl(item.image_url)} 
+                            <Image
+                              src={getImageUrl(item.image_url)}
                               alt={item.name}
                               rounded
-                              style={{ width: '60px', height: '60px', objectFit: 'cover' }}
+                              style={{ width: "60px", height: "60px", objectFit: "cover" }}
                               onError={(e) => {
-                                e.target.src = 'https://via.placeholder.com/60?text=Sin+Imagen';
+                                e.target.src = "https://via.placeholder.com/60?text=Sin+Imagen";
                               }}
                             />
                           ) : (
-                            <div 
+                            <div
                               className="d-flex align-items-center justify-content-center bg-secondary text-white rounded"
-                              style={{ width: '60px', height: '60px' }}
+                              style={{ width: "60px", height: "60px" }}
                             >
                               <MdImage size={24} />
                             </div>
                           )}
                         </td>
                         <td>{item.name}</td>
-                        <td>{categories.find(c => c.id === item.category_id)?.name || 'N/A'}</td>
+                        <td>{categories.find((c) => c.id === item.category_id)?.name || "N/A"}</td>
+                        <td>{item.ingredients || "-"}</td>
+                        <td>{item.estimated_prep_time ? `${item.estimated_prep_time} min` : "-"}</td>
                         <td>${parseFloat(item.price).toFixed(2)}</td>
                         <td>
-                          <Badge bg={item.is_available ? 'success' : 'secondary'}>
-                            {item.is_available ? 'Sí' : 'No'}
+                          <Badge bg={item.is_available ? "success" : "secondary"}>
+                            {item.is_available ? "Sí" : "No"}
                           </Badge>
                         </td>
                         <td>
-                          <Button 
-                            variant="warning" 
-                            size="sm" 
+                          <Button
+                            variant="warning"
+                            size="sm"
                             className="me-2"
                             onClick={() => handleEditItem(item)}
                           >
                             <MdEdit size={16} />
                           </Button>
-                          <Button 
-                            variant="danger" 
+                          <Button
+                            variant="danger"
                             size="sm"
                             onClick={() => handleDeleteItem(item.id)}
                           >
@@ -374,9 +404,8 @@ function AdminMenu() {
               )}
             </Tab>
 
-            {/* TAB DE CATEGORÍAS */}
-            <Tab 
-              eventKey="categories" 
+            <Tab
+              eventKey="categories"
               title={
                 <span className="d-flex align-items-center">
                   <MdCategory size={18} className="me-2" />
@@ -386,18 +415,18 @@ function AdminMenu() {
             >
               <div className="d-flex justify-content-between align-items-center mb-3">
                 <h5>Lista de Categorías</h5>
-                <Button 
-                  style={{ 
-                    backgroundColor: '#1f2937', 
-                    borderColor: '#1f2937'
+                <Button
+                  style={{
+                    backgroundColor: "#1f2937",
+                    borderColor: "#1f2937",
                   }}
                   onClick={() => {
                     setEditingCategory(null);
-                    setCategoryForm({ name: '', description: '' });
+                    setCategoryForm({ name: "", description: "" });
                     setShowCategoryModal(true);
                   }}
-                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#111827'}
-                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#1f2937'}
+                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#111827")}
+                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#1f2937")}
                   className="d-flex align-items-center"
                 >
                   <MdAdd size={20} className="me-1" />
@@ -405,15 +434,15 @@ function AdminMenu() {
                 </Button>
               </div>
 
-              {loadingCategories ? (
+              {loading ? (
                 <div className="text-center py-5">
-                  <div className="spinner-border" style={{ color: '#1f2937' }} />
+                  <div className="spinner-border" style={{ color: "#1f2937" }} />
                 </div>
               ) : categories.length === 0 ? (
                 <Alert variant="info">No hay categorías registradas. Crea la primera.</Alert>
               ) : (
                 <Table striped bordered hover responsive>
-                  <thead style={{ backgroundColor: '#f3f4f6' }}>
+                  <thead style={{ backgroundColor: "#f3f4f6" }}>
                     <tr>
                       <th>ID</th>
                       <th>Nombre</th>
@@ -426,18 +455,18 @@ function AdminMenu() {
                       <tr key={category.id}>
                         <td>{category.id}</td>
                         <td>{category.name}</td>
-                        <td>{category.description || '-'}</td>
+                        <td>{category.description || "-"}</td>
                         <td>
-                          <Button 
-                            variant="warning" 
-                            size="sm" 
+                          <Button
+                            variant="warning"
+                            size="sm"
                             className="me-2"
                             onClick={() => handleEditCategory(category)}
                           >
                             <MdEdit size={16} />
                           </Button>
-                          <Button 
-                            variant="danger" 
+                          <Button
+                            variant="danger"
                             size="sm"
                             onClick={() => handleDeleteCategory(category.id)}
                           >
@@ -455,11 +484,11 @@ function AdminMenu() {
       </Card>
 
       {/* MODAL DE PLATO */}
-      <Modal show={showItemModal} onHide={() => setShowItemModal(false)} size="lg">
+      <Modal show={showItemModal} onHide={() => setShowItemModal(false)} size="lg" centered>
         <Modal.Header closeButton>
           <Modal.Title className="d-flex align-items-center">
             <MdRestaurantMenu size={24} className="me-2" />
-            {editingItem ? 'Editar Plato' : 'Agregar Plato'}
+            {editingItem ? "Editar Plato" : "Agregar Plato"}
           </Modal.Title>
         </Modal.Header>
         <Form onSubmit={handleItemSubmit}>
@@ -481,6 +510,16 @@ function AdminMenu() {
                 rows={3}
                 value={itemForm.description}
                 onChange={(e) => setItemForm({ ...itemForm, description: e.target.value })}
+              />
+            </Form.Group>
+
+            <Form.Group className="mb-3">
+              <Form.Label>Ingredientes</Form.Label>
+              <Form.Control
+                as="textarea"
+                rows={2}
+                value={itemForm.ingredients}
+                onChange={(e) => setItemForm({ ...itemForm, ingredients: e.target.value })}
               />
             </Form.Group>
 
@@ -506,8 +545,10 @@ function AdminMenu() {
                     required
                   >
                     <option value="">Seleccionar...</option>
-                    {categories.map(cat => (
-                      <option key={cat.id} value={cat.id}>{cat.name}</option>
+                    {categories.map((cat) => (
+                      <option key={cat.id} value={cat.id}>
+                        {cat.name}
+                      </option>
                     ))}
                   </Form.Select>
                 </Form.Group>
@@ -515,24 +556,28 @@ function AdminMenu() {
             </Row>
 
             <Form.Group className="mb-3">
-              <Form.Label>Imagen</Form.Label>
+              <Form.Label>Tiempo estimado de preparación (minutos)</Form.Label>
               <Form.Control
-                type="file"
-                accept="image/*"
-                onChange={handleImageChange}
+                type="number"
+                min="0"
+                value={itemForm.estimated_prep_time}
+                onChange={(e) => setItemForm({ ...itemForm, estimated_prep_time: e.target.value })}
               />
-              <Form.Text className="text-muted">
-                Formatos aceptados: JPG, PNG. Máx 5MB
-              </Form.Text>
-              
+            </Form.Group>
+
+            <Form.Group className="mb-3">
+              <Form.Label>Imagen</Form.Label>
+              <Form.Control type="file" accept="image/*" onChange={handleImageChange} />
+              <Form.Text className="text-muted">Formatos aceptados: JPG, PNG. Máx 5MB</Form.Text>
+
               {imagePreview && (
                 <div className="mt-3">
                   <p className="mb-2"><strong>Vista previa:</strong></p>
-                  <Image 
-                    src={imagePreview} 
-                    alt="Preview" 
-                    rounded 
-                    style={{ maxWidth: '200px', maxHeight: '200px', objectFit: 'cover' }}
+                  <Image
+                    src={imagePreview}
+                    alt="Preview"
+                    rounded
+                    style={{ maxWidth: "200px", maxHeight: "200px", objectFit: "cover" }}
                   />
                 </div>
               )}
@@ -548,35 +593,29 @@ function AdminMenu() {
             </Form.Group>
           </Modal.Body>
           <Modal.Footer>
-            <Button variant="secondary" onClick={() => {
-              setShowItemModal(false);
-              setImagePreview(null);
-            }}>
+            <Button variant="secondary" onClick={() => { setShowItemModal(false); setImagePreview(null); }}>
               Cancelar
             </Button>
-            <Button 
-              style={{ 
-                backgroundColor: '#1f2937', 
-                borderColor: '#1f2937'
-              }}
+            <Button
+              style={{ backgroundColor: "#1f2937", borderColor: "#1f2937" }}
               type="submit"
-              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#111827'}
-              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#1f2937'}
+              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#111827")}
+              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#1f2937")}
               className="d-flex align-items-center"
             >
               <MdCheckCircle size={18} className="me-1" />
-              {editingItem ? 'Actualizar' : 'Crear'}
+              {editingItem ? "Actualizar" : "Crear"}
             </Button>
           </Modal.Footer>
         </Form>
       </Modal>
 
       {/* MODAL DE CATEGORÍA */}
-      <Modal show={showCategoryModal} onHide={() => setShowCategoryModal(false)}>
+      <Modal show={showCategoryModal} onHide={() => setShowCategoryModal(false)} centered>
         <Modal.Header closeButton>
           <Modal.Title className="d-flex align-items-center">
             <MdCategory size={24} className="me-2" />
-            {editingCategory ? 'Editar Categoría' : 'Agregar Categoría'}
+            {editingCategory ? "Editar Categoría" : "Agregar Categoría"}
           </Modal.Title>
         </Modal.Header>
         <Form onSubmit={handleCategorySubmit}>
@@ -605,18 +644,15 @@ function AdminMenu() {
             <Button variant="secondary" onClick={() => setShowCategoryModal(false)}>
               Cancelar
             </Button>
-            <Button 
-              style={{ 
-                backgroundColor: '#1f2937', 
-                borderColor: '#1f2937'
-              }}
+            <Button
+              style={{ backgroundColor: "#1f2937", borderColor: "#1f2937" }}
               type="submit"
-              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#111827'}
-              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#1f2937'}
+              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#111827")}
+              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#1f2937")}
               className="d-flex align-items-center"
             >
               <MdCheckCircle size={18} className="me-1" />
-              {editingCategory ? 'Actualizar' : 'Crear'}
+              {editingCategory ? "Actualizar" : "Crear"}
             </Button>
           </Modal.Footer>
         </Form>
