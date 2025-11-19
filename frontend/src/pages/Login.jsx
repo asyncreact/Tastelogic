@@ -1,11 +1,16 @@
 // pages/Login.jsx
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Container, Row, Col, Form, Button, Alert, Card } from "react-bootstrap";
+import { Container, Row, Col, Form, Button, Card } from "react-bootstrap";
 import { useAuth } from "../hooks/useAuth";
+import Swal from "sweetalert2";
+import withReactContent from "sweetalert2-react-content";
+import { Eye, EyeSlash } from "react-bootstrap-icons";
+
+const MySwal = withReactContent(Swal);
 
 function Login() {
-  const { login, error: authError } = useAuth();
+  const { login } = useAuth();
   const navigate = useNavigate();
   
   const [formData, setFormData] = useState({
@@ -14,13 +19,17 @@ function Login() {
   });
   const [validated, setValidated] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleChange = (e) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value,
     });
+  };
+
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
   };
 
   const handleSubmit = async (e) => {
@@ -30,23 +39,43 @@ function Login() {
     if (form.checkValidity() === false) {
       e.stopPropagation();
       setValidated(true);
+      
+      MySwal.fire({
+        title: 'Error de Validación',
+        text: 'Por favor completa todos los campos correctamente',
+        icon: 'warning',
+        confirmButtonText: 'Entendido',
+        confirmButtonColor: '#1f2937'
+      });
       return;
     }
 
     setLoading(true);
-    setError("");
 
     try {
       const result = await login(formData);
       
-      // ✅ Redirigir según el rol del usuario
+      await MySwal.fire({
+        title: 'Bienvenido',
+        text: 'Inicio de sesión exitoso',
+        icon: 'success',
+        timer: 1500,
+        showConfirmButton: false
+      });
+      
       if (result?.user?.role === 'admin') {
         navigate("/admin");
       } else {
         navigate("/dashboard");
       }
     } catch (err) {
-      setError(err.message || "Error al iniciar sesión");
+      MySwal.fire({
+        title: 'Error',
+        text: err.message || "Error al iniciar sesión",
+        icon: 'error',
+        confirmButtonText: 'Reintentar',
+        confirmButtonColor: '#dc3545'
+      });
     } finally {
       setLoading(false);
     }
@@ -59,12 +88,6 @@ function Login() {
           <Card className="shadow">
             <Card.Body className="p-4">
               <h2 className="text-center mb-4">Iniciar Sesión</h2>
-              
-              {(error || authError) && (
-                <Alert variant="danger" dismissible onClose={() => setError("")}>
-                  {error || authError}
-                </Alert>
-              )}
 
               <Form noValidate validated={validated} onSubmit={handleSubmit}>
                 <Form.Group className="mb-3" controlId="formEmail">
@@ -84,34 +107,66 @@ function Login() {
 
                 <Form.Group className="mb-3" controlId="formPassword">
                   <Form.Label>Contraseña</Form.Label>
-                  <Form.Control
-                    type="password"
-                    name="password"
-                    placeholder="Contraseña"
-                    value={formData.password}
-                    onChange={handleChange}
-                    required
-                    minLength={6}
-                  />
-                  <Form.Control.Feedback type="invalid">
-                    La contraseña debe tener al menos 6 caracteres.
-                  </Form.Control.Feedback>
+                  <div style={{ position: 'relative' }}>
+                    <Form.Control
+                      type={showPassword ? "text" : "password"}
+                      name="password"
+                      placeholder="Contraseña"
+                      value={formData.password}
+                      onChange={handleChange}
+                      required
+                      minLength={8}
+                      style={{ paddingRight: '45px' }}
+                    />
+                    <button
+                      type="button"
+                      onClick={togglePasswordVisibility}
+                      style={{
+                        position: 'absolute',
+                        right: '10px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        background: 'transparent',
+                        border: 'none',
+                        cursor: 'pointer',
+                        padding: '5px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        color: '#6c757d'
+                      }}
+                      aria-label="Toggle password visibility"
+                    >
+                      {showPassword ? <Eye size={20} /> : <EyeSlash size={20} />}
+                    </button>
+                    <Form.Control.Feedback type="invalid">
+                      La contraseña debe tener al menos 8 caracteres.
+                    </Form.Control.Feedback>
+                  </div>
                 </Form.Group>
 
-                <div className="d-flex justify-content-between mb-3">
-                  <Form.Check type="checkbox" label="Recordarme" />
+                <div className="text-end mb-3">
                   <Link to="/forgot-password" className="text-decoration-none">
                     ¿Olvidaste tu contraseña?
                   </Link>
                 </div>
 
                 <Button
-                  variant="primary"
                   type="submit"
                   className="w-100"
                   disabled={loading}
+                  style={{ 
+                    backgroundColor: '#1f2937',
+                    borderColor: '#1f2937'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#111827'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#1f2937'}
                 >
-                  {loading ? "Cargando..." : "Iniciar Sesión"}
+                  {loading ? (
+                    <>
+                      <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                      Cargando...
+                    </>
+                  ) : "Iniciar Sesión"}
                 </Button>
               </Form>
 

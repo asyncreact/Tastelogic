@@ -46,31 +46,57 @@ export const AuthProvider = ({ children }) => {
     checkAuth();
   }, []);
 
-  // ✅ Registro
+  // ✅ Registro - Mejorado para manejar errores de Zod
   const register = async (data) => {
     try {
       setError(null);
       const response = await registerUser(data);
-      return { success: true, data: response.data };
+      
+      // Extraer el mensaje de éxito
+      const message = response.data?.message || "Registro exitoso";
+      
+      return { 
+        success: true, 
+        message,
+        data: response.data 
+      };
     } catch (err) {
-      const message = err.response?.data?.message || err.message || "Error al registrar";
+      // ✅ Manejar estructura de error del backend
+      const errorData = err.response?.data || {};
+      
+      // Si tiene detalles de validación (errores de Zod), devolverlos
+      if (errorData.details && Array.isArray(errorData.details)) {
+        const errorMessage = errorData.message || "Errores de validación";
+        setError(errorMessage);
+        
+        // Lanzar el error completo con details para SweetAlert2
+        throw {
+          message: errorMessage,
+          details: errorData.details
+        };
+      }
+      
+      // Error simple sin detalles
+      const message = errorData.message || err.message || "Error al registrar";
       setError(message);
-      throw new Error(message);
+      throw { message };
     }
   };
 
-  // ✅ Login
+  // ✅ Login - Mejorado para manejar errores
   const login = async (credentials) => {
     try {
       setError(null);
       const response = await loginUser(credentials);
       
-      // Extraer token y user de la respuesta
-      const token = response.data?.token || response.data?.data?.token;
-      const userData = response.data?.user || response.data?.data?.user;
+      // ✅ Extraer token y user del formato del backend
+      // Formato esperado: { success: true, message: "...", data: { token, user } }
+      const responseData = response.data?.data || response.data;
+      const token = responseData?.token;
+      const userData = responseData?.user;
 
       if (!token || !userData) {
-        throw new Error("Respuesta del servidor inválida");
+        throw { message: "Respuesta del servidor inválida" };
       }
 
       // ✅ Guardar en localStorage
@@ -78,11 +104,29 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem("user", JSON.stringify(userData));
       setUser(userData);
 
-      return { success: true, user: userData };
+      return { 
+        success: true, 
+        message: response.data?.message || "Login exitoso",
+        user: userData 
+      };
     } catch (err) {
-      const message = err.response?.data?.message || err.message || "Error al iniciar sesión";
+      // ✅ Manejar estructura de error del backend
+      const errorData = err.response?.data || {};
+      
+      // Si tiene detalles de validación
+      if (errorData.details && Array.isArray(errorData.details)) {
+        const errorMessage = errorData.message || "Errores de validación";
+        setError(errorMessage);
+        throw {
+          message: errorMessage,
+          details: errorData.details
+        };
+      }
+      
+      // Error simple
+      const message = errorData.message || err.message || "Error al iniciar sesión";
       setError(message);
-      throw new Error(message);
+      throw { message };
     }
   };
 
@@ -106,10 +150,9 @@ export const AuthProvider = ({ children }) => {
     return !!user && !!localStorage.getItem("token");
   };
 
-  // ✅ Verificar roles (CRÍTICO - esta función faltaba)
+  // ✅ Verificar roles
   const hasRole = (role) => {
     if (!user) return false;
-    // Soporta tanto user.role como user.roles (array)
     if (user.role === role) return true;
     if (Array.isArray(user.roles) && user.roles.includes(role)) return true;
     return false;
@@ -129,7 +172,6 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // ✅ IMPORTANTE: Exportar hasRole en el value
   const value = {
     user,
     loading,
@@ -138,7 +180,7 @@ export const AuthProvider = ({ children }) => {
     login,
     logout,
     isAuthenticated,
-    hasRole,        // ✅ Asegurarse de que está aquí
+    hasRole,
     refreshUser,
   };
 

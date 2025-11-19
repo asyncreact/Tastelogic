@@ -1,15 +1,18 @@
 // pages/VerifyEmail.jsx
 import { useState, useEffect, useRef } from "react";
-import { useParams, Link } from "react-router-dom";
-import { Container, Row, Col, Card, Spinner, Alert, Button } from "react-bootstrap";
+import { useParams, useNavigate } from "react-router-dom";
+import { Container, Row, Col, Card } from "react-bootstrap";
 import { verifyAccount } from "../api/auth";
+import Swal from "sweetalert2";
+import withReactContent from "sweetalert2-react-content";
+
+const MySwal = withReactContent(Swal);
 
 function VerifyEmail() {
   const { token } = useParams();
+  const navigate = useNavigate();
   const [status, setStatus] = useState("loading");
-  const [message, setMessage] = useState("");
   
-  // ✅ Evita llamadas duplicadas en StrictMode
   const hasVerified = useRef(false);
 
   useEffect(() => {
@@ -17,27 +20,69 @@ function VerifyEmail() {
       if (hasVerified.current) return;
       hasVerified.current = true;
 
+      MySwal.fire({
+        title: 'Verificando email',
+        text: 'Por favor espera un momento',
+        icon: 'info',
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        showConfirmButton: false,
+        willOpen: () => {
+          MySwal.showLoading();
+        }
+      });
+
       try {
         const response = await verifyAccount(token);
         setStatus("success");
-        setMessage(
+        
+        const message = 
           response.data?.data?.message || 
           response.data?.message || 
-          "¡Tu cuenta ha sido verificada exitosamente! Ya puedes iniciar sesión."
-        );
+          "Tu cuenta ha sido verificada exitosamente";
+
+        await MySwal.fire({
+          title: 'Email Verificado',
+          text: message,
+          icon: 'success',
+          confirmButtonText: 'Ir a Iniciar Sesión',
+          confirmButtonColor: '#1f2937', // ✅ Color actualizado
+          allowOutsideClick: false
+        });
+
+        navigate("/login");
+
       } catch (err) {
         setStatus("error");
-        setMessage(
+        
+        const errorMessage = 
           err.response?.data?.message || 
-          "El enlace de verificación es inválido o ha expirado."
-        );
+          "El enlace de verificación es inválido o ha expirado";
+
+        const result = await MySwal.fire({
+          title: 'Error de Verificación',
+          text: errorMessage,
+          icon: 'error',
+          showCancelButton: true,
+          confirmButtonText: 'Registrarse Nuevamente',
+          cancelButtonText: 'Intentar Iniciar Sesión',
+          confirmButtonColor: '#1f2937', // ✅ Color actualizado
+          cancelButtonColor: '#6c757d',
+          reverseButtons: true
+        });
+
+        if (result.isConfirmed) {
+          navigate("/register");
+        } else if (result.dismiss === MySwal.DismissReason.cancel) {
+          navigate("/login");
+        }
       }
     };
 
     if (token) {
       verifyEmail();
     }
-  }, [token]);
+  }, [token, navigate]);
 
   return (
     <Container className="min-vh-100 d-flex align-items-center justify-content-center">
@@ -45,44 +90,11 @@ function VerifyEmail() {
         <Col md={6} lg={5} className="mx-auto">
           <Card className="shadow text-center">
             <Card.Body className="p-5">
-              {status === "loading" && (
-                <>
-                  <Spinner animation="border" variant="primary" className="mb-3" />
-                  <h4>Verificando email...</h4>
-                  <p className="text-muted">Por favor espera un momento.</p>
-                </>
-              )}
-
-              {status === "success" && (
-                <>
-                  <div className="text-success mb-3" style={{ fontSize: "64px" }}>
-                    ✓
-                  </div>
-                  <h3 className="text-success mb-3">¡Email verificado!</h3>
-                  <Alert variant="success">{message}</Alert>
-                  <Button as={Link} to="/login" variant="primary" className="w-100 mt-3">
-                    Ir a Iniciar Sesión
-                  </Button>
-                </>
-              )}
-
-              {status === "error" && (
-                <>
-                  <div className="text-danger mb-3" style={{ fontSize: "64px" }}>
-                    ✕
-                  </div>
-                  <h3 className="text-danger mb-3">Error de verificación</h3>
-                  <Alert variant="danger">{message}</Alert>
-                  <div className="d-grid gap-2 mt-4">
-                    <Button as={Link} to="/register" variant="primary">
-                      Registrarse nuevamente
-                    </Button>
-                    <Button as={Link} to="/login" variant="outline-secondary">
-                      Intentar iniciar sesión
-                    </Button>
-                  </div>
-                </>
-              )}
+              <div className="text-muted">
+                {status === "loading" && "Verificando..."}
+                {status === "success" && "Verificación exitosa"}
+                {status === "error" && "Error en la verificación"}
+              </div>
             </Card.Body>
           </Card>
         </Col>
