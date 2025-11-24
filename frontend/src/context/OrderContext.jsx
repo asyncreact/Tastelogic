@@ -1,5 +1,6 @@
 // src/context/OrderContext.jsx
 import { createContext, useState, useEffect } from 'react';
+import { useAuth } from '../hooks/useAuth';
 import {
   getOrders,
   getOrder,
@@ -18,13 +19,15 @@ import {
 export const OrderContext = createContext();
 
 export function OrderProvider({ children }) {
+  const { user } = useAuth(); // Obtener usuario actual
   const [orders, setOrders] = useState([]);
   const [currentOrder, setCurrentOrder] = useState(null);
   
-  // Cargar carrito desde localStorage al iniciar
+  // Cargar carrito desde localStorage con el user_id
   const [cart, setCart] = useState(() => {
     try {
-      const savedCart = localStorage.getItem('cart');
+      if (!user) return [];
+      const savedCart = localStorage.getItem(`cart_${user.id}`);
       return savedCart ? JSON.parse(savedCart) : [];
     } catch (error) {
       console.error('Error al cargar carrito:', error);
@@ -36,14 +39,32 @@ export function OrderProvider({ children }) {
   const [error, setError] = useState(null);
   const [stats, setStats] = useState(null);
 
-  // Guardar carrito en localStorage cada vez que cambie
+  // Guardar carrito en localStorage cada vez que cambie (con user_id)
   useEffect(() => {
     try {
-      localStorage.setItem('cart', JSON.stringify(cart));
+      if (user) {
+        localStorage.setItem(`cart_${user.id}`, JSON.stringify(cart));
+      }
     } catch (error) {
       console.error('Error al guardar carrito:', error);
     }
-  }, [cart]);
+  }, [cart, user]);
+
+  // Limpiar carrito si el usuario cambia o cierra sesión
+  useEffect(() => {
+    if (!user) {
+      setCart([]);
+    } else {
+      // Cargar carrito del usuario actual
+      try {
+        const savedCart = localStorage.getItem(`cart_${user.id}`);
+        setCart(savedCart ? JSON.parse(savedCart) : []);
+      } catch (error) {
+        console.error('Error al cargar carrito:', error);
+        setCart([]);
+      }
+    }
+  }, [user?.id]); // Solo reaccionar al cambio de ID de usuario
 
   // Cargar órdenes del usuario/admin
   const fetchOrders = async (params = {}) => {
@@ -66,8 +87,9 @@ export function OrderProvider({ children }) {
       setLoading(true);
       setError(null);
       const response = await getOrder(orderId);
-      setCurrentOrder(response.data?.order || response.data?.data || null);
-      return response.data;
+      const orderData = response.data?.order || response.data?.data || response.data;
+      setCurrentOrder(orderData);
+      return orderData;
     } catch (err) {
       setError(err.response?.data?.message || 'Error al cargar orden');
       console.error('Error fetchOrder:', err);
@@ -85,7 +107,13 @@ export function OrderProvider({ children }) {
       const response = await createOrder(orderData);
       const newOrder = response.data?.order || response.data?.data;
       setOrders((prev) => [newOrder, ...prev]);
-      setCart([]); // Limpiar carrito después de crear orden
+      
+      // Limpiar carrito después de crear orden
+      setCart([]);
+      if (user) {
+        localStorage.removeItem(`cart_${user.id}`);
+      }
+      
       return newOrder;
     } catch (err) {
       setError(err.response?.data?.message || 'Error al crear orden');
@@ -235,6 +263,9 @@ export function OrderProvider({ children }) {
   // Limpiar carrito
   const clearCart = () => {
     setCart([]);
+    if (user) {
+      localStorage.removeItem(`cart_${user.id}`);
+    }
   };
 
   // Calcular total del carrito
