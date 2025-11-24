@@ -47,6 +47,9 @@ function AppNavbar() {
                     </Badge>
                   )}
                 </Nav.Link>
+                <Nav.Link as={Link} to="/reservations">
+                  Reservas
+                </Nav.Link>
               </>
             )}
           </Nav>

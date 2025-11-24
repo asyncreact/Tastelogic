@@ -14,6 +14,7 @@ import ResetPassword from './pages/ResetPassword';
 import Dashboard from './pages/Dashboard';
 import Menu from './pages/Menu';
 import Orders from './pages/Orders';
+import Reservations from './pages/Reservations';
 
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminMenu from './pages/admin/AdminMenu';
@@ -42,6 +43,7 @@ function App() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/menu" element={<Menu />} />
         <Route path="/orders" element={<Orders />} />
+        <Route path="/reservations" element={<Reservations />} />
       </Route>
 
       {/* Admin routes without Navbar */}
