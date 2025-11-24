@@ -1,15 +1,17 @@
 import rateLimit from "express-rate-limit";
 
-// Límite general para endpoints sensibles
 export const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
+  windowMs: 5 * 60 * 1000, // 5 minutos
   max: 5,
+  keyGenerator: (req) => req.body.email || req.ip,
+  skipSuccessfulRequests: true,
   message: {
-    message: "Demasiados intentos de inicio de sesión. Intenta de nuevo en 15 minutos.",
+    message: "Has excedido el número de intentos fallidos. Espera 5 minutos antes de intentar de nuevo.",
   },
   standardHeaders: true,
   legacyHeaders: false,
 });
+
 
 // Límite para envío de correos
 export const emailLimiter = rateLimit({
