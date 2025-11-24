@@ -34,10 +34,9 @@ function OrderHistory() {
   const handleViewDetails = async (orderId) => {
     try {
       const response = await fetchOrder(orderId);
-      // El response puede venir en diferentes formatos según tu API
       const orderData = response?.order || response?.data?.order || response?.data || response;
       
-      console.log("Order data received:", orderData); // Para debugging
+      console.log("Order data received:", orderData);
       setSelectedOrder(orderData);
       setShowModal(true);
     } catch (error) {
@@ -184,7 +183,7 @@ function OrderHistory() {
       <Table responsive striped bordered hover>
         <thead>
           <tr>
-            <th>#</th>
+            <th>ID</th>
             <th>Fecha</th>
             <th>Tipo</th>
             <th>Estado</th>
@@ -196,7 +195,7 @@ function OrderHistory() {
         <tbody>
           {orders.map((order) => (
             <tr key={order.id}>
-              <td>{order.id}</td>
+              <td>{order.order_number}</td>
               <td>{formatDate(order.created_at)}</td>
               <td>{getOrderTypeBadge(order.order_type)}</td>
               <td>{getStatusBadge(order.status)}</td>
@@ -230,7 +229,7 @@ function OrderHistory() {
       {/* Modal de detalles */}
       <Modal show={showModal} onHide={() => setShowModal(false)} size="lg" centered>
         <Modal.Header closeButton>
-          <Modal.Title>Detalles de la Orden #{selectedOrder?.id || ""}</Modal.Title>
+          <Modal.Title>Detalles de la Orden ID: {selectedOrder?.order_number || ""}</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           {selectedOrder && (
@@ -253,7 +252,7 @@ function OrderHistory() {
                       </ListGroup.Item>
                       {selectedOrder.table_number && (
                         <ListGroup.Item>
-                          <strong>Mesa:</strong> #{selectedOrder.table_number}
+                          <strong>Mesa:</strong> ID {selectedOrder.table_number}
                         </ListGroup.Item>
                       )}
                       {selectedOrder.delivery_address && (
