@@ -13,6 +13,7 @@ import ResetPassword from './pages/ResetPassword';
 
 import Dashboard from './pages/Dashboard';
 import Menu from './pages/Menu';
+import Orders from './pages/Orders';
 
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminMenu from './pages/admin/AdminMenu';
@@ -40,6 +41,7 @@ function App() {
       <Route element={<PrivateRoute><ClientLayout /></PrivateRoute>}>
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/menu" element={<Menu />} />
+        <Route path="/orders" element={<Orders />} />
       </Route>
 
       {/* Admin routes without Navbar */}
@@ -70,7 +72,7 @@ function App() {
   );
 }
 
-// Redirect component (igual que antes)
+// Redirect component
 function HomeRedirect() {
   const { user, loading } = useAuth();
 
