@@ -1,6 +1,7 @@
 // src/components/Navbar.jsx
 import { useState, useEffect, useMemo } from "react";
-import { Link, useNavigate } from "react-router-dom";
+// AGREGADO: useLocation
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { useOrder } from "../hooks/useOrder";
 import { BsSun, BsMoon } from "react-icons/bs";
@@ -20,6 +21,9 @@ function AppNavbar() {
   const { user, logout } = useAuth();
   const { cart } = useOrder();
   const navigate = useNavigate();
+  // AGREGADO: Hook para saber la ruta actual
+  const location = useLocation();
+  
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
@@ -55,7 +59,7 @@ function AppNavbar() {
     <nav className="navbar">
       <div className="navbar-container">
         
-        {/* --- IZQUIERDA: Toggle + Logo --- */}
+        {/* --- IZQUIERDA --- */}
         <div className="navbar-left">
           <button 
             className="theme-toggle" 
@@ -70,18 +74,27 @@ function AppNavbar() {
           </Link>
         </div>
 
-        {/* --- CENTRO: Menú Links --- */}
+        {/* --- CENTRO --- */}
         {user && (
           <ul className={`navbar-menu ${isMenuOpen ? "active" : ""}`}>
-            {NAV_LINKS.map((link) => (
-              <li key={link.path}>
-                <Link to={link.path} className="navbar-link" onClick={closeMenu}>
-                  {link.label}
-                </Link>
-              </li>
-            ))}
+            {NAV_LINKS.map((link) => {
+              // Verificamos si la ruta actual coincide con el link
+              const isActive = location.pathname === link.path;
+              
+              return (
+                <li key={link.path}>
+                  <Link 
+                    to={link.path} 
+                    // Añadimos la clase "active" condicionalmente
+                    className={`navbar-link ${isActive ? "active" : ""}`} 
+                    onClick={closeMenu}
+                  >
+                    {link.label}
+                  </Link>
+                </li>
+              );
+            })}
             
-            {/* Logout en móvil */}
             <li className="mobile-logout-item">
               <button onClick={handleLogout} className="navbar-link logout-btn">
                 Cerrar Sesión
@@ -90,11 +103,10 @@ function AppNavbar() {
           </ul>
         )}
 
-        {/* --- DERECHA: Bolsa + Usuario + Logout --- */}
+        {/* --- DERECHA --- */}
         <div className="navbar-actions">
           {user ? (
             <>
-              {/* 1. Bolsa */}
               <Link 
                 to="/orders" 
                 className="cart-icon" 
@@ -107,7 +119,6 @@ function AppNavbar() {
                 )}
               </Link>
 
-              {/* 2. Usuario */}
               <div className="user-menu">
                 <button className="user-button">
                   {user.name || "Mi Cuenta"}
@@ -118,7 +129,6 @@ function AppNavbar() {
                 </div>
               </div>
 
-              {/* 3. Logout (Icono PC) */}
               <button 
                 className="desktop-logout-btn" 
                 onClick={handleLogout}
@@ -134,7 +144,6 @@ function AppNavbar() {
             </div>
           )}
 
-          {/* Menú Hamburguesa */}
           <button 
             className="mobile-menu-toggle"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -142,7 +151,6 @@ function AppNavbar() {
             {isMenuOpen ? <IoClose size={24} /> : <HiMenuAlt3 size={24} />}
           </button>
         </div>
-
       </div>
     </nav>
   );

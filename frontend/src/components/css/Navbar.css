@@ -1,8 +1,11 @@
 /* src/components/Navbar.css */
 
-/* --- VARIABLES --- */
+/* =========================================
+   1. VARIABLES & TEMAS
+   ========================================= */
+
 :root[data-theme="light"] {
-  --nav-bg: rgba(255, 255, 255, 0.9);
+  --nav-bg: rgba(255, 255, 255, 0.95);
   --nav-border: rgba(0, 0, 0, 0.08);
   --nav-text: #1a1a1a;
   --nav-text-muted: #666666;
@@ -14,18 +17,23 @@
 }
 
 :root[data-theme="dark"] {
-  --nav-bg: rgba(20, 20, 20, 0.9);
-  --nav-border: rgba(255, 255, 255, 0.08);
+  /* CAMBIO: Fondo casi negro puro con ligera transparencia */
+  --nav-bg: rgba(0, 0, 0, 0.92); 
+  /* CAMBIO: Borde más sutil para que no resalte tanto el gris */
+  --nav-border: rgba(255, 255, 255, 0.06);
   --nav-text: #ffffff;
-  --nav-text-muted: #a0a0a0;
-  --nav-hover: #2a2a2a;
+  --nav-text-muted: #888888;
+  /* CAMBIO: Hover muy oscuro, apenas visible sobre el negro */
+  --nav-hover: #111111;
   --badge-bg: #ffffff;
   --badge-text: #000000;
   --backdrop: blur(12px);
-  --shadow-sm: 0 4px 20px rgba(0, 0, 0, 0.3);
+  --shadow-sm: 0 4px 20px rgba(0, 0, 0, 0.8);
 }
 
-/* --- LAYOUT PRINCIPAL --- */
+/* =========================================
+   2. LAYOUT PRINCIPAL
+   ========================================= */
 .navbar {
   position: sticky;
   top: 0;
@@ -36,33 +44,33 @@
   -webkit-backdrop-filter: var(--backdrop);
   transition: all 0.3s ease;
   height: 70px;
-  width: 100%; /* Asegura que la barra ocupe todo */
+  width: 100%;
 }
 
 .navbar-container {
-  width: 100%; /* Ocupa todo el ancho disponible */
-  padding: 0 40px; /* Separación de los bordes de la pantalla */
+  width: 100%;
+  padding: 0 40px; /* Espaciado lateral */
   height: 100%;
   
-  /* GRID PARA CENTRADO PERFECTO */
+  /* GRID: Izquierda - Centro - Derecha */
   display: grid;
-  /* 1fr (izq) - auto (centro) - 1fr (der) */
-  /* Esto garantiza que el centro esté en el medio matemático de la pantalla */
   grid-template-columns: 1fr auto 1fr; 
   align-items: center;
 }
 
-/* --- IZQUIERDA (Toggle + Logo) --- */
+/* =========================================
+   3. SECCIÓN IZQUIERDA (Toggle + Logo)
+   ========================================= */
 .navbar-left {
   display: flex;
   align-items: center;
   gap: 20px;
-  justify-self: start; /* Pegado al inicio (Izquierda) */
+  justify-self: start;
 }
 
 .navbar-logo {
   font-size: 14px;
-  font-weight: 400;
+  font-weight: 400; /* Regular */
   letter-spacing: 2.5px;
   color: var(--nav-text);
   text-decoration: none;
@@ -88,14 +96,16 @@
   background: var(--nav-hover);
 }
 
-/* --- CENTRO (Links) --- */
+/* =========================================
+   4. SECCIÓN CENTRAL (Links)
+   ========================================= */
 .navbar-menu {
   display: flex;
-  gap: 50px; /* Más espacio entre links para elegancia */
+  gap: 50px;
   list-style: none;
   margin: 0;
   padding: 0;
-  justify-self: center; /* Centrado absoluto */
+  justify-self: center;
 }
 
 .navbar-link {
@@ -110,10 +120,13 @@
   padding: 5px 0;
 }
 
-.navbar-link:hover, .navbar-link.active {
+/* Estado Hover y Activo */
+.navbar-link:hover, 
+.navbar-link.active {
   color: var(--nav-text);
 }
 
+/* Línea inferior animada */
 .navbar-link::after {
   content: '';
   position: absolute;
@@ -126,19 +139,24 @@
   transform: translateX(-50%);
 }
 
-.navbar-link:hover::after {
+/* Mantener línea si es hover o active */
+.navbar-link:hover::after,
+.navbar-link.active::after {
   width: 100%;
 }
 
-/* --- DERECHA (Bolsa + User + Logout) --- */
+/* =========================================
+   5. SECCIÓN DERECHA (Acciones)
+   ========================================= */
 .navbar-actions {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  justify-self: end; /* Pegado al final (Derecha) */
+  justify-self: end;
   gap: 20px;
 }
 
+/* --- Bolsa --- */
 .cart-icon {
   position: relative;
   color: var(--nav-text);
@@ -169,12 +187,13 @@
   border: 2px solid var(--nav-bg);
 }
 
+/* --- Usuario --- */
 .user-menu { position: relative; }
 
 .user-button {
   background: transparent;
   border: 1px solid var(--nav-border);
-  border-radius: 30px; /* Más redondeado como en la imagen */
+  border-radius: 30px;
   color: var(--nav-text);
   cursor: pointer;
   font-size: 11px;
@@ -229,7 +248,7 @@
 
 .dropdown-item:hover { background: var(--nav-hover); }
 
-/* Botón Logout Desktop */
+/* --- Logout PC --- */
 .desktop-logout-btn {
   background: transparent;
   border: none;
@@ -244,10 +263,13 @@
 
 .desktop-logout-btn:hover {
   color: #ff4d4f;
-  transform: translateX(3px); /* Pequeño movimiento a la derecha */
+  transform: translateX(3px);
 }
 
-/* --- MÓVIL --- */
+/* --- Auth Buttons --- */
+.auth-buttons { display: flex; gap: 12px; }
+
+/* --- Toggle Móvil --- */
 .mobile-menu-toggle {
   display: none;
   background: transparent;
@@ -256,12 +278,13 @@
   cursor: pointer;
 }
 .mobile-logout-item { display: none; }
-.auth-buttons { display: flex; gap: 12px; }
 
-/* --- RESPONSIVE --- */
+/* =========================================
+   6. RESPONSIVE (MÓVIL)
+   ========================================= */
 @media (max-width: 968px) {
   .navbar-container {
-    display: flex; /* Flex en móvil */
+    display: flex;
     justify-content: space-between;
     padding: 0 20px;
   }
