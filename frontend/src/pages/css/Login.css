@@ -1,0 +1,149 @@
+/* src/pages/css/Login.css */
+
+/* =========================================
+   1. VARIABLES FLAT (Cero Sombras)
+   ========================================= */
+:root {
+  /* LIGHT MODE */
+  --page-bg: #ffffff;
+  --card-bg: #ffffff;
+  --text-main: #000000;
+  --text-muted: #777777;
+  --border-color: #e0e0e0;       /* Gris muy suave para bordes */
+  --input-bg: #f8f8f8;           /* Un gris muy leve para diferenciar el input */
+  --btn-bg: #000000;
+  --btn-text: #ffffff;
+  --focus-border: #000000;
+}
+
+[data-theme="dark"] {
+  /* DARK MODE (Negro Puro) */
+  --page-bg: #000000;
+  --card-bg: #000000;
+  --text-main: #ffffff;
+  --text-muted: #888888;
+  --border-color: #333333;       /* Borde gris oscuro visible */
+  --input-bg: #111111;           /* Gris casi negro */
+  --btn-bg: #ffffff;
+  --btn-text: #000000;
+  --focus-border: #ffffff;
+}
+
+/* =========================================
+   2. ESTRUCTURA FLAT
+   ========================================= */
+.login-page {
+  background-color: var(--page-bg);
+  min-height: 100vh;
+  transition: background-color 0.3s ease;
+  padding-top: 80px;
+}
+
+/* Tarjeta: Sin sombras, solo un borde sutil */
+.login-card-flat {
+  background-color: var(--card-bg) !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: 0 !important; /* Esquinas cuadradas o apenas redondeadas (0 o 4px) */
+  box-shadow: none !important; /* CLAVE: Cero sombras */
+}
+
+.login-title {
+  color: var(--text-main);
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  font-size: 1.25rem;
+}
+
+.login-subtitle {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  letter-spacing: 0.5px;
+}
+
+/* =========================================
+   3. INPUTS FLAT
+   ========================================= */
+.flat-label {
+  color: var(--text-main);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.flat-input {
+  background-color: var(--input-bg) !important;
+  border: 1px solid transparent !important; /* Sin borde inicial o borde sutil */
+  color: var(--text-main) !important;
+  border-radius: 4px !important; /* Radio pequeño */
+  padding: 12px 16px !important;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+  box-shadow: none !important; /* Aseguramos que no haya glow */
+}
+
+/* Al enfocar: Borde sólido, sin resplandor */
+.flat-input:focus {
+  background-color: var(--card-bg) !important;
+  border-color: var(--focus-border) !important;
+  outline: none !important;
+  box-shadow: none !important; 
+}
+
+.flat-input::placeholder {
+  color: var(--text-muted);
+  opacity: 0.6;
+}
+
+/* Botón Ojo Password */
+.password-toggle-flat {
+  color: var(--text-muted) !important;
+  transition: color 0.2s;
+}
+.password-toggle-flat:hover {
+  color: var(--text-main) !important;
+}
+
+/* =========================================
+   4. BOTONES Y LINKS FLAT
+   ========================================= */
+.btn-flat-primary {
+  background-color: var(--btn-bg) !important;
+  border: 1px solid var(--btn-bg) !important;
+  color: var(--btn-text) !important;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  padding: 14px !important;
+  border-radius: 4px !important; /* Consistente con inputs */
+  transition: opacity 0.2s ease !important;
+  box-shadow: none !important;
+}
+
+.btn-flat-primary:hover:not(:disabled) {
+  opacity: 0.8; /* Solo cambio de opacidad, sin movimiento */
+  background-color: var(--btn-bg) !important;
+  border-color: var(--btn-bg) !important;
+}
+
+.link-flat {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.link-flat:hover {
+  color: var(--text-main);
+  border-bottom-color: var(--text-main); /* Subrayado sólido al hover */
+}
+
+/* Divider sutil */
+.flat-divider {
+  border-top: 1px solid var(--border-color);
+  margin: 2rem 0;
+}

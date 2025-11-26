@@ -1,10 +1,12 @@
-// pages/ForgotPassword.jsx
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Container, Row, Col, Form, Button, Card } from "react-bootstrap";
 import { forgotPassword } from "../api/auth";
 import Swal from "sweetalert2";
 import withReactContent from "sweetalert2-react-content";
+
+// Importamos el mismo CSS Flat
+import "./css/Login.css";
 
 const MySwal = withReactContent(Swal);
 
@@ -20,15 +22,7 @@ function ForgotPassword() {
     if (form.checkValidity() === false) {
       e.stopPropagation();
       setValidated(true);
-      
-      MySwal.fire({
-        title: 'Campo Incompleto',
-        text: 'Por favor ingresa un email válido',
-        icon: 'warning',
-        confirmButtonText: 'Entendido',
-        confirmButtonColor: '#1f2937' // ✅ Color actualizado
-      });
-      return;
+      return; // La validación visual la maneja el CSS
     }
 
     setLoading(true);
@@ -41,17 +35,20 @@ function ForgotPassword() {
         "Te hemos enviado un enlace para restablecer tu contraseña";
 
       await MySwal.fire({
-        title: 'Correo Enviado',
+        title: 'CORREO ENVIADO',
         html: `
-          <div style="text-align: center;">
+          <div style="font-size: 0.95rem;">
             <p style="margin-bottom: 10px;">${message}</p>
-            <p style="color: #6c757d; font-size: 14px;">Revisa tu bandeja de entrada y sigue las instrucciones.</p>
+            <p style="opacity: 0.7; font-size: 0.85rem;">Revisa tu bandeja de entrada y sigue las instrucciones.</p>
           </div>
         `,
         icon: 'success',
-        confirmButtonText: 'Entendido',
-        confirmButtonColor: '#1f2937', // ✅ Color actualizado
-        allowOutsideClick: false
+        confirmButtonText: 'ENTENDIDO',
+        confirmButtonColor: '#000',
+        allowOutsideClick: false,
+        background: document.documentElement.getAttribute('data-theme') === 'dark' ? '#000' : '#fff',
+        color: document.documentElement.getAttribute('data-theme') === 'dark' ? '#fff' : '#000',
+        customClass: { popup: 'rounded-0 border-1 border-secondary' }
       });
 
       setEmail("");
@@ -63,11 +60,14 @@ function ForgotPassword() {
         "Error al enviar el correo. Por favor intenta de nuevo";
 
       MySwal.fire({
-        title: 'Error',
+        title: 'ERROR',
         text: errorMessage,
         icon: 'error',
-        confirmButtonText: 'Reintentar',
-        confirmButtonColor: '#1f2937' // ✅ Color actualizado
+        confirmButtonText: 'CERRAR',
+        confirmButtonColor: '#000',
+        background: document.documentElement.getAttribute('data-theme') === 'dark' ? '#000' : '#fff',
+        color: document.documentElement.getAttribute('data-theme') === 'dark' ? '#fff' : '#000',
+        customClass: { popup: 'rounded-0 border-1 border-secondary' }
       });
     } finally {
       setLoading(false);
@@ -75,62 +75,65 @@ function ForgotPassword() {
   };
 
   return (
-    <Container className="min-vh-100 d-flex align-items-center justify-content-center">
-      <Row className="w-100">
-        <Col md={6} lg={5} xl={4} className="mx-auto">
-          <Card className="shadow">
-            <Card.Body className="p-4">
-              <h2 className="text-center mb-4">Recuperar Contraseña</h2>
-              
-              <p className="text-muted text-center mb-4">
-                Ingresa tu email y te enviaremos un enlace para restablecer tu contraseña
-              </p>
-
-              <Form noValidate validated={validated} onSubmit={handleSubmit}>
-                <Form.Group className="mb-3" controlId="formEmail">
-                  <Form.Label>Email</Form.Label>
-                  <Form.Control
-                    type="email"
-                    placeholder="correo@ejemplo.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                  />
-                  <Form.Control.Feedback type="invalid">
-                    Por favor ingresa un email válido.
-                  </Form.Control.Feedback>
-                </Form.Group>
-
-                <Button
-                  type="submit"
-                  className="w-100 mb-3"
-                  disabled={loading}
-                  style={{ 
-                    backgroundColor: '#1f2937', // ✅ Color gris oscuro
-                    borderColor: '#1f2937'
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#111827'}
-                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#1f2937'}
-                >
-                  {loading ? (
-                    <>
-                      <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                      Enviando...
-                    </>
-                  ) : "Enviar enlace"}
-                </Button>
-
-                <div className="text-center">
-                  <Link to="/login" className="text-decoration-none">
-                    Volver a Iniciar Sesión
-                  </Link>
+    <div className="login-page d-flex align-items-center justify-content-center">
+      <Container>
+        <Row className="justify-content-center w-100">
+          <Col md={6} lg={5} xl={4}>
+            
+            {/* CARD FLAT */}
+            <Card className="login-card-flat">
+              <Card.Body className="p-4 p-md-5">
+                
+                <div className="text-center mb-5">
+                  <h2 className="login-title">TasteLogic</h2>
+                  <p className="login-subtitle">RECUPERAR CONTRASEÑA</p>
                 </div>
-              </Form>
-            </Card.Body>
-          </Card>
-        </Col>
-      </Row>
-    </Container>
+                
+                <p className="text-muted text-center small mb-4 px-2">
+                  Ingresa tu email y te enviaremos las instrucciones para restablecer tu acceso.
+                </p>
+
+                <Form noValidate validated={validated} onSubmit={handleSubmit}>
+                  
+                  <Form.Group className="mb-4" controlId="formEmail">
+                    <Form.Label className="flat-label">Email</Form.Label>
+                    <Form.Control
+                      className="flat-input"
+                      type="email"
+                      placeholder="nombre@correo.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                    />
+                    <Form.Control.Feedback type="invalid" className="small mt-1">
+                      Por favor ingresa un email válido.
+                    </Form.Control.Feedback>
+                  </Form.Group>
+
+                  <Button
+                    type="submit"
+                    className="btn-flat-primary w-100 mt-2"
+                    disabled={loading}
+                  >
+                    {loading ? "ENVIANDO..." : "ENVIAR ENLACE"}
+                  </Button>
+
+                  <div className="flat-divider"></div>
+
+                  <div className="text-center">
+                    <Link to="/login" className="link-flat fw-bold small">
+                      VOLVER A INICIAR SESIÓN
+                    </Link>
+                  </div>
+
+                </Form>
+              </Card.Body>
+            </Card>
+
+          </Col>
+        </Row>
+      </Container>
+    </div>
   );
 }
 
