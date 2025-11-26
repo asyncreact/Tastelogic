@@ -1,3 +1,4 @@
+// src/pages/Register.jsx
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Container, Row, Col, Form, Button, Card } from "react-bootstrap";
@@ -5,6 +6,9 @@ import { useAuth } from "../hooks/useAuth";
 import Swal from "sweetalert2";
 import withReactContent from "sweetalert2-react-content";
 import { Eye, EyeSlash } from "react-bootstrap-icons";
+
+// 1. IMPORTAR EL COMPONENTE TOGGLE
+import ThemeToggle from "../components/ThemeToggle";
 
 import "./css/Login.css";
 
@@ -124,17 +128,21 @@ function Register() {
   };
 
   return (
-    // CAMBIO 1: Quitamos py-5 y usamos una clase personalizada para controlar la altura
-    <div className="login-page d-flex align-items-center justify-content-center register-compact-page">
+    // 2. AGREGADO: position: relative al contenedor principal
+    <div className="login-page d-flex align-items-center justify-content-center register-compact-page" style={{ position: 'relative' }}>
+      
+      {/* 3. IMPLEMENTACIÓN: Botón en la esquina superior IZQUIERDA */}
+      <div style={{ position: 'absolute', top: '25px', left: '25px', zIndex: 1050 }}>
+        <ThemeToggle />
+      </div>
+
       <Container>
         <Row className="justify-content-center w-100">
           <Col md={6} lg={5} xl={4}>
             
             <Card className="login-card-flat">
-              {/* CAMBIO 2: Reducimos padding interno (p-4 en vez de p-5) */}
               <Card.Body className="p-4">
                 
-                {/* CAMBIO 3: Reducimos margen inferior del título (mb-3 en vez de mb-5) */}
                 <div className="text-center mb-3">
                   <h2 className="login-title">TasteLogic</h2>
                   <p className="login-subtitle mb-0">CREAR CUENTA</p>
@@ -142,7 +150,6 @@ function Register() {
 
                 <Form noValidate validated={validated} onSubmit={handleSubmit}>
                   
-                  {/* CAMBIO 4: Reducimos margins de los grupos (mb-2 en vez de mb-4) */}
                   <Form.Group className="mb-2" controlId="formName">
                     <Form.Label className="flat-label mb-1">Nombre</Form.Label>
                     <Form.Control
@@ -236,7 +243,6 @@ function Register() {
                     {loading ? "..." : "REGISTRARSE"}
                   </Button>
 
-                  {/* CAMBIO 5: Reducimos margen del divider */}
                   <div className="flat-divider" style={{ margin: '1rem 0' }}></div>
 
                   <div className="text-center">

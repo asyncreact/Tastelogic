@@ -1,9 +1,13 @@
+// src/pages/VerifyEmail.jsx
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Container, Row, Col, Card } from "react-bootstrap";
 import { verifyAccount } from "../api/auth";
 import Swal from "sweetalert2";
 import withReactContent from "sweetalert2-react-content";
+
+// 1. IMPORTAR EL COMPONENTE TOGGLE
+import ThemeToggle from "../components/ThemeToggle";
 
 // Importamos el CSS Flat compartido
 import "./css/Login.css";
@@ -100,7 +104,14 @@ function VerifyEmail() {
   }, [token, navigate]);
 
   return (
-    <div className="login-page d-flex align-items-center justify-content-center">
+    // 2. AGREGADO: position: relative al contenedor principal
+    <div className="login-page d-flex align-items-center justify-content-center" style={{ position: 'relative' }}>
+      
+      {/* 3. IMPLEMENTACIÓN: Botón en la esquina superior IZQUIERDA */}
+      <div style={{ position: 'absolute', top: '25px', left: '25px', zIndex: 1050 }}>
+        <ThemeToggle />
+      </div>
+
       <Container>
         <Row className="w-100 justify-content-center">
           <Col md={8} lg={6} xl={5}>

@@ -1,3 +1,4 @@
+// src/pages/ResetPassword.jsx
 import { useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { Container, Row, Col, Form, Button, Card } from "react-bootstrap";
@@ -5,6 +6,9 @@ import { resetPassword } from "../api/auth";
 import Swal from "sweetalert2";
 import withReactContent from "sweetalert2-react-content";
 import { Eye, EyeSlash } from "react-bootstrap-icons";
+
+// 1. IMPORTAR EL COMPONENTE TOGGLE
+import ThemeToggle from "../components/ThemeToggle";
 
 // Importamos el CSS Flat compartido
 import "./css/Login.css";
@@ -123,7 +127,14 @@ function ResetPassword() {
   };
 
   return (
-    <div className="login-page d-flex align-items-center justify-content-center">
+    // 2. AGREGADO: position: relative al contenedor principal
+    <div className="login-page d-flex align-items-center justify-content-center" style={{ position: 'relative' }}>
+      
+      {/* 3. IMPLEMENTACIÓN: Botón en la esquina superior IZQUIERDA */}
+      <div style={{ position: 'absolute', top: '25px', left: '25px', zIndex: 1050 }}>
+        <ThemeToggle />
+      </div>
+
       <Container>
         <Row className="justify-content-center w-100">
           <Col md={6} lg={5} xl={4}>

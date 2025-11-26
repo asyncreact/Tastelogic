@@ -1,42 +1,17 @@
-/* src/pages/css/Login.css */
-
 /* =========================================
-   1. VARIABLES FLAT (Cero Sombras)
+   ESTRUCTURA FLAT (Login/Register/Recover)
+   Nota: Las variables ahora viven en src/index.css
    ========================================= */
-:root {
-  /* LIGHT MODE */
-  --page-bg: #ffffff;
-  --card-bg: #ffffff;
-  --text-main: #000000;
-  --text-muted: #777777;
-  --border-color: #e0e0e0;
-  --input-bg: #f8f8f8;
-  --btn-bg: #000000;
-  --btn-text: #ffffff;
-  --focus-border: #000000;
-}
 
-[data-theme="dark"] {
-  /* DARK MODE */
-  --page-bg: #000000;
-  --card-bg: #000000;
-  --text-main: #ffffff;
-  --text-muted: #ffffff;
-  --border-color: #333333;
-  --input-bg: #111111;
-  --btn-bg: #ffffff;
-  --btn-text: #000000;
-  --focus-border: #ffffff;
-}
-
-/* =========================================
-   2. ESTRUCTURA FLAT
-   ========================================= */
 .login-page {
-  background-color: var(--page-bg);
+  /* Ya hereda el background del body, pero forzamos por si acaso */
+  background-color: var(--page-bg); 
   min-height: 100vh;
-  transition: background-color 0.3s ease;
   padding-top: 80px;
+  /* La transición ya está en el body, pero se puede mantener aquí para el padding */
+  transition: all 0.3s ease; 
+  /* Asegurar que el contenedor relativo funcione para el toggle */
+  position: relative; 
 }
 
 /* Tarjeta: Sin sombras, solo un borde sutil */
@@ -62,7 +37,7 @@
 }
 
 /* =========================================
-   3. INPUTS FLAT (Transiciones ajustadas)
+   INPUTS FLAT
    ========================================= */
 .flat-label {
   color: var(--text-main);
@@ -80,7 +55,6 @@
   border-radius: 4px !important;
   padding: 12px 16px !important;
   font-size: 0.9rem;
-  /* CAMBIO: Transición unificada con Navbar (0.3s ease) */
   transition: all 0.3s ease !important;
   box-shadow: none !important;
 }
@@ -90,7 +64,6 @@
   border-color: var(--focus-border) !important;
   outline: none !important;
   box-shadow: none !important;
-  /* Opcional: Pequeño scale sutil como en apps modernas */
   transform: scale(1.01); 
 }
 
@@ -108,7 +81,7 @@
 }
 
 /* =========================================
-   4. BOTONES Y LINKS (Animaciones del Navbar)
+   BOTONES Y LINKS
    ========================================= */
 
 /* --- BOTÓN PRINCIPAL --- */
@@ -123,14 +96,11 @@
   padding: 14px !important;
   border-radius: 4px !important;
   box-shadow: none !important;
-  
-  /* CAMBIO: Transición idéntica al Navbar */
   transition: all 0.3s ease !important;
 }
 
 .btn-flat-primary:hover:not(:disabled) {
   opacity: 0.9;
-  /* CAMBIO: Efecto de expansión de letras (similar a la fluidez del navbar) */
   letter-spacing: 3px; 
   background-color: var(--btn-bg) !important;
   border-color: var(--btn-bg) !important;
@@ -141,9 +111,9 @@
   color: var(--text-muted);
   font-size: 0.85rem;
   text-decoration: none;
-  position: relative; /* Necesario para el pseudo-elemento */
+  position: relative;
   transition: color 0.3s ease;
-  border-bottom: none; /* Quitamos el borde antiguo */
+  border-bottom: none;
   padding-bottom: 2px;
 }
 
@@ -151,7 +121,6 @@
   color: var(--text-main);
 }
 
-/* CAMBIO: Animación exacta del Navbar (Línea desde el centro) */
 .link-flat::after {
   content: '';
   position: absolute;
@@ -172,4 +141,19 @@
 .flat-divider {
   border-top: 1px solid var(--border-color);
   margin: 2rem 0;
+}
+
+/* Contenedor para el botón de tema en páginas de auth */
+.auth-theme-toggle {
+  position: absolute;
+  top: 25px;
+  left: 25px; /* Mantenemos izquierda como pediste */
+  z-index: 1050;
+}
+
+@media (max-width: 576px) {
+  .auth-theme-toggle {
+    top: 15px;
+    left: 15px;
+  }
 }

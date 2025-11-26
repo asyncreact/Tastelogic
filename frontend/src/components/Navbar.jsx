@@ -1,13 +1,12 @@
-// src/components/Navbar.jsx
-import { useState, useEffect, useMemo } from "react";
-// AGREGADO: useLocation
+import { useState, useMemo } from "react"; // Eliminado useEffect ya no se usa aquí
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { useOrder } from "../hooks/useOrder";
-import { BsSun, BsMoon } from "react-icons/bs";
+// Eliminados iconos de Sun/Moon ya que están en el toggle
 import { RiShoppingBag4Line } from "react-icons/ri";
 import { HiMenuAlt3 } from "react-icons/hi";
 import { IoClose, IoLogOutOutline } from "react-icons/io5";
+import ThemeToggle from "./ThemeToggle"; // <--- IMPORTANTE: Importar el nuevo componente
 import "./css/Navbar.css";
 
 const NAV_LINKS = [
@@ -21,26 +20,12 @@ function AppNavbar() {
   const { user, logout } = useAuth();
   const { cart } = useOrder();
   const navigate = useNavigate();
-  // AGREGADO: Hook para saber la ruta actual
   const location = useLocation();
   
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  // Eliminada lógica de isDarkMode
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  useEffect(() => {
-    const savedTheme = localStorage.getItem("theme");
-    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-    const initialTheme = savedTheme || (prefersDark ? "dark" : "light");
-    setIsDarkMode(initialTheme === "dark");
-    document.documentElement.setAttribute("data-theme", initialTheme);
-  }, []);
-
-  const toggleTheme = () => {
-    const newTheme = !isDarkMode ? "dark" : "light";
-    setIsDarkMode(!isDarkMode);
-    localStorage.setItem("theme", newTheme);
-    document.documentElement.setAttribute("data-theme", newTheme);
-  };
+  // Eliminado useEffect del tema y toggleTheme()
 
   const handleLogout = async () => {
     setIsMenuOpen(false);
@@ -61,13 +46,9 @@ function AppNavbar() {
         
         {/* --- IZQUIERDA --- */}
         <div className="navbar-left">
-          <button 
-            className="theme-toggle" 
-            onClick={toggleTheme}
-            aria-label="Cambiar tema"
-          >
-            {isDarkMode ? <BsSun size={18} /> : <BsMoon size={18} />}
-          </button>
+          
+          {/* Aquí usamos el nuevo componente */}
+          <ThemeToggle />
 
           <Link to="/" className="navbar-logo" onClick={closeMenu}>
             TASTELOGIC
@@ -78,14 +59,12 @@ function AppNavbar() {
         {user && (
           <ul className={`navbar-menu ${isMenuOpen ? "active" : ""}`}>
             {NAV_LINKS.map((link) => {
-              // Verificamos si la ruta actual coincide con el link
               const isActive = location.pathname === link.path;
               
               return (
                 <li key={link.path}>
                   <Link 
                     to={link.path} 
-                    // Añadimos la clase "active" condicionalmente
                     className={`navbar-link ${isActive ? "active" : ""}`} 
                     onClick={closeMenu}
                   >

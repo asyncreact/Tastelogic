@@ -1,38 +1,11 @@
-/* src/components/Navbar.css */
-
 /* =========================================
-   1. VARIABLES & TEMAS
+   ESTILOS NAVBAR
+   Nota: Las variables de colores y temas se heredan 
+   de src/index.css (Global)
    ========================================= */
 
-:root[data-theme="light"] {
-  --nav-bg: rgba(255, 255, 255, 0.95);
-  --nav-border: rgba(0, 0, 0, 0.08);
-  --nav-text: #1a1a1a;
-  --nav-text-muted: #666666;
-  --nav-hover: #f3f4f6;
-  --badge-bg: #000000;
-  --badge-text: #ffffff;
-  --backdrop: blur(12px);
-  --shadow-sm: 0 4px 20px rgba(0, 0, 0, 0.08);
-}
-
-:root[data-theme="dark"] {
-  /* CAMBIO: Fondo casi negro puro con ligera transparencia */
-  --nav-bg: rgba(0, 0, 0, 0.92); 
-  /* CAMBIO: Borde más sutil para que no resalte tanto el gris */
-  --nav-border: rgba(255, 255, 255, 0.06);
-  --nav-text: #ffffff;
-  --nav-text-muted: #888888;
-  /* CAMBIO: Hover muy oscuro, apenas visible sobre el negro */
-  --nav-hover: #111111;
-  --badge-bg: #ffffff;
-  --badge-text: #000000;
-  --backdrop: blur(12px);
-  --shadow-sm: 0 4px 20px rgba(0, 0, 0, 0.8);
-}
-
 /* =========================================
-   2. LAYOUT PRINCIPAL
+   1. LAYOUT PRINCIPAL
    ========================================= */
 .navbar {
   position: sticky;
@@ -49,17 +22,15 @@
 
 .navbar-container {
   width: 100%;
-  padding: 0 40px; /* Espaciado lateral */
+  padding: 0 40px;
   height: 100%;
-  
-  /* GRID: Izquierda - Centro - Derecha */
   display: grid;
   grid-template-columns: 1fr auto 1fr; 
   align-items: center;
 }
 
 /* =========================================
-   3. SECCIÓN IZQUIERDA (Toggle + Logo)
+   2. SECCIÓN IZQUIERDA (Toggle + Logo)
    ========================================= */
 .navbar-left {
   display: flex;
@@ -70,21 +41,23 @@
 
 .navbar-logo {
   font-size: 14px;
-  font-weight: 400; /* Regular */
+  font-weight: 400;
   letter-spacing: 2.5px;
-  color: var(--nav-text);
+  /* Usamos la variable global de texto principal */
+  color: var(--text-main);
   text-decoration: none;
   white-space: nowrap;
   text-transform: uppercase;
 }
 
+/* Botón Toggle en el Navbar */
 .theme-toggle {
   background: transparent;
   border: 1px solid var(--nav-border);
   border-radius: 50%;
   width: 36px;
   height: 36px;
-  color: var(--nav-text);
+  color: var(--text-main); /* Antes --nav-text */
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -97,7 +70,7 @@
 }
 
 /* =========================================
-   4. SECCIÓN CENTRAL (Links)
+   3. SECCIÓN CENTRAL (Links)
    ========================================= */
 .navbar-menu {
   display: flex;
@@ -114,19 +87,18 @@
   font-weight: 600;
   letter-spacing: 1.5px;
   text-transform: uppercase;
-  color: var(--nav-text-muted);
+  /* Usamos la variable global muted */
+  color: var(--text-muted); 
   text-decoration: none;
   transition: color 0.3s ease;
   padding: 5px 0;
 }
 
-/* Estado Hover y Activo */
 .navbar-link:hover, 
 .navbar-link.active {
-  color: var(--nav-text);
+  color: var(--text-main);
 }
 
-/* Línea inferior animada */
 .navbar-link::after {
   content: '';
   position: absolute;
@@ -134,19 +106,18 @@
   height: 1px;
   bottom: 0;
   left: 50%;
-  background-color: var(--nav-text);
+  background-color: var(--text-main);
   transition: all 0.3s ease;
   transform: translateX(-50%);
 }
 
-/* Mantener línea si es hover o active */
 .navbar-link:hover::after,
 .navbar-link.active::after {
   width: 100%;
 }
 
 /* =========================================
-   5. SECCIÓN DERECHA (Acciones)
+   4. SECCIÓN DERECHA (Acciones)
    ========================================= */
 .navbar-actions {
   display: flex;
@@ -159,7 +130,7 @@
 /* --- Bolsa --- */
 .cart-icon {
   position: relative;
-  color: var(--nav-text);
+  color: var(--text-main);
   display: flex;
   align-items: center;
   text-decoration: none;
@@ -194,7 +165,7 @@
   background: transparent;
   border: 1px solid var(--nav-border);
   border-radius: 30px;
-  color: var(--nav-text);
+  color: var(--text-main);
   cursor: pointer;
   font-size: 11px;
   font-weight: 600;
@@ -206,9 +177,10 @@
 }
 
 .user-button:hover {
-  border-color: var(--nav-text);
-  background: var(--nav-text);
-  color: var(--nav-bg);
+  border-color: var(--text-main);
+  background: var(--text-main);
+  /* Aquí usamos nav-bg para que el texto contraste con el fondo sólido */
+  color: var(--page-bg); 
 }
 
 .dropdown-menu {
@@ -237,7 +209,7 @@
 .dropdown-item {
   display: block;
   padding: 10px 16px;
-  color: var(--nav-text);
+  color: var(--text-main);
   text-decoration: none;
   font-size: 12px;
   border-radius: 8px;
@@ -252,7 +224,7 @@
 .desktop-logout-btn {
   background: transparent;
   border: none;
-  color: var(--nav-text-muted);
+  color: var(--text-muted);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -274,13 +246,13 @@
   display: none;
   background: transparent;
   border: none;
-  color: var(--nav-text);
+  color: var(--text-main);
   cursor: pointer;
 }
 .mobile-logout-item { display: none; }
 
 /* =========================================
-   6. RESPONSIVE (MÓVIL)
+   5. RESPONSIVE (MÓVIL)
    ========================================= */
 @media (max-width: 968px) {
   .navbar-container {

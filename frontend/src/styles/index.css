@@ -1,0 +1,112 @@
+/* 1. IMPORTAR FUENTE (Google Fonts - Inter) */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+/* =========================================
+   2. VARIABLES GLOBALES (THEME)
+   ========================================= */
+:root {
+  /* --- Tipografía --- */
+  --font-main: 'Inter', system-ui, -apple-system, sans-serif;
+
+  /* --- MODO CLARO (LIGHT) --- */
+  
+  /* Fondos */
+  --page-bg: #ffffff;
+  --card-bg: #ffffff;
+  --input-bg: #f8f8f8;
+  
+  /* Textos */
+  --text-main: #000000;
+  /* CAMBIO: De #777777 a #555555 para mayor contraste en modo claro */
+  --text-muted: #555555;
+  --text-inverse: #ffffff;
+
+  /* Botones y Acentos */
+  --primary: #000000;
+  --border-color: #e0e0e0;
+  --focus-border: #000000;
+  --btn-bg: #000000;
+  --btn-text: #ffffff;
+
+  /* Navbar Específicos */
+  --nav-bg: rgba(255, 255, 255, 0.95);
+  --nav-border: rgba(0, 0, 0, 0.08);
+  --nav-hover: #f3f4f6;
+  --badge-bg: #000000;
+  --badge-text: #ffffff;
+  --backdrop: blur(12px);
+  --shadow-sm: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="dark"] {
+  /* --- MODO OSCURO (DARK) --- */
+
+  /* Fondos */
+  --page-bg: #000000;
+  --card-bg: #000000;
+  --input-bg: #111111;
+  
+  /* Textos */
+  --text-main: #ffffff;
+  /* Blanco puro en modo oscuro */
+  --text-muted: #ffffff; 
+  --text-inverse: #000000;
+
+  /* Botones y Acentos */
+  --primary: #ffffff;
+  --border-color: #333333;
+  --focus-border: #ffffff;
+  --btn-bg: #ffffff;
+  --btn-text: #000000;
+
+  /* Navbar Específicos */
+  --nav-bg: rgba(0, 0, 0, 0.92);
+  --nav-border: rgba(255, 255, 255, 0.15);
+  --nav-hover: #111111;
+  --badge-bg: #ffffff;
+  --badge-text: #000000;
+  --shadow-sm: 0 4px 20px rgba(0, 0, 0, 0.8);
+}
+
+/* =========================================
+   3. RESET Y BASE
+   ========================================= */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-main);
+  background-color: var(--page-bg);
+  color: var(--text-main);
+  transition: background-color 0.3s ease, color 0.3s ease;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Estilos globales para párrafos */
+p {
+  color: var(--text-muted);
+  line-height: 1.6;
+  margin-bottom: 1rem;
+  font-weight: 400;
+  opacity: 1; 
+}
+
+/* Estilos globales para controles de formulario */
+input, button, select, textarea {
+  font-family: inherit;
+}
+
+/* Clases utilitarias globales */
+.text-main { color: var(--text-main) !important; }
+
+/* SOLUCIÓN DEFINITIVA PARA BOOTSTRAP:
+   Usamos 'body .text-muted' para tener más especificidad que Bootstrap
+   y forzar el uso de nuestra variable de color.
+*/
+body .text-muted { 
+  color: var(--text-muted) !important; 
+}
