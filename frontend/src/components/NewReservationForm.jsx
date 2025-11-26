@@ -1,14 +1,12 @@
-// src/components/NewReservationForm.jsx
 import { useState, useEffect } from "react";
 import { Form, Button, Row, Col, Alert, Card, Badge, Spinner } from "react-bootstrap";
 import { useReservation } from "../hooks/useReservation";
 import api from "../api/auth";
 import Swal from "sweetalert2";
-import { MdEventAvailable, MdPeople, MdRestaurant } from "react-icons/md";
+import { MdEventAvailable, MdPeople, MdOutlineTableBar } from "react-icons/md";
 
 function NewReservationForm({ onSuccess }) {
   const { addReservation, fetchAvailableTables, loading } = useReservation();
-
   const [formData, setFormData] = useState({
     zone_id: "",
     table_id: "",
@@ -17,21 +15,18 @@ function NewReservationForm({ onSuccess }) {
     guest_count: "",
     special_requirements: "",
   });
-
   const [zones, setZones] = useState([]);
   const [availableTables, setAvailableTables] = useState([]);
   const [loadingTables, setLoadingTables] = useState(false);
   const [loadingZones, setLoadingZones] = useState(true);
 
-  // Cargar zonas al montar el componente
   useEffect(() => {
     const loadZones = async () => {
       try {
         setLoadingZones(true);
-        const response = await api.get('/zones/public'); // Ruta pública
+        const response = await api.get("/zones/public");
         setZones(response.data?.zones || response.data?.data || []);
       } catch (error) {
-        console.error("Error loading zones:", error);
         Swal.fire({
           icon: "error",
           title: "Error",
@@ -41,17 +36,32 @@ function NewReservationForm({ onSuccess }) {
         setLoadingZones(false);
       }
     };
+
     loadZones();
   }, []);
 
   useEffect(() => {
-    if (formData.zone_id && formData.reservation_date && formData.reservation_time && formData.guest_count) {
+    if (
+      formData.zone_id &&
+      formData.reservation_date &&
+      formData.reservation_time &&
+      formData.guest_count
+    ) {
       loadAvailableTables();
     } else {
       setAvailableTables([]);
-      setFormData((prev) => ({ ...prev, table_id: "" }));
+      setFormData((prev) => ({
+        ...prev,
+        table_id: "",
+      }));
     }
-  }, [formData.zone_id, formData.reservation_date, formData.reservation_time, formData.guest_count]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    formData.zone_id,
+    formData.reservation_date,
+    formData.reservation_time,
+    formData.guest_count,
+  ]);
 
   const loadAvailableTables = async () => {
     try {
@@ -62,9 +72,8 @@ function NewReservationForm({ onSuccess }) {
         reservation_time: formData.reservation_time,
         guest_count: formData.guest_count,
       });
-      setAvailableTables(tables);
+      setAvailableTables(tables || []);
     } catch (error) {
-      console.error("Error loading tables:", error);
       setAvailableTables([]);
     } finally {
       setLoadingTables(false);
@@ -73,10 +82,13 @@ function NewReservationForm({ onSuccess }) {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+
     setFormData((prev) => ({
       ...prev,
       [name]: value,
-      ...(["zone_id", "reservation_date", "reservation_time", "guest_count"].includes(name) && { table_id: "" }),
+      ...(["zone_id", "reservation_date", "reservation_time", "guest_count"].includes(name) && {
+        table_id: "",
+      }),
     }));
   };
 
@@ -92,7 +104,9 @@ function NewReservationForm({ onSuccess }) {
       return;
     }
 
-    const reservationDate = new Date(`${formData.reservation_date}T${formData.reservation_time}`);
+    const reservationDate = new Date(
+      `${formData.reservation_date}T${formData.reservation_time}`
+    );
     const now = new Date();
 
     if (reservationDate <= now) {
@@ -121,7 +135,6 @@ function NewReservationForm({ onSuccess }) {
         confirmButtonText: "Ok",
       });
 
-      // Limpiar formulario
       setFormData({
         zone_id: "",
         table_id: "",
@@ -132,7 +145,6 @@ function NewReservationForm({ onSuccess }) {
       });
       setAvailableTables([]);
 
-      // Llamar callback para cambiar a tab de historial
       if (onSuccess) onSuccess();
     } catch (error) {
       Swal.fire({
@@ -151,187 +163,192 @@ function NewReservationForm({ onSuccess }) {
   const getMinTime = () => {
     if (formData.reservation_date === getMinDate()) {
       const now = new Date();
-      const hours = String(now.getHours()).padStart(2, '0');
-      const minutes = String(now.getMinutes()).padStart(2, '0');
+      const hours = String(now.getHours()).padStart(2, "0");
+      const minutes = String(now.getMinutes()).padStart(2, "0");
       return `${hours}:${minutes}`;
     }
     return "09:00";
   };
 
   return (
-    <Form onSubmit={handleSubmit}>
-      <Row>
-        <Col md={6}>
-          <Form.Group className="mb-3">
-            <Form.Label>
-              <MdRestaurant className="me-2" />
-              Zona *
-            </Form.Label>
-            <Form.Select
-              name="zone_id"
-              value={formData.zone_id}
-              onChange={handleChange}
-              required
-              disabled={loadingZones}
-            >
-              <option value="">
-                {loadingZones ? "Cargando zonas..." : "Selecciona una zona"}
-              </option>
-              {zones.map((zone) => (
-                <option key={zone.id} value={zone.id}>
-                  {zone.name}
-                </option>
-              ))}
-            </Form.Select>
-            {loadingZones && (
-              <Form.Text className="text-muted">
-                <Spinner animation="border" size="sm" className="me-2" />
-                Cargando zonas disponibles...
-              </Form.Text>
-            )}
-          </Form.Group>
-        </Col>
+    <div className="reservation-form-wrapper reservation-form-wrapper-narrow">
+      <Card className="reservation-form-card-flat">
+        <Card.Body className="reservation-form-card-body reservation-form-card-body-tight">
+          <div className="reservation-form-header reservation-form-header-compact">
+            <div className="reservation-form-header-main">
+              <h2 className="reservation-form-title">
+                <MdEventAvailable />
+                Crear reserva
+              </h2>
+              <span className="reservation-form-chip">Formulario</span>
+            </div>
+            <p className="reservation-form-subtitle">
+              Complete todos los datos para realizar su reserva.
+            </p>
+          </div>
 
-        <Col md={6}>
-          <Form.Group className="mb-3">
-            <Form.Label>
-              <MdPeople className="me-2" />
-              Número de personas *
-            </Form.Label>
-            <Form.Control
-              type="number"
-              name="guest_count"
-              value={formData.guest_count}
-              onChange={handleChange}
-              min="1"
-              max="20"
-              placeholder="¿Cuántas personas?"
-              required
-            />
-          </Form.Group>
-        </Col>
-      </Row>
-
-      <Row>
-        <Col md={6}>
-          <Form.Group className="mb-3">
-            <Form.Label>
-              <MdEventAvailable className="me-2" />
-              Fecha *
-            </Form.Label>
-            <Form.Control
-              type="date"
-              name="reservation_date"
-              value={formData.reservation_date}
-              onChange={handleChange}
-              min={getMinDate()}
-              required
-            />
-          </Form.Group>
-        </Col>
-
-        <Col md={6}>
-          <Form.Group className="mb-3">
-            <Form.Label>Hora *</Form.Label>
-            <Form.Control
-              type="time"
-              name="reservation_time"
-              value={formData.reservation_time}
-              onChange={handleChange}
-              min={getMinTime()}
-              required
-            />
-            <Form.Text className="text-muted">
-              Horario: 09:00 AM - 10:00 PM
-            </Form.Text>
-          </Form.Group>
-        </Col>
-      </Row>
-
-      {/* Mesas disponibles */}
-      {formData.zone_id && formData.reservation_date && formData.reservation_time && formData.guest_count && (
-        <Card className="mb-3">
-          <Card.Header className="bg-light">
-            <strong>Mesas Disponibles</strong>
-          </Card.Header>
-          <Card.Body>
-            {loadingTables ? (
-              <div className="text-center py-3">
-                <Spinner animation="border" size="sm" /> Buscando mesas disponibles...
-              </div>
-            ) : availableTables.length === 0 ? (
-              <Alert variant="warning">
-                No hay mesas disponibles para la fecha, hora y número de personas seleccionados.
-                Por favor intenta con otra combinación.
-              </Alert>
-            ) : (
-              <Row>
-                {availableTables.map((table) => (
-                  <Col key={table.id} xs={6} md={4} lg={3} className="mb-3">
-                    <Card
-                      className={`text-center h-100 ${
-                        formData.table_id === table.id.toString() ? "border-primary border-2" : ""
-                      }`}
-                      style={{ cursor: "pointer" }}
-                      onClick={() => setFormData((prev) => ({ ...prev, table_id: table.id.toString() }))}
+          <Form onSubmit={handleSubmit} className="reservation-form reservation-form-compact">
+            <Row className="g-3">
+              {/* Fila 1: Zona + Personas */}
+              <Col md={7}>
+                <Form.Group controlId="zone_id" className="mb-2">
+                  <Form.Label className="reservation-label">Zona</Form.Label>
+                  {loadingZones ? (
+                    <div className="reservation-inline-loading">
+                      <Spinner animation="border" size="sm" />
+                      <span>Cargando...</span>
+                    </div>
+                  ) : (
+                    <Form.Select
+                      name="zone_id"
+                      value={formData.zone_id}
+                      onChange={handleChange}
+                      className="reservation-input reservation-select"
+                      required
                     >
-                      <Card.Body>
-                        <h5>Mesa #{table.table_number}</h5>
-                        <Badge bg="info">Capacidad: {table.capacity}</Badge>
-                        {formData.table_id === table.id.toString() && (
-                          <div className="mt-2">
-                            <Badge bg="success">✓ Seleccionada</Badge>
+                      <option value="">Selecciona</option>
+                      {zones.map((zone) => (
+                        <option key={zone.id} value={zone.id}>
+                          {zone.name}
+                        </option>
+                      ))}
+                    </Form.Select>
+                  )}
+                </Form.Group>
+              </Col>
+
+              <Col md={5}>
+                <Form.Group controlId="guest_count" className="mb-2">
+                  <Form.Label className="reservation-label">Personas</Form.Label>
+                  <div className="reservation-input-with-icon">
+                    <span className="reservation-input-icon">
+                      <MdPeople />
+                    </span>
+                    <Form.Control
+                      type="number"
+                      name="guest_count"
+                      value={formData.guest_count}
+                      onChange={handleChange}
+                      className="reservation-input reservation-input-number"
+                      min={1}
+                      required
+                    />
+                  </div>
+                </Form.Group>
+              </Col>
+
+              {/* Fila 2: Fecha + Hora */}
+              <Col md={6}>
+                <Form.Group controlId="reservation_date" className="mb-2">
+                  <Form.Label className="reservation-label">Fecha</Form.Label>
+                  <Form.Control
+                    type="date"
+                    name="reservation_date"
+                    value={formData.reservation_date}
+                    onChange={handleChange}
+                    className="reservation-input"
+                    min={getMinDate()}
+                    required
+                  />
+                </Form.Group>
+              </Col>
+
+              <Col md={6}>
+                <Form.Group controlId="reservation_time" className="mb-2">
+                  <Form.Label className="reservation-label">Hora</Form.Label>
+                  <Form.Control
+                    type="time"
+                    name="reservation_time"
+                    value={formData.reservation_time}
+                    onChange={handleChange}
+                    className="reservation-input"
+                    min={getMinTime()}
+                    required
+                  />
+                </Form.Group>
+              </Col>
+
+              {/* Fila 3: Mesa disponible (cards cuadradas y centradas) */}
+              <Col md={12}>
+                <Form.Group controlId="table_id" className="mb-2">
+                  <Form.Label className="reservation-label">Mesa</Form.Label>
+                  {loadingTables ? (
+                    <div className="reservation-inline-loading">
+                      <Spinner animation="border" size="sm" />
+                      <span>Buscando mesas...</span>
+                    </div>
+                  ) : availableTables.length === 0 &&
+                    formData.zone_id &&
+                    formData.reservation_date &&
+                    formData.reservation_time &&
+                    formData.guest_count ? (
+                    <Alert variant="outline-light" className="reservation-alert">
+                      No hay mesas para estos datos. Prueba otra hora o zona.
+                    </Alert>
+                  ) : (
+                    <div className="reservation-tables-list reservation-tables-list-tight">
+                      {availableTables.map((table) => (
+                        <button
+                          key={table.id}
+                          type="button"
+                          className={`reservation-table-pill reservation-table-pill-square ${
+                            String(formData.table_id) === String(table.id)
+                              ? "reservation-table-pill-active"
+                              : ""
+                          }`}
+                          onClick={() =>
+                            setFormData((prev) => ({
+                              ...prev,
+                              table_id: String(table.id),
+                            }))
+                          }
+                        >
+                          <MdOutlineTableBar className="reservation-table-icon" />
+                          <div className="reservation-table-text">
+                            <span className="reservation-table-name">
+                              Mesa {table.table_number}
+                            </span>
+                            <span className="reservation-table-meta">
+                              {table.capacity} max · {table.zone_name || "Zona"}
+                            </span>
                           </div>
-                        )}
-                      </Card.Body>
-                    </Card>
-                  </Col>
-                ))}
-              </Row>
-            )}
-          </Card.Body>
-        </Card>
-      )}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </Form.Group>
+              </Col>
 
-      <Form.Group className="mb-3">
-        <Form.Label>Requisitos especiales</Form.Label>
-        <Form.Control
-          as="textarea"
-          name="special_requirements"
-          value={formData.special_requirements}
-          onChange={handleChange}
-          rows={3}
-          placeholder="Alergias, preferencias de ubicación, celebración especial, etc."
-        />
-      </Form.Group>
+              {/* Fila 4: Notas */}
+              <Col md={12}>
+                <Form.Group controlId="special_requirements" className="mb-2">
+                  <Form.Label className="reservation-label">Notas (opcional)</Form.Label>
+                  <Form.Control
+                    as="textarea"
+                    rows={2}
+                    name="special_requirements"
+                    value={formData.special_requirements}
+                    onChange={handleChange}
+                    className="reservation-input reservation-textarea reservation-textarea-small"
+                    placeholder="Ej: Aniversario, alergias, ubicación específica."
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
 
-      <div className="d-flex justify-content-end gap-2">
-        <Button
-          variant="secondary"
-          type="button"
-          onClick={() => {
-            setFormData({
-              zone_id: "",
-              table_id: "",
-              reservation_date: "",
-              reservation_time: "",
-              guest_count: "",
-              special_requirements: "",
-            });
-            setAvailableTables([]);
-          }}
-        >
-          Limpiar
-        </Button>
-        <Button
-          type="submit"
-          variant="primary"
-          disabled={loading || !formData.table_id}
-        >
-          {loading ? "Procesando..." : "Crear Reserva"}
-        </Button>
-      </div>
-    </Form>
+            <div className="reservation-form-footer reservation-form-footer-compact">
+              <Button
+                type="submit"
+                className="btn-reservation-action btn-reservation-action-small"
+                disabled={loading || loadingTables || loadingZones}
+              >
+                {loading ? "Guardando..." : "Confirmar reserva"}
+              </Button>
+            </div>
+          </Form>
+        </Card.Body>
+      </Card>
+    </div>
   );
 }
 

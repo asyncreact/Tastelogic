@@ -2,7 +2,6 @@
 import { useEffect, useState } from "react";
 import {
   Table,
-  Badge,
   Spinner,
   Alert,
   Button,
@@ -15,8 +14,14 @@ import { MdVisibility, MdCancel } from "react-icons/md";
 import Swal from "sweetalert2";
 
 function ReservationHistory() {
-  const { reservations, fetchReservations, fetchReservation, removeReservation, loading, error } =
-    useReservation();
+  const {
+    reservations,
+    fetchReservations,
+    fetchReservation,
+    removeReservation,
+    loading,
+    error,
+  } = useReservation();
   const [loadingReservations, setLoadingReservations] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [selectedReservation, setSelectedReservation] = useState(null);
@@ -80,22 +85,30 @@ function ReservationHistory() {
     }
   };
 
+  // Estado en flat design
   const getStatusBadge = (status) => {
     const statusMap = {
-      pending: { bg: "warning", text: "Pendiente" },
-      confirmed: { bg: "success", text: "Confirmada" },
-      completed: { bg: "info", text: "Completada" },
-      cancelled: { bg: "danger", text: "Cancelada" },
+      pending: { text: "Pendiente" },
+      confirmed: { text: "Confirmada" },
+      completed: { text: "Completada" },
+      cancelled: { text: "Cancelada" },
     };
-    const config = statusMap[status] || { bg: "secondary", text: status };
-    return <Badge bg={config.bg}>{config.text}</Badge>;
+    const config = statusMap[status] || { text: status };
+
+    return (
+      <span className={`reservation-status-flat status-${status}`}>
+        {config.text}
+      </span>
+    );
   };
 
   const canCancelReservation = (reservation) => {
     if (reservation.status === "cancelled" || reservation.status === "completed") {
       return false;
     }
-    const reservationDateTime = new Date(`${reservation.reservation_date}T${reservation.reservation_time}`);
+    const reservationDateTime = new Date(
+      `${reservation.reservation_date}T${reservation.reservation_time}`
+    );
     const now = new Date();
     return reservationDateTime > now;
   };
@@ -108,7 +121,7 @@ function ReservationHistory() {
         month: "long",
         day: "numeric",
       });
-    } catch (error) {
+    } catch {
       return "Fecha inválida";
     }
   };
@@ -128,128 +141,171 @@ function ReservationHistory() {
     return zones[zoneId] || `Zona #${zoneId}`;
   };
 
-  if (loadingReservations) {
+  if (loadingReservations || loading) {
     return (
-      <div className="text-center py-5">
-        <Spinner animation="border" variant="primary" />
-        <p className="mt-3">Cargando reservas...</p>
+      <div className="reservation-history-loading">
+        <Spinner animation="border" variant="light" />
+        <p>Cargando reservas...</p>
       </div>
     );
   }
 
   if (error) {
-    return <Alert variant="danger">Error: {error}</Alert>;
+    return (
+      <Alert variant="danger" className="reservation-history-alert">
+        Error: {error}
+      </Alert>
+    );
   }
 
   if (reservations.length === 0) {
     return (
-      <Alert variant="info" className="text-center">
-        <h5>No tienes reservas aún</h5>
-        <p>Tus reservas aparecerán aquí una vez que realices tu primera reserva</p>
+      <Alert variant="info" className="reservation-history-alert text-center">
+        <h5 className="mb-1">No tienes reservas aún</h5>
+        <p className="mb-0">
+          Tus reservas aparecerán aquí una vez que realices tu primera reserva.
+        </p>
       </Alert>
     );
   }
 
   return (
     <>
-      <Table responsive striped bordered hover>
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Fecha</th>
-            <th>Hora</th>
-            <th>Mesa</th>
-            <th>Personas</th>
-            <th>Estado</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          {reservations.map((reservation) => (
-            <tr key={reservation.id}>
-              <td>{reservation.id}</td>
-              <td>{formatDate(reservation.reservation_date)}</td>
-              <td>{formatTime(reservation.reservation_time)}</td>
-              <td>Mesa #{reservation.table_number || reservation.table_id}</td>
-              <td>{reservation.guest_count}</td>
-              <td>{getStatusBadge(reservation.status)}</td>
-              <td>
-                <Button
-                  variant="outline-primary"
-                  size="sm"
-                  onClick={() => handleViewDetails(reservation.id)}
-                  className="me-2"
-                >
-                  <MdVisibility /> Ver
-                </Button>
-                {canCancelReservation(reservation) && (
-                  <Button
-                    variant="outline-danger"
-                    size="sm"
-                    onClick={() => handleCancelReservation(reservation.id)}
-                    disabled={loadingAction}
-                  >
-                    <MdCancel /> Cancelar
-                  </Button>
-                )}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </Table>
+      <Card className="reservation-history-card">
+        <Card.Body className="reservation-history-card-body">
+          <div className="reservation-history-header">
+            <h2 className="reservation-history-title">Mis reservas</h2>
+            <p className="reservation-history-subtitle">
+              Consulta, revisa y cancela tus reservas activas.
+            </p>
+          </div>
+
+          <div className="reservation-history-table-wrapper">
+            <Table responsive hover className="reservation-history-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Fecha</th>
+                  <th>Hora</th>
+                  <th>Mesa</th>
+                  <th>Personas</th>
+                  <th>Estado</th>
+                  <th className="text-end">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {reservations.map((reservation) => (
+                  <tr key={reservation.id}>
+                    <td>{reservation.id}</td>
+                    <td>{formatDate(reservation.reservation_date)}</td>
+                    <td>{formatTime(reservation.reservation_time)}</td>
+                    <td>Mesa #{reservation.table_number || reservation.table_id}</td>
+                    <td>{reservation.guest_count}</td>
+                    <td>{getStatusBadge(reservation.status)}</td>
+                    <td className="text-end">
+                      <Button
+                        size="sm"
+                        onClick={() => handleViewDetails(reservation.id)}
+                        className="btn-history-action me-2"
+                      >
+                        <MdVisibility />
+                        <span>Ver</span>
+                      </Button>
+                      {canCancelReservation(reservation) && (
+                        <Button
+                          size="sm"
+                          onClick={() => handleCancelReservation(reservation.id)}
+                          disabled={loadingAction}
+                          className="btn-history-action btn-history-action-danger"
+                        >
+                          <MdCancel />
+                          <span>Cancelar</span>
+                        </Button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          </div>
+        </Card.Body>
+      </Card>
 
       {/* Modal de detalles */}
-      <Modal show={showModal} onHide={() => setShowModal(false)} size="lg" centered>
-        <Modal.Header closeButton>
-          <Modal.Title>Detalles de la Reserva #{selectedReservation?.id}</Modal.Title>
+      <Modal
+        show={showModal}
+        onHide={() => setShowModal(false)}
+        size="lg"
+        centered
+        className="reservation-history-modal"
+      >
+        <Modal.Header closeButton className="reservation-history-modal-header">
+          <Modal.Title className="reservation-history-modal-title">
+            Detalles de la reserva #{selectedReservation?.id}
+          </Modal.Title>
         </Modal.Header>
-        <Modal.Body>
+        <Modal.Body className="reservation-history-modal-body">
           {selectedReservation && (
-            <Card>
+            <Card className="reservation-history-detail-card">
               <ListGroup variant="flush">
-                <ListGroup.Item>
-                  <strong>Fecha:</strong> {formatDate(selectedReservation.reservation_date)}
+                <ListGroup.Item className="reservation-history-detail-item">
+                  <span>Fecha</span>
+                  <strong>{formatDate(selectedReservation.reservation_date)}</strong>
                 </ListGroup.Item>
-                <ListGroup.Item>
-                  <strong>Hora:</strong> {formatTime(selectedReservation.reservation_time)}
+                <ListGroup.Item className="reservation-history-detail-item">
+                  <span>Hora</span>
+                  <strong>{formatTime(selectedReservation.reservation_time)}</strong>
                 </ListGroup.Item>
-                <ListGroup.Item>
-                  <strong>Mesa:</strong> #{selectedReservation.table_number || selectedReservation.table_id}
+                <ListGroup.Item className="reservation-history-detail-item">
+                  <span>Mesa</span>
+                  <strong>
+                    #{selectedReservation.table_number || selectedReservation.table_id}
+                  </strong>
                 </ListGroup.Item>
-                <ListGroup.Item>
-                  <strong>Zona:</strong> {selectedReservation.zone_name || getZoneName(selectedReservation.zone_id)}
+                <ListGroup.Item className="reservation-history-detail-item">
+                  <span>Zona</span>
+                  <strong>
+                    {selectedReservation.zone_name ||
+                      getZoneName(selectedReservation.zone_id)}
+                  </strong>
                 </ListGroup.Item>
-                <ListGroup.Item>
-                  <strong>Número de personas:</strong> {selectedReservation.guest_count}
+                <ListGroup.Item className="reservation-history-detail-item">
+                  <span>Personas</span>
+                  <strong>{selectedReservation.guest_count}</strong>
                 </ListGroup.Item>
-                <ListGroup.Item>
-                  <strong>Estado:</strong> {getStatusBadge(selectedReservation.status)}
+                <ListGroup.Item className="reservation-history-detail-item">
+                  <span>Estado</span>
+                  <strong>{getStatusBadge(selectedReservation.status)}</strong>
                 </ListGroup.Item>
                 {selectedReservation.special_requirements && (
-                  <ListGroup.Item>
-                    <strong>Requisitos especiales:</strong>
-                    <p className="mt-2 mb-0">{selectedReservation.special_requirements}</p>
+                  <ListGroup.Item className="reservation-history-detail-notes">
+                    <span>Notas</span>
+                    <p>{selectedReservation.special_requirements}</p>
                   </ListGroup.Item>
                 )}
-                <ListGroup.Item>
-                  <strong>Creada:</strong> {formatDate(selectedReservation.created_at)}
+                <ListGroup.Item className="reservation-history-detail-item">
+                  <span>Creada</span>
+                  <strong>{formatDate(selectedReservation.created_at)}</strong>
                 </ListGroup.Item>
               </ListGroup>
             </Card>
           )}
         </Modal.Body>
-        <Modal.Footer>
+        <Modal.Footer className="reservation-history-modal-footer">
           {selectedReservation && canCancelReservation(selectedReservation) && (
             <Button
-              variant="danger"
               onClick={() => handleCancelReservation(selectedReservation.id)}
               disabled={loadingAction}
+              className="btn-history-action btn-history-action-danger"
             >
               <MdCancel className="me-2" />
-              {loadingAction ? "Cancelando..." : "Cancelar Reserva"}
+              {loadingAction ? "Cancelando..." : "Cancelar reserva"}
             </Button>
           )}
-          <Button variant="secondary" onClick={() => setShowModal(false)}>
+          <Button
+            onClick={() => setShowModal(false)}
+            className="btn-history-action"
+          >
             Cerrar
           </Button>
         </Modal.Footer>

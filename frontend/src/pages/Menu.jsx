@@ -1,10 +1,16 @@
-// src/pages/Menu.jsx
 import { useEffect, useState, useMemo } from "react";
-import { Container, Row, Col, Badge, Spinner, Alert, Form, InputGroup } from "react-bootstrap";
-import { MdRestaurantMenu, MdCategory, MdSearch, MdShoppingCart } from "react-icons/md";
+import { Container, Row, Col, Spinner, Alert, Form, InputGroup, Badge } from "react-bootstrap";
+
+// Iconos
+import { MdOutlineFastfood } from "react-icons/md";
+import { BiCategory, BiSearchAlt } from "react-icons/bi";
+import { RiShoppingBag4Line } from "react-icons/ri";
+
 import { useMenu } from "../hooks/useMenu";
 import { useOrder } from "../hooks/useOrder";
 import MenuItemCard from "../components/MenuItemCard";
+
+import "./css/Menu.css"; 
 
 function Menu() {
   const { categories, items, loading, error, fetchCategories, fetchItems } = useMenu();
@@ -18,7 +24,6 @@ function Menu() {
     fetchItems();
   }, []);
 
-  // Filtrar items según búsqueda y categoría seleccionada
   const filteredItems = useMemo(() => {
     return items.filter((item) => {
       const matchesCategory =
@@ -35,7 +40,6 @@ function Menu() {
     });
   }, [items, searchTerm, selectedCategory]);
 
-  // Filtrar las categorías que tienen items visibles
   const visibleCategories = useMemo(() => {
     return categories.filter((cat) =>
       filteredItems.some((item) => String(item.category_id) === String(cat.id))
@@ -44,50 +48,60 @@ function Menu() {
 
   if (loading) {
     return (
-      <div className="d-flex justify-content-center align-items-center vh-100">
-        <Spinner animation="border" variant="primary" />
-      </div>
+      <Container className="menu-page d-flex justify-content-center align-items-center">
+        <Spinner animation="border" variant="secondary" />
+      </Container>
     );
   }
 
   if (error) {
-    return <Alert variant="danger">Error al cargar el menú: {error}</Alert>;
+    return (
+      <Container className="menu-page">
+        <Alert variant="danger">Error: {error}</Alert>
+      </Container>
+    );
   }
 
   return (
-    <Container className="py-5">
+    <Container className="menu-page">
+      {/* Encabezado */}
       <div className="d-flex justify-content-between align-items-center mb-4">
-        <h2 className="mb-0 d-flex align-items-center">
-          <MdRestaurantMenu size={28} className="me-2" /> Menú
+        <h2 className="menu-title d-flex align-items-center">
+          <MdOutlineFastfood className="me-2" /> Menú
         </h2>
         {cart.length > 0 && (
-          <Badge bg="primary" pill className="d-flex align-items-center" style={{ fontSize: "1rem", padding: "0.5rem 1rem" }}>
-            <MdShoppingCart size={20} className="me-2" />
+          <Badge
+            bg="light"
+            text="dark"
+            className="menu-cart-badge d-flex align-items-center border"
+          >
+            <RiShoppingBag4Line className="me-2" />
             {cart.reduce((total, item) => total + item.quantity, 0)} items
           </Badge>
         )}
       </div>
 
-      {/* Buscador y filtro por categoría */}
-      <Row className="mb-4 g-3">
+      {/* Buscador y Filtros con estilo Flat */}
+      <Row className="mb-5 g-3">
         <Col md={8}>
           <InputGroup>
-            <InputGroup.Text>
-              <MdSearch />
+            <InputGroup.Text className="input-group-text-flat">
+              <BiSearchAlt />
             </InputGroup.Text>
             <Form.Control
               type="search"
-              placeholder="Buscar por nombre, descripción o ingredientes..."
+              placeholder="Buscar plato, ingrediente..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
+              className="menu-search-input"
             />
           </InputGroup>
         </Col>
         <Col md={4}>
           <Form.Select
-            aria-label="Filtrar por categoría"
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
+            className="menu-select"
           >
             <option value="">Todas las categorías</option>
             {categories.map((cat) => (
@@ -99,19 +113,17 @@ function Menu() {
         </Col>
       </Row>
 
-      {/* Resultados */}
+      {/* Listado */}
       {filteredItems.length === 0 ? (
-        <Alert variant="info">
-          No se encontraron platos disponibles{searchTerm && " con ese criterio de búsqueda"}.
-        </Alert>
+        <Alert variant="light" className="text-center text-muted">No se encontraron resultados.</Alert>
       ) : visibleCategories.length === 0 ? (
-        <Alert variant="info">No hay categorías disponibles.</Alert>
+        <Alert variant="light">No hay categorías.</Alert>
       ) : (
         visibleCategories.map((category) => (
           <div key={category.id} className="mb-5">
-            <h4 className="mb-3 d-flex align-items-center">
-              <MdCategory size={22} className="me-2" />
-              {category.name}
+            {/* Título de categoría con estilo */}
+            <h4 className="category-title">
+              <BiCategory /> {category.name}
             </h4>
 
             <Row className="g-4">

@@ -1,10 +1,13 @@
-// src/components/MenuItemCard.jsx
-import { Card, Badge, Button, OverlayTrigger, Tooltip } from "react-bootstrap";
-import { MdImage, MdList, MdTimer, MdShoppingCart } from "react-icons/md";
+import { Card, Button, OverlayTrigger, Tooltip } from "react-bootstrap";
+import { BiImage, BiListUl, BiTime } from "react-icons/bi";
+import { RiShoppingBag4Line } from "react-icons/ri";
 import { useOrder } from "../hooks/useOrder";
 import Swal from "sweetalert2";
 
-const API_URL = (import.meta.env.VITE_API_URL || "http://localhost:4000").replace(/\/$/, "");
+const API_URL = (import.meta.env.VITE_API_URL || "http://localhost:4000").replace(
+  /\/$/,
+  ""
+);
 
 const getImageUrl = (imageUrl) => {
   if (!imageUrl) return null;
@@ -20,8 +23,8 @@ function MenuItemCard({ item }) {
     addToCart(item, 1);
     Swal.fire({
       icon: "success",
-      title: "¡Agregado al carrito!",
-      text: `${item.name} ha sido agregado al carrito`,
+      title: "¡Agregado!",
+      text: `${item.name} agregado al carrito`,
       timer: 1500,
       showConfirmButton: false,
     });
@@ -35,71 +38,71 @@ function MenuItemCard({ item }) {
   const quantityInCart = getItemQuantityInCart();
 
   return (
-    <Card className="h-100 shadow-sm">
+    <Card className="menu-card-flat h-100">
       {item.image_url ? (
         <Card.Img
           variant="top"
           src={getImageUrl(item.image_url)}
           alt={item.name}
-          style={{ height: "180px", objectFit: "cover" }}
+          className="menu-card-img"
           onError={(e) => {
             e.target.src = "https://via.placeholder.com/180?text=Sin+Imagen";
           }}
         />
       ) : (
         <div
-          className="d-flex align-items-center justify-content-center bg-secondary text-white"
-          style={{ height: "180px" }}
+          className="d-flex align-items-center justify-content-center bg-light"
+          style={{
+            height: "200px",
+            borderBottom: "1px solid var(--border-color)",
+          }}
         >
-          <MdImage size={48} />
+          <BiImage size={32} className="text-muted" />
         </div>
       )}
-      <Card.Body className="d-flex flex-column">
-        <Card.Title>{item.name}</Card.Title>
-        <Card.Text className="flex-grow-1">{item.description}</Card.Text>
 
-        {item.ingredients && (
-          <OverlayTrigger
-            placement="top"
-            overlay={
-              <Tooltip id={`tooltip-ingredients-${item.id}`}>
-                {item.ingredients}
-              </Tooltip>
-            }
-          >
-            <div className="mb-2 d-flex align-items-center" style={{ cursor: "pointer" }}>
-              <MdList size={18} className="me-2" />
-              <small>Ingredientes</small>
-            </div>
-          </OverlayTrigger>
-        )}
+      <Card.Body className="menu-card-body">
+        <h3 className="menu-card-title">{item.name}</h3>
 
-        {item.estimated_prep_time && (
-          <div className="mb-2 d-flex align-items-center">
-            <MdTimer size={18} className="me-2" />
-            <small>Tiempo prep.: {item.estimated_prep_time} min</small>
-          </div>
-        )}
+        <div className="menu-card-desc">{item.description}</div>
 
-        <div className="d-flex justify-content-between align-items-center mt-auto mb-2">
-          <strong>${parseFloat(item.price).toFixed(2)}</strong>
-          <Badge bg="success">Disponible</Badge>
-        </div>
-
-        <Button
-          variant="primary"
-          size="sm"
-          className="w-100 d-flex align-items-center justify-content-center"
-          onClick={handleAddToCart}
-        >
-          <MdShoppingCart size={18} className="me-2" />
-          Agregar al carrito
-          {quantityInCart > 0 && (
-            <Badge bg="light" text="dark" className="ms-2">
-              {quantityInCart}
-            </Badge>
+        <div className="mt-auto">
+          {item.ingredients && (
+            <OverlayTrigger
+              placement="top"
+              overlay={<Tooltip id={`t-${item.id}`}>{item.ingredients}</Tooltip>}
+            >
+              <div className="menu-card-detail" style={{ cursor: "pointer" }}>
+                <BiListUl /> <small>Ingredientes</small>
+              </div>
+            </OverlayTrigger>
           )}
-        </Button>
+
+          {item.estimated_prep_time && (
+            <div className="menu-card-detail">
+              <BiTime /> <small>{item.estimated_prep_time} min</small>
+            </div>
+          )}
+
+          <div className="menu-divider"></div>
+
+          <div className="d-flex justify-content-between align-items-center">
+            <span className="menu-price">
+              ${parseFloat(item.price).toFixed(2)}
+            </span>
+
+            <span className="menu-status-flat status-available">
+              Disponible
+            </span>
+          </div>
+
+          <Button className="btn-menu-action w-100" onClick={handleAddToCart}>
+            <RiShoppingBag4Line className="me-2" />
+            {quantityInCart > 0
+              ? `Agregar (+${quantityInCart})`
+              : "Agregar"}
+          </Button>
+        </div>
       </Card.Body>
     </Card>
   );
