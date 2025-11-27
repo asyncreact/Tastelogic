@@ -1,8 +1,6 @@
 // src/components/OrderHistory.jsx
 import { useEffect, useState } from "react";
 import {
-  Table,
-  Badge,
   Spinner,
   Alert,
   Button,
@@ -17,7 +15,15 @@ import { MdVisibility, MdCancel } from "react-icons/md";
 import Swal from "sweetalert2";
 
 function OrderHistory() {
-  const { orders, fetchOrders, fetchOrder, cancelOrderById, loading, error } = useOrder();
+  const {
+    orders,
+    fetchOrders,
+    fetchOrder,
+    cancelOrderById,
+    loading,
+    error,
+  } = useOrder();
+
   const [loadingOrders, setLoadingOrders] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
@@ -34,13 +40,12 @@ function OrderHistory() {
   const handleViewDetails = async (orderId) => {
     try {
       const response = await fetchOrder(orderId);
-      const orderData = response?.order || response?.data?.order || response?.data || response;
-      
-      console.log("Order data received:", orderData);
+      const orderData =
+        response?.order || response?.data?.order || response?.data || response;
+
       setSelectedOrder(orderData);
       setShowModal(true);
     } catch (error) {
-      console.error("Error loading order details:", error);
       Swal.fire({
         icon: "error",
         title: "Error",
@@ -55,8 +60,8 @@ function OrderHistory() {
       text: "Esta acción no se puede deshacer",
       icon: "warning",
       showCancelButton: true,
-      confirmButtonColor: "#d33",
-      cancelButtonColor: "#6c757d",
+      confirmButtonColor: "#b91c1c",
+      cancelButtonColor: "#6b7280",
       confirmButtonText: "Sí, cancelar",
       cancelButtonText: "No",
     });
@@ -86,67 +91,19 @@ function OrderHistory() {
     }
   };
 
-  const getStatusBadge = (status) => {
-    const statusMap = {
-      pending: { bg: "warning", text: "Pendiente" },
-      confirmed: { bg: "info", text: "Confirmada" },
-      preparing: { bg: "primary", text: "En preparación" },
-      ready: { bg: "success", text: "Lista" },
-      completed: { bg: "success", text: "Completada" },
-      delivered: { bg: "success", text: "Entregada" },
-      cancelled: { bg: "danger", text: "Cancelada" },
-    };
-    const config = statusMap[status] || { bg: "secondary", text: status || "N/A" };
-    return <Badge bg={config.bg}>{config.text}</Badge>;
-  };
-
-  const getOrderTypeBadge = (type) => {
-    const typeMap = {
-      "dine-in": { bg: "primary", text: "En mesa" },
-      takeout: { bg: "info", text: "Para llevar" },
-      delivery: { bg: "success", text: "Delivery" },
-    };
-    const config = typeMap[type] || { bg: "secondary", text: type || "N/A" };
-    return <Badge bg={config.bg}>{config.text}</Badge>;
-  };
-
-  const getPaymentMethodBadge = (method) => {
-    if (!method) return <span className="text-muted">No especificado</span>;
-    const methodMap = {
-      cash: { bg: "success", text: "Efectivo" },
-      card: { bg: "primary", text: "Tarjeta" },
-      transfer: { bg: "info", text: "Transferencia" },
-      mobile: { bg: "warning", text: "Pago Móvil" },
-    };
-    const config = methodMap[method] || { bg: "secondary", text: method };
-    return <Badge bg={config.bg}>{config.text}</Badge>;
-  };
-
-  const getPaymentStatusBadge = (status) => {
-    const statusMap = {
-      pending: { bg: "warning", text: "Pendiente" },
-      paid: { bg: "success", text: "Pagado" },
-      refunded: { bg: "danger", text: "Reembolsado" },
-    };
-    const config = statusMap[status] || { bg: "secondary", text: status || "Pendiente" };
-    return <Badge bg={config.bg}>{config.text}</Badge>;
-  };
-
-  const canCancelOrder = (status) => {
-    return ["pending", "confirmed"].includes(status);
-  };
+  const canCancelOrder = (status) => ["pending", "confirmed"].includes(status);
 
   const formatDate = (dateString) => {
     if (!dateString) return "N/A";
     try {
-      return new Date(dateString).toLocaleString('es-ES', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit'
+      return new Date(dateString).toLocaleString("es-ES", {
+        year: "numeric",
+        month: "short",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
       });
-    } catch (error) {
+    } catch {
       return "Fecha inválida";
     }
   };
@@ -156,129 +113,153 @@ function OrderHistory() {
     return isNaN(numPrice) ? "0.00" : numPrice.toFixed(2);
   };
 
-  if (loadingOrders) {
+  if (loadingOrders || loading) {
     return (
       <div className="text-center py-5">
-        <Spinner animation="border" variant="primary" />
+        <Spinner animation="border" />
         <p className="mt-3">Cargando órdenes...</p>
       </div>
     );
   }
 
   if (error) {
-    return <Alert variant="danger">Error: {error}</Alert>;
+    return (
+      <Alert variant="light" className="text-center border">
+        Error: {error}
+      </Alert>
+    );
   }
 
   if (orders.length === 0) {
     return (
-      <Alert variant="info" className="text-center">
-        <h5>No tienes órdenes aún</h5>
-        <p>Tus pedidos aparecerán aquí una vez que realices tu primera orden</p>
+      <Alert variant="light" className="text-center border-0">
+        <h5 className="mb-1">No tienes órdenes aún</h5>
+        <p className="mb-0">
+          Tus pedidos aparecerán aquí una vez que realices tu primera orden.
+        </p>
       </Alert>
     );
   }
 
   return (
     <>
-      <Table responsive striped bordered hover>
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Fecha</th>
-            <th>Tipo</th>
-            <th>Estado</th>
-            <th>Pago</th>
-            <th>Total</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          {orders.map((order) => (
-            <tr key={order.id}>
-              <td>{order.order_number}</td>
-              <td>{formatDate(order.created_at)}</td>
-              <td>{getOrderTypeBadge(order.order_type)}</td>
-              <td>{getStatusBadge(order.status)}</td>
-              <td>{getPaymentStatusBadge(order.payment_status)}</td>
-              <td>${formatPrice(order.total_amount)}</td>
-              <td>
+      <div className="d-flex flex-column gap-3">
+        {orders.map((order) => (
+          <Card
+            key={order.id}
+            className="border-0 border-top pt-3"
+            style={{ borderColor: "#ddd" }}
+          >
+            <Card.Body className="p-0 d-flex flex-column flex-md-row justify-content-between gap-3">
+              <div>
+                <div className="d-flex flex-column flex-sm-row flex-wrap gap-2 mb-1">
+                  <span className="fw-semibold">
+                    Orden {order.order_number || `#${order.id}`}
+                  </span>
+                  <span>·</span>
+                  <span>Estado: {order.status || "N/A"}</span>
+                </div>
+                <div className="small mb-1">{formatDate(order.created_at)}</div>
+                <div className="d-flex flex-wrap align-items-center gap-2 small">
+                  <span>Tipo: {order.order_type || "N/A"}</span>
+                  <span>·</span>
+                  <span>Total: ${formatPrice(order.total_amount)}</span>
+                  <span>·</span>
+                  <span>Método pago: {order.payment_method || "No especificado"}</span>
+                  <span>·</span>
+                  <span>Estado pago: {order.payment_status || "Pendiente"}</span>
+                </div>
+              </div>
+
+              <div className="d-flex flex-column flex-sm-row align-items-start align-items-sm-center gap-2 ms-md-3">
                 <Button
-                  variant="outline-primary"
+                  variant="outline-secondary"
                   size="sm"
                   onClick={() => handleViewDetails(order.id)}
-                  className="me-2"
                 >
-                  <MdVisibility /> Ver
+                  <MdVisibility className="me-1" />
+                  Ver detalles
                 </Button>
                 {canCancelOrder(order.status) && (
                   <Button
-                    variant="outline-danger"
+                    variant="outline-secondary"
                     size="sm"
                     onClick={() => handleCancelOrder(order.id)}
                     disabled={loadingAction}
                   >
-                    <MdCancel /> Cancelar
+                    <MdCancel className="me-1" />
+                    {loadingAction ? "Cancelando..." : "Cancelar"}
                   </Button>
                 )}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </Table>
+              </div>
+            </Card.Body>
+          </Card>
+        ))}
+      </div>
 
       {/* Modal de detalles */}
-      <Modal show={showModal} onHide={() => setShowModal(false)} size="lg" centered>
+      <Modal
+        show={showModal}
+        onHide={() => setShowModal(false)}
+        size="lg"
+        centered
+      >
         <Modal.Header closeButton>
-          <Modal.Title>Detalles de la Orden ID: {selectedOrder?.order_number || ""}</Modal.Title>
+          <Modal.Title>
+            Detalles de la orden{" "}
+            {selectedOrder?.order_number || `#${selectedOrder?.id || ""}`}
+          </Modal.Title>
         </Modal.Header>
         <Modal.Body>
           {selectedOrder && (
             <>
               <Row className="mb-4">
                 <Col md={6}>
-                  <Card>
-                    <Card.Header className="bg-light">
-                      <strong>Información General</strong>
+                  <Card className="border-0 shadow-sm h-100">
+                    <Card.Header className="bg-light border-0">
+                      <strong>Información general</strong>
                     </Card.Header>
                     <ListGroup variant="flush">
                       <ListGroup.Item>
                         <strong>Fecha:</strong> {formatDate(selectedOrder.created_at)}
                       </ListGroup.Item>
                       <ListGroup.Item>
-                        <strong>Tipo:</strong> {getOrderTypeBadge(selectedOrder.order_type)}
+                        <strong>Tipo:</strong> {selectedOrder.order_type || "N/A"}
                       </ListGroup.Item>
                       <ListGroup.Item>
-                        <strong>Estado:</strong> {getStatusBadge(selectedOrder.status)}
+                        <strong>Estado:</strong> {selectedOrder.status || "N/A"}
                       </ListGroup.Item>
                       {selectedOrder.table_number && (
                         <ListGroup.Item>
-                          <strong>Mesa:</strong> ID {selectedOrder.table_number}
+                          <strong>Mesa:</strong> {selectedOrder.table_number}
                         </ListGroup.Item>
                       )}
                       {selectedOrder.delivery_address && (
                         <ListGroup.Item>
-                          <strong>Dirección:</strong> {selectedOrder.delivery_address}
+                          <strong>Dirección:</strong>{" "}
+                          {selectedOrder.delivery_address}
                         </ListGroup.Item>
                       )}
                     </ListGroup>
                   </Card>
                 </Col>
                 <Col md={6}>
-                  <Card>
-                    <Card.Header className="bg-light">
-                      <strong>Información de Pago</strong>
+                  <Card className="border-0 shadow-sm h-100">
+                    <Card.Header className="bg-light border-0">
+                      <strong>Información de pago</strong>
                     </Card.Header>
                     <ListGroup variant="flush">
                       <ListGroup.Item>
-                        <strong>Método:</strong> {getPaymentMethodBadge(selectedOrder.payment_method)}
+                        <strong>Método:</strong>{" "}
+                        {selectedOrder.payment_method || "No especificado"}
                       </ListGroup.Item>
                       <ListGroup.Item>
-                        <strong>Estado de Pago:</strong>{" "}
-                        {getPaymentStatusBadge(selectedOrder.payment_status)}
+                        <strong>Estado de pago:</strong>{" "}
+                        {selectedOrder.payment_status || "Pendiente"}
                       </ListGroup.Item>
                       <ListGroup.Item>
                         <strong>Total:</strong>{" "}
-                        <span className="text-primary h5">
+                        <span className="fw-bold">
                           ${formatPrice(selectedOrder.total_amount)}
                         </span>
                       </ListGroup.Item>
@@ -288,49 +269,49 @@ function OrderHistory() {
               </Row>
 
               {selectedOrder.special_instructions && (
-                <Alert variant="info">
-                  <strong>Notas especiales:</strong> {selectedOrder.special_instructions}
+                <Alert variant="light" className="border">
+                  <strong>Notas especiales:</strong>{" "}
+                  {selectedOrder.special_instructions}
                 </Alert>
               )}
 
-              <Card>
-                <Card.Header className="bg-light">
-                  <strong>Items del Pedido</strong>
+              <Card className="border-0 shadow-sm">
+                <Card.Header className="bg-light border-0">
+                  <strong>Ítems del pedido</strong>
                 </Card.Header>
                 {selectedOrder.items && selectedOrder.items.length > 0 ? (
-                  <Table responsive className="mb-0">
-                    <thead>
-                      <tr>
-                        <th>Producto</th>
-                        <th>Cantidad</th>
-                        <th>Precio Unit.</th>
-                        <th>Subtotal</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {selectedOrder.items.map((item) => (
-                        <tr key={item.id}>
-                          <td>{item.menu_item_name || item.name || "N/A"}</td>
-                          <td>{item.quantity}</td>
-                          <td>${formatPrice(item.unit_price)}</td>
-                          <td>${formatPrice(item.subtotal)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                    <tfoot>
-                      <tr>
-                        <td colSpan="3" className="text-end">
-                          <strong>Total:</strong>
-                        </td>
-                        <td>
-                          <strong>${formatPrice(selectedOrder.total_amount)}</strong>
-                        </td>
-                      </tr>
-                    </tfoot>
-                  </Table>
+                  <ListGroup variant="flush">
+                    {selectedOrder.items.map((item) => (
+                      <ListGroup.Item
+                        key={item.id}
+                        className="d-flex justify-content-between align-items-start"
+                      >
+                        <div>
+                          <div className="fw-semibold">
+                            {item.menu_item_name || item.name || "Producto"}
+                          </div>
+                          <div className="small">
+                            Cantidad: {item.quantity} · Precio unit.: $
+                            {formatPrice(item.unit_price)}
+                          </div>
+                        </div>
+                        <div className="fw-semibold">
+                          ${formatPrice(item.subtotal)}
+                        </div>
+                      </ListGroup.Item>
+                    ))}
+                    <ListGroup.Item className="d-flex justify-content-between">
+                      <span className="fw-semibold">Total</span>
+                      <span className="fw-bold">
+                        ${formatPrice(selectedOrder.total_amount)}
+                      </span>
+                    </ListGroup.Item>
+                  </ListGroup>
                 ) : (
                   <Card.Body>
-                    <Alert variant="warning">No hay items para mostrar</Alert>
+                    <Alert variant="light" className="border mb-0">
+                      No hay ítems para mostrar.
+                    </Alert>
                   </Card.Body>
                 )}
               </Card>
@@ -340,12 +321,12 @@ function OrderHistory() {
         <Modal.Footer>
           {selectedOrder && canCancelOrder(selectedOrder.status) && (
             <Button
-              variant="danger"
+              variant="outline-secondary"
               onClick={() => handleCancelOrder(selectedOrder.id)}
               disabled={loadingAction}
             >
               <MdCancel className="me-2" />
-              {loadingAction ? "Cancelando..." : "Cancelar Orden"}
+              {loadingAction ? "Cancelando..." : "Cancelar orden"}
             </Button>
           )}
           <Button variant="secondary" onClick={() => setShowModal(false)}>

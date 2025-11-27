@@ -4,10 +4,8 @@ import {
   Container,
   Row,
   Col,
-  Card,
   Button,
   Table,
-  Badge,
   Form,
   Alert,
   Image,
@@ -24,7 +22,10 @@ import {
 import { useOrder } from "../hooks/useOrder";
 import Swal from "sweetalert2";
 
-const API_URL = (import.meta.env.VITE_API_URL || "http://localhost:4000").replace(/\/$/, "");
+const API_URL = (import.meta.env.VITE_API_URL || "http://localhost:4000").replace(
+  /\/$/,
+  ""
+);
 
 const getImageUrl = (imageUrl) => {
   if (!imageUrl) return null;
@@ -52,12 +53,12 @@ function Cart() {
 
   const handleRemoveItem = async (itemId, itemName) => {
     const result = await Swal.fire({
-      title: "¿Eliminar item?",
+      title: "¿Eliminar ítem?",
       text: `¿Deseas eliminar ${itemName} del carrito?`,
       icon: "warning",
       showCancelButton: true,
-      confirmButtonColor: "#d33",
-      cancelButtonColor: "#6c757d",
+      confirmButtonColor: "#b91c1c",
+      cancelButtonColor: "#6b7280",
       confirmButtonText: "Sí, eliminar",
       cancelButtonText: "Cancelar",
     });
@@ -76,11 +77,11 @@ function Cart() {
   const handleClearCart = async () => {
     const result = await Swal.fire({
       title: "¿Vaciar carrito?",
-      text: "Se eliminarán todos los items del carrito",
+      text: "Se eliminarán todos los ítems del carrito",
       icon: "warning",
       showCancelButton: true,
-      confirmButtonColor: "#d33",
-      cancelButtonColor: "#6c757d",
+      confirmButtonColor: "#b91c1c",
+      cancelButtonColor: "#6b7280",
       confirmButtonText: "Sí, vaciar",
       cancelButtonText: "Cancelar",
     });
@@ -101,7 +102,7 @@ function Cart() {
       Swal.fire({
         icon: "warning",
         title: "Carrito vacío",
-        text: "Agrega items al carrito antes de continuar",
+        text: "Agrega ítems al carrito antes de continuar",
       });
       return;
     }
@@ -159,237 +160,267 @@ function Cart() {
   const total = getCartTotal();
 
   return (
-    <Container className="py-5">
-      <Card className="shadow-lg border-0">
-        <Card.Header
-          className="text-white border-0"
-          style={{
-            background: "linear-gradient(135deg, #1f2937 0%, #111827 100%)",
-            padding: "1.5rem",
-          }}
-        >
-          <div className="d-flex justify-content-between align-items-center">
-            <div className="d-flex align-items-center">
-              <MdShoppingCart size={32} className="me-2" />
-              <h4 className="mb-0">Carrito de Compras</h4>
+    <Container className="py-4 py-md-5">
+      {/* Encabezado minimalista */}
+      <Row className="align-items-center mb-4">
+        <Col>
+          <div className="d-flex align-items-center gap-2">
+            <MdShoppingCart size={28} />
+            <div>
+              <h4 className="mb-0">Mi carrito</h4>
+              <small>Revisa tus productos antes de confirmar tu orden.</small>
             </div>
-            <Button
-              as={Link}
-              to="/menu"
-              variant="light"
-              size="sm"
-              className="d-flex align-items-center"
-            >
-              <MdArrowBack size={18} className="me-1" />
-              Volver al menú
-            </Button>
           </div>
-        </Card.Header>
+        </Col>
+        <Col xs="auto">
+          <Button
+            as={Link}
+            to="/menu"
+            variant="outline-secondary"
+            size="sm"
+            className="d-flex align-items-center"
+          >
+            <MdArrowBack size={18} className="me-1" />
+            Volver al menú
+          </Button>
+        </Col>
+      </Row>
 
-        <Card.Body>
-          {cart.length === 0 ? (
-            <Alert variant="info" className="text-center">
-              <MdShoppingCart size={48} className="mb-3" />
-              <h5>Tu carrito está vacío</h5>
-              <p>Agrega items desde el menú para comenzar</p>
-              <Button as={Link} to="/menu" variant="primary">
-                Ir al menú
+      {cart.length === 0 ? (
+        <Alert variant="light" className="text-center border-0 py-5">
+          <MdShoppingCart size={48} className="mb-3" />
+          <h5 className="mb-2">Tu carrito está vacío</h5>
+          <p className="mb-3">
+            Agrega productos desde el menú para comenzar tu orden.
+          </p>
+          <Button as={Link} to="/menu" variant="secondary">
+            Ir al menú
+          </Button>
+        </Alert>
+      ) : (
+        <Row className="gy-4">
+          {/* Lista de ítems */}
+          <Col lg={8}>
+            <div className="mb-3 d-flex justify-content-between align-items-center">
+              <span className="small">
+                {cart.length} ítem{cart.length > 1 ? "s" : ""} en tu carrito
+              </span>
+              <Button
+                variant="link"
+                className="p-0 small"
+                onClick={handleClearCart}
+              >
+                Vaciar carrito
               </Button>
-            </Alert>
-          ) : (
-            <>
-              <Row>
-                <Col lg={8}>
-                  <Table responsive>
-                    <thead>
-                      <tr>
-                        <th>Imagen</th>
-                        <th>Producto</th>
-                        <th>Precio</th>
-                        <th>Cantidad</th>
-                        <th>Subtotal</th>
-                        <th>Acciones</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {cart.map((item) => (
-                        <tr key={item.id}>
-                          <td>
-                            {item.image_url ? (
-                              <Image
-                                src={getImageUrl(item.image_url)}
-                                alt={item.name}
-                                rounded
-                                style={{
-                                  width: "60px",
-                                  height: "60px",
-                                  objectFit: "cover",
-                                }}
-                                onError={(e) => {
-                                  e.target.src =
-                                    "https://via.placeholder.com/60?text=Sin+Imagen";
-                                }}
-                              />
-                            ) : (
-                              <div
-                                className="bg-secondary text-white rounded d-flex align-items-center justify-content-center"
-                                style={{ width: "60px", height: "60px" }}
-                              >
-                                <MdShoppingCart size={24} />
+            </div>
+
+            <Table borderless responsive className="align-middle">
+              <tbody>
+                {cart.map((item, index) => (
+                  <tr
+                    key={item.id}
+                    className={index !== 0 ? "border-top" : ""}
+                    style={{ borderColor: "#ddd" }}
+                  >
+                    <td style={{ width: "90px" }}>
+                      {item.image_url ? (
+                        <Image
+                          src={getImageUrl(item.image_url)}
+                          alt={item.name}
+                          rounded
+                          style={{
+                            width: "80px",
+                            height: "80px",
+                            objectFit: "cover",
+                          }}
+                          onError={(e) => {
+                            e.target.src =
+                              "https://via.placeholder.com/80?text=Sin+Imagen";
+                          }}
+                        />
+                      ) : (
+                        <div
+                          className="border d-flex align-items-center justify-content-center rounded"
+                          style={{ width: "80px", height: "80px" }}
+                        >
+                          <MdShoppingCart size={22} />
+                        </div>
+                      )}
+                    </td>
+
+                    <td>
+                      <div className="d-flex flex-column">
+                        <div className="d-flex justify-content-between">
+                          <div>
+                            <div className="fw-semibold">{item.name}</div>
+                            {item.description && (
+                              <div className="small mt-1">
+                                {item.description}
                               </div>
                             )}
-                          </td>
-                          <td>
-                            <strong>{item.name}</strong>
-                            {item.description && (
-                              <div className="text-muted small">{item.description}</div>
-                            )}
-                          </td>
-                          <td>${parseFloat(item.price).toFixed(2)}</td>
-                          <td>
-                            <div className="d-flex align-items-center gap-2">
+                          </div>
+                          <div className="fw-semibold">
+                            $
+                            {(
+                              parseFloat(item.price) * item.quantity
+                            ).toFixed(2)}
+                          </div>
+                        </div>
+
+                        <div className="d-flex justify-content-between align-items-center mt-2">
+                          <div className="d-flex align-items-center gap-2">
+                            <span className="small">
+                              ${parseFloat(item.price).toFixed(2)} c/u
+                            </span>
+                            <div className="d-flex align-items-center gap-1">
                               <Button
                                 variant="outline-secondary"
                                 size="sm"
                                 onClick={() =>
-                                  updateCartQuantity(item.id, item.quantity - 1)
+                                  updateCartQuantity(
+                                    item.id,
+                                    item.quantity - 1
+                                  )
                                 }
                                 disabled={item.quantity <= 1}
                               >
-                                <MdRemove />
+                                <MdRemove size={16} />
                               </Button>
-                              <Badge bg="secondary" style={{ minWidth: "30px" }}>
-                                {item.quantity}
-                              </Badge>
+                              <span>{item.quantity}</span>
                               <Button
                                 variant="outline-secondary"
                                 size="sm"
                                 onClick={() =>
-                                  updateCartQuantity(item.id, item.quantity + 1)
+                                  updateCartQuantity(
+                                    item.id,
+                                    item.quantity + 1
+                                  )
                                 }
                               >
-                                <MdAdd />
+                                <MdAdd size={16} />
                               </Button>
                             </div>
-                          </td>
-                          <td>
-                            <strong>
-                              ${(parseFloat(item.price) * item.quantity).toFixed(2)}
-                            </strong>
-                          </td>
-                          <td>
-                            <Button
-                              variant="danger"
-                              size="sm"
-                              onClick={() => handleRemoveItem(item.id, item.name)}
-                            >
-                              <MdDelete />
-                            </Button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </Table>
+                          </div>
 
-                  <div className="d-flex justify-content-end">
-                    <Button variant="outline-danger" onClick={handleClearCart}>
-                      Vaciar carrito
-                    </Button>
-                  </div>
-                </Col>
-
-                <Col lg={4}>
-                  <Card className="shadow-sm">
-                    <Card.Header className="bg-light">
-                      <h5 className="mb-0">Resumen de orden</h5>
-                    </Card.Header>
-                    <Card.Body>
-                      <Form>
-                        <Form.Group className="mb-3">
-                          <Form.Label>Tipo de orden *</Form.Label>
-                          <Form.Select
-                            value={orderType}
-                            onChange={(e) => setOrderType(e.target.value)}
+                          <Button
+                            variant="link"
+                            className="p-0 small"
+                            onClick={() => handleRemoveItem(item.id, item.name)}
                           >
-                            <option value="dine-in">Para comer aquí</option>
-                            <option value="takeout">Para llevar</option>
-                            <option value="delivery">Delivery</option>
-                          </Form.Select>
-                        </Form.Group>
-
-                        {orderType === "dine-in" && (
-                          <Form.Group className="mb-3">
-                            <Form.Label>Número de mesa *</Form.Label>
-                            <Form.Control
-                              type="number"
-                              placeholder="Ej: 5"
-                              value={tableNumber}
-                              onChange={(e) => setTableNumber(e.target.value)}
-                            />
-                          </Form.Group>
-                        )}
-
-                        {orderType === "delivery" && (
-                          <Form.Group className="mb-3">
-                            <Form.Label>Dirección de entrega *</Form.Label>
-                            <Form.Control
-                              as="textarea"
-                              rows={2}
-                              placeholder="Ingresa tu dirección completa"
-                              value={deliveryAddress}
-                              onChange={(e) => setDeliveryAddress(e.target.value)}
-                            />
-                          </Form.Group>
-                        )}
-
-                        <Form.Group className="mb-3">
-                          <Form.Label>Notas especiales</Form.Label>
-                          <Form.Control
-                            as="textarea"
-                            rows={2}
-                            placeholder="Instrucciones especiales (opcional)"
-                            value={notes}
-                            onChange={(e) => setNotes(e.target.value)}
-                          />
-                        </Form.Group>
-                      </Form>
-
-                      <hr />
-
-                      <div className="d-flex justify-content-between mb-2">
-                        <span>Subtotal:</span>
-                        <strong>${total.toFixed(2)}</strong>
+                            <MdDelete className="me-1" />
+                            Eliminar
+                          </Button>
+                        </div>
                       </div>
-                      <div className="d-flex justify-content-between mb-3">
-                        <span className="h5 mb-0">Total:</span>
-                        <span className="h5 mb-0 text-primary">
-                          ${total.toFixed(2)}
-                        </span>
-                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          </Col>
 
-                      <Button
-                        variant="primary"
-                        className="w-100 d-flex align-items-center justify-content-center"
-                        onClick={handleCheckout}
-                        disabled={loading}
-                      >
-                        {loading ? (
-                          <>Procesando...</>
-                        ) : (
-                          <>
-                            <MdPayment size={20} className="me-2" />
-                            Realizar pedido
-                          </>
-                        )}
-                      </Button>
-                    </Card.Body>
-                  </Card>
-                </Col>
-              </Row>
-            </>
-          )}
-        </Card.Body>
-      </Card>
+          {/* Resumen, simple y claro */}
+          <Col lg={4}>
+            <div
+              className="ps-lg-4 pt-3 pt-lg-0 border-top border-lg-top-0 border-lg-start"
+              style={{ borderColor: "#ddd" }}
+            >
+              <h6 className="fw-semibold mb-3">Resumen de la orden</h6>
+
+              <Form className="mb-3">
+                <Form.Group className="mb-3">
+                  <Form.Label className="small">Tipo de orden *</Form.Label>
+                  <Form.Select
+                    size="sm"
+                    value={orderType}
+                    onChange={(e) => setOrderType(e.target.value)}
+                  >
+                    <option value="dine-in">Para comer aquí</option>
+                    <option value="takeout">Para llevar</option>
+                    <option value="delivery">Delivery</option>
+                  </Form.Select>
+                </Form.Group>
+
+                {orderType === "dine-in" && (
+                  <Form.Group className="mb-3">
+                    <Form.Label className="small">Número de mesa *</Form.Label>
+                    <Form.Control
+                      size="sm"
+                      type="number"
+                      min={1}
+                      placeholder="Ej: 5"
+                      value={tableNumber}
+                      onChange={(e) => setTableNumber(e.target.value)}
+                    />
+                  </Form.Group>
+                )}
+
+                {orderType === "delivery" && (
+                  <Form.Group className="mb-3">
+                    <Form.Label className="small">
+                      Dirección de entrega *
+                    </Form.Label>
+                    <Form.Control
+                      as="textarea"
+                      rows={2}
+                      size="sm"
+                      placeholder="Ingresa tu dirección completa"
+                      value={deliveryAddress}
+                      onChange={(e) => setDeliveryAddress(e.target.value)}
+                    />
+                  </Form.Group>
+                )}
+
+                <Form.Group className="mb-3">
+                  <Form.Label className="small">Notas especiales</Form.Label>
+                  <Form.Control
+                    as="textarea"
+                    rows={2}
+                    size="sm"
+                    placeholder="Instrucciones especiales (opcional)"
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                  />
+                </Form.Group>
+              </Form>
+
+              <div
+                className="border-top pt-3 mb-3"
+                style={{ borderColor: "#ddd" }}
+              >
+                <div className="d-flex justify-content-between mb-1 small">
+                  <span>Subtotal</span>
+                  <span>${total.toFixed(2)}</span>
+                </div>
+                <div className="d-flex justify-content-between mb-2 small">
+                  <span>Envío</span>
+                  <span>Calculado en el lugar</span>
+                </div>
+                <div className="d-flex justify-content-between mt-2">
+                  <span className="fw-semibold">Total</span>
+                  <span className="fw-bold">${total.toFixed(2)}</span>
+                </div>
+              </div>
+
+              <Button
+                variant="secondary"
+                className="w-100 d-flex align-items-center justify-content-center"
+                onClick={handleCheckout}
+                disabled={loading}
+              >
+                {loading ? (
+                  <>Procesando...</>
+                ) : (
+                  <>
+                    <MdPayment size={18} className="me-2" />
+                    Confirmar pedido
+                  </>
+                )}
+              </Button>
+            </div>
+          </Col>
+        </Row>
+      )}
     </Container>
   );
 }

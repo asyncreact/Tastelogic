@@ -9,7 +9,7 @@ function Unauthorized() {
 
   return (
     <Container className="min-vh-100 d-flex align-items-center justify-content-center">
-      <Card className="shadow" style={{ maxWidth: "500px" }}>
+      <Card className="shadow-lg w-100" style={{ maxWidth: "500px" }}>
         <Card.Body className="text-center p-5">
           {/* Icono de error */}
           <div className="text-danger mb-4" style={{ fontSize: "80px" }}>
@@ -17,7 +17,7 @@ function Unauthorized() {
           </div>
 
           {/* Título */}
-          <h1 className="display-5 text-danger mb-3">Acceso Denegado</h1>
+          <h1 className="h2 text-danger mb-3">Acceso Denegado</h1>
 
           {/* Mensaje */}
           <p className="text-muted mb-4">
@@ -26,7 +26,7 @@ function Unauthorized() {
 
           {/* Información adicional */}
           {user && (
-            <div className="alert alert-light mb-4">
+            <div className="alert alert-light mb-4 text-start">
               <small className="text-muted">
                 <strong>Usuario actual:</strong> {user.name}
                 <br />
@@ -37,17 +37,17 @@ function Unauthorized() {
 
           {/* Botones de acción */}
           <div className="d-grid gap-2">
-            <Button 
-              variant="primary" 
+            <Button
+              variant="primary"
               size="lg"
               onClick={() => navigate(-1)}
             >
               ← Volver atrás
             </Button>
-            
-            <Button 
-              as={Link} 
-              to="/dashboard" 
+
+            <Button
+              as={Link}
+              to="/dashboard"
               variant="outline-secondary"
             >
               Ir al Dashboard

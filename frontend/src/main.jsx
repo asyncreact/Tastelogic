@@ -8,7 +8,6 @@ import { MenuProvider } from './context/MenuContext';
 import { OrderProvider } from './context/OrderContext';
 import { ReservationProvider } from './context/ReservationContext';
 import App from './App';
-import './styles/index.css'
 import 'bootstrap/dist/css/bootstrap.min.css';
 
 createRoot(document.getElementById('root')).render(

@@ -1,3 +1,4 @@
+// src/components/MenuItemCard.jsx
 import { Card, Button, OverlayTrigger, Tooltip } from "react-bootstrap";
 import { BiImage, BiListUl, BiTime } from "react-icons/bi";
 import { RiShoppingBag4Line } from "react-icons/ri";
@@ -23,80 +24,87 @@ function MenuItemCard({ item }) {
     addToCart(item, 1);
     Swal.fire({
       icon: "success",
-      title: "¡Agregado!",
+      title: "Agregado",
       text: `${item.name} agregado al carrito`,
       timer: 1500,
       showConfirmButton: false,
     });
   };
 
-  const getItemQuantityInCart = () => {
-    const cartItem = cart.find((i) => i.id === item.id);
-    return cartItem ? cartItem.quantity : 0;
-  };
-
-  const quantityInCart = getItemQuantityInCart();
+  const quantityInCart = cart.find((i) => i.id === item.id)?.quantity || 0;
 
   return (
-    <Card className="menu-card-flat h-100">
+    <Card className="h-100 border-0 shadow-sm">
       {item.image_url ? (
         <Card.Img
           variant="top"
           src={getImageUrl(item.image_url)}
           alt={item.name}
-          className="menu-card-img"
+          style={{ height: "200px", objectFit: "cover" }}
           onError={(e) => {
-            e.target.src = "https://via.placeholder.com/180?text=Sin+Imagen";
+            e.target.src = "https://via.placeholder.com/200?text=Sin+Imagen";
           }}
         />
       ) : (
         <div
-          className="d-flex align-items-center justify-content-center bg-light"
-          style={{
-            height: "200px",
-            borderBottom: "1px solid var(--border-color)",
-          }}
+          className="d-flex align-items-center justify-content-center border-bottom"
+          style={{ height: "200px" }}
         >
-          <BiImage size={32} className="text-muted" />
+          <BiImage size={32} />
         </div>
       )}
 
-      <Card.Body className="menu-card-body">
-        <h3 className="menu-card-title">{item.name}</h3>
+      <Card.Body className="d-flex flex-column">
+        <h3 className="h6 mb-2 text-truncate">{item.name}</h3>
 
-        <div className="menu-card-desc">{item.description}</div>
+        {item.description && (
+          <p className="small mb-3" style={{ minHeight: "2.5rem" }}>
+            {item.description}
+          </p>
+        )}
 
         <div className="mt-auto">
           {item.ingredients && (
             <OverlayTrigger
               placement="top"
-              overlay={<Tooltip id={`t-${item.id}`}>{item.ingredients}</Tooltip>}
+              overlay={
+                <Tooltip id={`t-${item.id}`}>{item.ingredients}</Tooltip>
+              }
             >
-              <div className="menu-card-detail" style={{ cursor: "pointer" }}>
-                <BiListUl /> <small>Ingredientes</small>
+              <div
+                className="d-flex align-items-center small mb-2"
+                style={{ cursor: "pointer" }}
+              >
+                <BiListUl className="me-1" />
+                <span>Ingredientes</span>
               </div>
             </OverlayTrigger>
           )}
 
           {item.estimated_prep_time && (
-            <div className="menu-card-detail">
-              <BiTime /> <small>{item.estimated_prep_time} min</small>
+            <div className="d-flex align-items-center small mb-2">
+              <BiTime className="me-1" />
+              <span>{item.estimated_prep_time} min</span>
             </div>
           )}
 
-          <div className="menu-divider"></div>
+          <hr className="my-2" />
 
-          <div className="d-flex justify-content-between align-items-center">
-            <span className="menu-price">
+          <div className="d-flex justify-content-between align-items-center mb-2">
+            <span className="fw-semibold">
               ${parseFloat(item.price).toFixed(2)}
             </span>
-
-            <span className="menu-status-flat status-available">
-              Disponible
+            <span className="small">
+              {item.is_available ? "Disponible" : "No disponible"}
             </span>
           </div>
 
-          <Button className="btn-menu-action w-100" onClick={handleAddToCart}>
+          <Button
+            variant="secondary"
+            className="w-100 d-flex align-items-center justify-content-center"
+            onClick={handleAddToCart}
+            disabled={!item.is_available}
+          >
             <RiShoppingBag4Line className="me-2" />
             {quantityInCart > 0
               ? `Agregar (+${quantityInCart})`

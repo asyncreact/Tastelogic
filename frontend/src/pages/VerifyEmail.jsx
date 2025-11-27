@@ -1,16 +1,11 @@
 // src/pages/VerifyEmail.jsx
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Container, Row, Col, Card } from "react-bootstrap";
+import { Container, Row, Col, Card, Spinner } from "react-bootstrap";
 import { verifyAccount } from "../api/auth";
 import Swal from "sweetalert2";
 import withReactContent from "sweetalert2-react-content";
-
-// 1. IMPORTAR EL COMPONENTE TOGGLE
 import ThemeToggle from "../components/ThemeToggle";
-
-// Importamos el CSS Flat compartido
-import "./css/Login.css";
 
 const MySwal = withReactContent(Swal);
 
@@ -18,7 +13,6 @@ function VerifyEmail() {
   const { token } = useParams();
   const navigate = useNavigate();
   const [status, setStatus] = useState("loading");
-  
   const hasVerified = useRef(false);
 
   useEffect(() => {
@@ -26,68 +20,52 @@ function VerifyEmail() {
       if (hasVerified.current) return;
       hasVerified.current = true;
 
-      // Configuración base para alertas Flat
-      const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-      const swalBaseConfig = {
-        background: isDark ? '#000' : '#fff',
-        color: isDark ? '#fff' : '#000',
-        customClass: { popup: 'rounded-0 border-1 border-secondary' }
-      };
-
-      // 1. Mostrar Loading Flat
       MySwal.fire({
-        title: 'VERIFICANDO EMAIL',
-        text: 'Por favor espera un momento...',
+        title: "VERIFICANDO EMAIL",
+        text: "Por favor espera un momento...",
         allowOutsideClick: false,
         allowEscapeKey: false,
         showConfirmButton: false,
-        ...swalBaseConfig,
         didOpen: () => {
           MySwal.showLoading();
-        }
+        },
       });
 
       try {
         const response = await verifyAccount(token);
         setStatus("success");
-        
-        const message = 
-          response.data?.data?.message || 
-          response.data?.message || 
+
+        const message =
+          response.data?.data?.message ||
+          response.data?.message ||
           "Tu cuenta ha sido verificada exitosamente";
 
-        // 2. Éxito Flat
         await MySwal.fire({
-          title: 'EMAIL VERIFICADO',
+          title: "EMAIL VERIFICADO",
           text: message,
-          icon: 'success',
-          confirmButtonText: 'IR A INICIAR SESIÓN',
-          confirmButtonColor: '#000',
+          icon: "success",
+          confirmButtonText: "IR A INICIAR SESIÓN",
           allowOutsideClick: false,
-          ...swalBaseConfig
         });
 
         navigate("/login");
-
       } catch (err) {
         setStatus("error");
-        
-        const errorMessage = 
-          err.response?.data?.message || 
+
+        const errorMessage =
+          err.response?.data?.message ||
           "El enlace de verificación es inválido o ha expirado";
 
-        // 3. Error Flat
         const result = await MySwal.fire({
-          title: 'ERROR DE VERIFICACIÓN',
+          title: "ERROR DE VERIFICACIÓN",
           text: errorMessage,
-          icon: 'error',
+          icon: "error",
           showCancelButton: true,
-          confirmButtonText: 'REGISTRARSE NUEVAMENTE',
-          cancelButtonText: 'IR AL LOGIN',
-          confirmButtonColor: '#000',
-          cancelButtonColor: '#6c757d',
+          confirmButtonText: "REGISTRARSE NUEVAMENTE",
+          cancelButtonText: "IR AL LOGIN",
+          confirmButtonColor: "#000",
+          cancelButtonColor: "#6c757d",
           reverseButtons: true,
-          ...swalBaseConfig
         });
 
         if (result.isConfirmed) {
@@ -104,49 +82,49 @@ function VerifyEmail() {
   }, [token, navigate]);
 
   return (
-    // 2. AGREGADO: position: relative al contenedor principal
-    <div className="login-page d-flex align-items-center justify-content-center" style={{ position: 'relative' }}>
-      
-      {/* 3. IMPLEMENTACIÓN: Botón en la esquina superior IZQUIERDA */}
-      <div style={{ position: 'absolute', top: '25px', left: '25px', zIndex: 1050 }}>
+    <div className="d-flex align-items-center justify-content-center min-vh-100 position-relative bg-light">
+      {/* Toggle tema arriba a la izquierda */}
+      <div className="position-absolute top-0 start-0 m-3">
         <ThemeToggle />
       </div>
 
       <Container>
         <Row className="w-100 justify-content-center">
           <Col md={8} lg={6} xl={5}>
-            
-            {/* CARD FLAT */}
-            <Card className="login-card-flat text-center">
+            <Card className="text-center">
               <Card.Body className="p-5">
-                
-                <h2 className="login-title mb-3">TasteLogic</h2>
-                <p className="login-subtitle mb-4">ESTADO DE VERIFICACIÓN</p>
-                
+                <h2 className="fw-bold mb-3">TasteLogic</h2>
+                <p className="text-muted mb-4">ESTADO DE VERIFICACIÓN</p>
+
                 <div className="py-4">
                   {status === "loading" && (
-                    <div className="text-muted small text-uppercase letter-spacing-1">
-                      <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                    <div className="text-muted small text-uppercase">
+                      <Spinner
+                        animation="border"
+                        size="sm"
+                        role="status"
+                        className="me-2"
+                      >
+                        <span className="visually-hidden">Loading...</span>
+                      </Spinner>
                       Procesando solicitud...
                     </div>
                   )}
-                  
+
                   {status === "success" && (
-                    <div className="text-success fw-bold text-uppercase letter-spacing-1">
+                    <div className="text-success fw-bold text-uppercase">
                       ¡Verificación Exitosa!
                     </div>
                   )}
-                  
+
                   {status === "error" && (
-                    <div className="text-danger fw-bold text-uppercase letter-spacing-1">
+                    <div className="text-danger fw-bold text-uppercase">
                       No se pudo verificar el correo
                     </div>
                   )}
                 </div>
-
               </Card.Body>
             </Card>
-
           </Col>
         </Row>
       </Container>

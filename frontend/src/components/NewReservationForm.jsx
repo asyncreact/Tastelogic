@@ -1,5 +1,14 @@
+// src/components/NewReservationForm.jsx
 import { useState, useEffect } from "react";
-import { Form, Button, Row, Col, Alert, Card, Badge, Spinner } from "react-bootstrap";
+import {
+  Form,
+  Button,
+  Row,
+  Col,
+  Alert,
+  Card,
+  Spinner,
+} from "react-bootstrap";
 import { useReservation } from "../hooks/useReservation";
 import api from "../api/auth";
 import Swal from "sweetalert2";
@@ -26,7 +35,7 @@ function NewReservationForm({ onSuccess }) {
         setLoadingZones(true);
         const response = await api.get("/zones/public");
         setZones(response.data?.zones || response.data?.data || []);
-      } catch (error) {
+      } catch {
         Swal.fire({
           icon: "error",
           title: "Error",
@@ -73,7 +82,7 @@ function NewReservationForm({ onSuccess }) {
         guest_count: formData.guest_count,
       });
       setAvailableTables(tables || []);
-    } catch (error) {
+    } catch {
       setAvailableTables([]);
     } finally {
       setLoadingTables(false);
@@ -86,7 +95,9 @@ function NewReservationForm({ onSuccess }) {
     setFormData((prev) => ({
       ...prev,
       [name]: value,
-      ...(["zone_id", "reservation_date", "reservation_time", "guest_count"].includes(name) && {
+      ...(["zone_id", "reservation_date", "reservation_time", "guest_count"].includes(
+        name
+      ) && {
         table_id: "",
       }),
     }));
@@ -130,7 +141,7 @@ function NewReservationForm({ onSuccess }) {
 
       await Swal.fire({
         icon: "success",
-        title: "¡Reserva creada!",
+        title: "Reserva creada",
         text: "Tu reserva ha sido registrada exitosamente. Recibirás una confirmación pronto.",
         confirmButtonText: "Ok",
       });
@@ -171,39 +182,34 @@ function NewReservationForm({ onSuccess }) {
   };
 
   return (
-    <div className="reservation-form-wrapper reservation-form-wrapper-narrow">
-      <Card className="reservation-form-card-flat">
-        <Card.Body className="reservation-form-card-body reservation-form-card-body-tight">
-          <div className="reservation-form-header reservation-form-header-compact">
-            <div className="reservation-form-header-main">
-              <h2 className="reservation-form-title">
-                <MdEventAvailable />
-                Crear reserva
-              </h2>
-              <span className="reservation-form-chip">Formulario</span>
+    <div className="py-3">
+      <Card className="shadow-sm border-0">
+        <Card.Body>
+          {/* Encabezado simple */}
+          <div className="mb-3 d-flex align-items-center gap-2">
+            <MdEventAvailable size={22} />
+            <div>
+              <h2 className="h5 mb-1">Crear reserva</h2>
+              <small>Completa los datos para realizar tu reserva.</small>
             </div>
-            <p className="reservation-form-subtitle">
-              Complete todos los datos para realizar su reserva.
-            </p>
           </div>
 
-          <Form onSubmit={handleSubmit} className="reservation-form reservation-form-compact">
+          <Form onSubmit={handleSubmit}>
             <Row className="g-3">
-              {/* Fila 1: Zona + Personas */}
+              {/* Zona */}
               <Col md={7}>
-                <Form.Group controlId="zone_id" className="mb-2">
-                  <Form.Label className="reservation-label">Zona</Form.Label>
+                <Form.Group controlId="zone_id">
+                  <Form.Label>Zona</Form.Label>
                   {loadingZones ? (
-                    <div className="reservation-inline-loading">
+                    <div className="d-flex align-items-center gap-2">
                       <Spinner animation="border" size="sm" />
-                      <span>Cargando...</span>
+                      <span className="small">Cargando...</span>
                     </div>
                   ) : (
                     <Form.Select
                       name="zone_id"
                       value={formData.zone_id}
                       onChange={handleChange}
-                      className="reservation-input reservation-select"
                       required
                     >
                       <option value="">Selecciona</option>
@@ -217,11 +223,12 @@ function NewReservationForm({ onSuccess }) {
                 </Form.Group>
               </Col>
 
+              {/* Personas */}
               <Col md={5}>
-                <Form.Group controlId="guest_count" className="mb-2">
-                  <Form.Label className="reservation-label">Personas</Form.Label>
-                  <div className="reservation-input-with-icon">
-                    <span className="reservation-input-icon">
+                <Form.Group controlId="guest_count">
+                  <Form.Label>Personas</Form.Label>
+                  <div className="input-group">
+                    <span className="input-group-text">
                       <MdPeople />
                     </span>
                     <Form.Control
@@ -229,7 +236,6 @@ function NewReservationForm({ onSuccess }) {
                       name="guest_count"
                       value={formData.guest_count}
                       onChange={handleChange}
-                      className="reservation-input reservation-input-number"
                       min={1}
                       required
                     />
@@ -237,112 +243,127 @@ function NewReservationForm({ onSuccess }) {
                 </Form.Group>
               </Col>
 
-              {/* Fila 2: Fecha + Hora */}
+              {/* Fecha */}
               <Col md={6}>
-                <Form.Group controlId="reservation_date" className="mb-2">
-                  <Form.Label className="reservation-label">Fecha</Form.Label>
+                <Form.Group controlId="reservation_date">
+                  <Form.Label>Fecha</Form.Label>
                   <Form.Control
                     type="date"
                     name="reservation_date"
                     value={formData.reservation_date}
                     onChange={handleChange}
-                    className="reservation-input"
                     min={getMinDate()}
                     required
                   />
                 </Form.Group>
               </Col>
 
+              {/* Hora */}
               <Col md={6}>
-                <Form.Group controlId="reservation_time" className="mb-2">
-                  <Form.Label className="reservation-label">Hora</Form.Label>
+                <Form.Group controlId="reservation_time">
+                  <Form.Label>Hora</Form.Label>
                   <Form.Control
                     type="time"
                     name="reservation_time"
                     value={formData.reservation_time}
                     onChange={handleChange}
-                    className="reservation-input"
                     min={getMinTime()}
                     required
                   />
                 </Form.Group>
               </Col>
 
-              {/* Fila 3: Mesa disponible (cards cuadradas y centradas) */}
-              <Col md={12}>
-                <Form.Group controlId="table_id" className="mb-2">
-                  <Form.Label className="reservation-label">Mesa</Form.Label>
+              {/* Mesas disponibles */}
+              <Col xs={12}>
+                <Form.Group controlId="table_id">
+                  <Form.Label>Mesa</Form.Label>
                   {loadingTables ? (
-                    <div className="reservation-inline-loading">
+                    <div className="d-flex align-items-center gap-2">
                       <Spinner animation="border" size="sm" />
-                      <span>Buscando mesas...</span>
+                      <span className="small">Buscando mesas...</span>
                     </div>
                   ) : availableTables.length === 0 &&
                     formData.zone_id &&
                     formData.reservation_date &&
                     formData.reservation_time &&
                     formData.guest_count ? (
-                    <Alert variant="outline-light" className="reservation-alert">
+                    <Alert variant="light" className="border">
                       No hay mesas para estos datos. Prueba otra hora o zona.
                     </Alert>
                   ) : (
-                    <div className="reservation-tables-list reservation-tables-list-tight">
-                      {availableTables.map((table) => (
-                        <button
-                          key={table.id}
-                          type="button"
-                          className={`reservation-table-pill reservation-table-pill-square ${
-                            String(formData.table_id) === String(table.id)
-                              ? "reservation-table-pill-active"
-                              : ""
-                          }`}
-                          onClick={() =>
-                            setFormData((prev) => ({
-                              ...prev,
-                              table_id: String(table.id),
-                            }))
-                          }
-                        >
-                          <MdOutlineTableBar className="reservation-table-icon" />
-                          <div className="reservation-table-text">
-                            <span className="reservation-table-name">
-                              Mesa {table.table_number}
-                            </span>
-                            <span className="reservation-table-meta">
-                              {table.capacity} max · {table.zone_name || "Zona"}
-                            </span>
-                          </div>
-                        </button>
-                      ))}
+                    <div className="d-flex flex-wrap gap-2">
+                      {availableTables.map((table) => {
+                        const isActive =
+                          String(formData.table_id) === String(table.id);
+                        return (
+                          <button
+                            key={table.id}
+                            type="button"
+                            className={`btn btn-outline-secondary d-flex align-items-center p-2 rounded-3 ${
+                              isActive ? "btn-secondary text-white" : ""
+                            }`}
+                            style={{ minWidth: "180px" }}
+                            onClick={() =>
+                              setFormData((prev) => ({
+                                ...prev,
+                                table_id: String(table.id),
+                              }))
+                            }
+                          >
+                            <MdOutlineTableBar className="me-2" />
+                            <div className="text-start">
+                              <div className="fw-semibold small">
+                                Mesa {table.table_number}
+                              </div>
+                              <div className="small">
+                                {table.capacity} max ·{" "}
+                                {table.zone_name || "Zona"}
+                              </div>
+                            </div>
+                          </button>
+                        );
+                      })}
                     </div>
                   )}
                 </Form.Group>
               </Col>
 
-              {/* Fila 4: Notas */}
-              <Col md={12}>
-                <Form.Group controlId="special_requirements" className="mb-2">
-                  <Form.Label className="reservation-label">Notas (opcional)</Form.Label>
+              {/* Notas */}
+              <Col xs={12}>
+                <Form.Group controlId="special_requirements">
+                  <Form.Label>Notas (opcional)</Form.Label>
                   <Form.Control
                     as="textarea"
                     rows={2}
                     name="special_requirements"
                     value={formData.special_requirements}
                     onChange={handleChange}
-                    className="reservation-input reservation-textarea reservation-textarea-small"
-                    placeholder="Ej: Aniversario, alergias, ubicación específica."
+                    placeholder="Ej: aniversario, alergias, ubicación específica."
                   />
                 </Form.Group>
               </Col>
             </Row>
 
-            <div className="reservation-form-footer reservation-form-footer-compact">
+            <div className="d-flex justify-content-end mt-3">
               <Button
                 type="submit"
-                className="btn-reservation-action btn-reservation-action-small"
+                variant="secondary"
                 disabled={loading || loadingTables || loadingZones}
               >
-                {loading ? "Guardando..." : "Confirmar reserva"}
+                {loading ? (
+                  <>
+                    <Spinner
+                      as="span"
+                      animation="border"
+                      size="sm"
+                      role="status"
+                      className="me-2"
+                    />
+                    Guardando...
+                  </>
+                ) : (
+                  "Confirmar reserva"
+                )}
               </Button>
             </div>
           </Form>

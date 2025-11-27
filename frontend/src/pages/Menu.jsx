@@ -1,19 +1,25 @@
+// src/pages/Menu.jsx
 import { useEffect, useState, useMemo } from "react";
-import { Container, Row, Col, Spinner, Alert, Form, InputGroup, Badge } from "react-bootstrap";
+import {
+  Container,
+  Row,
+  Col,
+  Spinner,
+  Alert,
+  Form,
+  InputGroup,
+} from "react-bootstrap";
 
-// Iconos
 import { MdOutlineFastfood } from "react-icons/md";
 import { BiCategory, BiSearchAlt } from "react-icons/bi";
-import { RiShoppingBag4Line } from "react-icons/ri";
 
 import { useMenu } from "../hooks/useMenu";
 import { useOrder } from "../hooks/useOrder";
 import MenuItemCard from "../components/MenuItemCard";
 
-import "./css/Menu.css"; 
-
 function Menu() {
-  const { categories, items, loading, error, fetchCategories, fetchItems } = useMenu();
+  const { categories, items, loading, error, fetchCategories, fetchItems } =
+    useMenu();
   const { cart } = useOrder();
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -27,65 +33,76 @@ function Menu() {
   const filteredItems = useMemo(() => {
     return items.filter((item) => {
       const matchesCategory =
-        selectedCategory === "" || String(item.category_id) === String(selectedCategory);
-      
+        selectedCategory === "" ||
+        String(item.category_id) === String(selectedCategory);
+
       const searchLower = searchTerm.toLowerCase();
       const matchesSearch =
         searchTerm === "" ||
         item.name.toLowerCase().includes(searchLower) ||
-        (item.description && item.description.toLowerCase().includes(searchLower)) ||
-        (item.ingredients && item.ingredients.toLowerCase().includes(searchLower));
-      
+        (item.description &&
+          item.description.toLowerCase().includes(searchLower)) ||
+        (item.ingredients &&
+          item.ingredients.toLowerCase().includes(searchLower));
+
       return matchesCategory && matchesSearch && item.is_available;
     });
   }, [items, searchTerm, selectedCategory]);
 
   const visibleCategories = useMemo(() => {
     return categories.filter((cat) =>
-      filteredItems.some((item) => String(item.category_id) === String(cat.id))
+      filteredItems.some(
+        (item) => String(item.category_id) === String(cat.id)
+      )
     );
   }, [categories, filteredItems]);
 
   if (loading) {
     return (
-      <Container className="menu-page d-flex justify-content-center align-items-center">
-        <Spinner animation="border" variant="secondary" />
+      <Container className="min-vh-100 d-flex justify-content-center align-items-center">
+        <Spinner animation="border" />
       </Container>
     );
   }
 
   if (error) {
     return (
-      <Container className="menu-page">
-        <Alert variant="danger">Error: {error}</Alert>
+      <Container className="py-4">
+        <Alert variant="light" className="border">
+          Error: {error}
+        </Alert>
       </Container>
     );
   }
 
+  const itemsInCart = cart.reduce((total, item) => total + item.quantity, 0);
+
   return (
-    <Container className="menu-page">
-      {/* Encabezado */}
+    <Container className="py-4">
+      {/* Encabezado minimalista */}
       <div className="d-flex justify-content-between align-items-center mb-4">
-        <h2 className="menu-title d-flex align-items-center">
-          <MdOutlineFastfood className="me-2" /> Menú
-        </h2>
-        {cart.length > 0 && (
-          <Badge
-            bg="light"
-            text="dark"
-            className="menu-cart-badge d-flex align-items-center border"
-          >
-            <RiShoppingBag4Line className="me-2" />
-            {cart.reduce((total, item) => total + item.quantity, 0)} items
-          </Badge>
+        <div className="d-flex align-items-center gap-2">
+          <MdOutlineFastfood size={24} />
+          <div>
+            <h2 className="h4 mb-0">Menú</h2>
+            <small>
+              Explora los platos disponibles y añade lo que desees a tu pedido.
+            </small>
+          </div>
+        </div>
+
+        {itemsInCart > 0 && (
+          <div className="small">
+            {itemsInCart} ítem{itemsInCart > 1 ? "s" : ""} en el carrito
+          </div>
         )}
       </div>
 
-      {/* Buscador y Filtros con estilo Flat */}
-      <Row className="mb-5 g-3">
+      {/* Buscador y filtros */}
+      <Row className="mb-4 g-3">
         <Col md={8}>
           <InputGroup>
-            <InputGroup.Text className="input-group-text-flat">
+            <InputGroup.Text>
               <BiSearchAlt />
             </InputGroup.Text>
             <Form.Control
@@ -93,7 +110,6 @@ function Menu() {
               placeholder="Buscar plato, ingrediente..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="menu-search-input"
             />
           </InputGroup>
         </Col>
@@ -101,7 +117,6 @@ function Menu() {
           <Form.Select
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
-            className="menu-select"
           >
             <option value="">Todas las categorías</option>
             {categories.map((cat) => (
@@ -115,20 +130,28 @@ function Menu() {
 
       {/* Listado */}
       {filteredItems.length === 0 ? (
-        <Alert variant="light" className="text-center text-muted">No se encontraron resultados.</Alert>
+        <Alert variant="light" className="text-center border-0">
+          No se encontraron resultados.
+        </Alert>
       ) : visibleCategories.length === 0 ? (
-        <Alert variant="light">No hay categorías.</Alert>
+        <Alert variant="light" className="border-0">
+          No hay categorías.
+        </Alert>
       ) : (
         visibleCategories.map((category) => (
           <div key={category.id} className="mb-5">
-            {/* Título de categoría con estilo */}
-            <h4 className="category-title">
-              <BiCategory /> {category.name}
+            {/* Título de categoría */}
+            <h4 className="h5 mb-3 d-flex align-items-center gap-2">
+              <BiCategory />
+              <span>{category.name}</span>
             </h4>
 
             <Row className="g-4">
               {filteredItems
-                .filter((item) => String(item.category_id) === String(category.id))
+                .filter(
+                  (item) =>
+                    String(item.category_id) === String(category.id)
+                )
                 .map((item) => (
                   <Col key={item.id} xs={12} sm={6} md={4} lg={3}>
                     <MenuItemCard item={item} />

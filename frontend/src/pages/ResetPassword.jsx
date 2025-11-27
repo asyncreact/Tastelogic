@@ -1,24 +1,27 @@
 // src/pages/ResetPassword.jsx
 import { useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { Container, Row, Col, Form, Button, Card } from "react-bootstrap";
+import {
+  Container,
+  Row,
+  Col,
+  Form,
+  Button,
+  Card,
+  Spinner,
+} from "react-bootstrap";
 import { resetPassword } from "../api/auth";
 import Swal from "sweetalert2";
 import withReactContent from "sweetalert2-react-content";
 import { Eye, EyeSlash } from "react-bootstrap-icons";
-
-// 1. IMPORTAR EL COMPONENTE TOGGLE
 import ThemeToggle from "../components/ThemeToggle";
-
-// Importamos el CSS Flat compartido
-import "./css/Login.css";
 
 const MySwal = withReactContent(Swal);
 
 function ResetPassword() {
   const { token } = useParams();
   const navigate = useNavigate();
-  
+
   const [formData, setFormData] = useState({
     password: "",
     confirmPassword: "",
@@ -29,81 +32,78 @@ function ResetPassword() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
+    setFormData((prev) => ({
+      ...prev,
       [e.target.name]: e.target.value,
-    });
+    }));
   };
 
-  const togglePasswordVisibility = () => setShowPassword(!showPassword);
-  const toggleConfirmPasswordVisibility = () => setShowConfirmPassword(!showConfirmPassword);
+  const togglePasswordVisibility = () =>
+    setShowPassword((prev) => !prev);
+
+  const toggleConfirmPasswordVisibility = () =>
+    setShowConfirmPassword((prev) => !prev);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     const form = e.currentTarget;
 
-    // Validación HTML5
     if (form.checkValidity() === false) {
       e.stopPropagation();
       setValidated(true);
       return;
     }
 
-    // Validación coincidencia de contraseñas
     if (formData.password !== formData.confirmPassword) {
       MySwal.fire({
-        title: 'ERROR',
-        text: 'Las contraseñas no coinciden',
-        icon: 'error',
-        confirmButtonColor: '#000',
-        background: document.documentElement.getAttribute('data-theme') === 'dark' ? '#000' : '#fff',
-        color: document.documentElement.getAttribute('data-theme') === 'dark' ? '#fff' : '#000',
-        customClass: { popup: 'rounded-0 border-1 border-secondary' }
+        title: "ERROR",
+        text: "Las contraseñas no coinciden",
+        icon: "error",
+        confirmButtonText: "CORREGIR",
       });
       return;
     }
 
+    setValidated(true);
     setLoading(true);
 
     try {
-      const response = await resetPassword(token, {
+      await resetPassword(token, {
         password: formData.password,
       });
-      
+
       const Toast = MySwal.mixin({
         toast: true,
-        position: 'top-end',
+        position: "top-end",
         showConfirmButton: false,
         timer: 3000,
         timerProgressBar: false,
-        background: document.documentElement.getAttribute('data-theme') === 'dark' ? '#000' : '#fff',
-        color: document.documentElement.getAttribute('data-theme') === 'dark' ? '#fff' : '#000'
       });
-      
-      Toast.fire({
-        icon: 'success',
-        title: 'CONTRASEÑA ACTUALIZADA'
-      });
-      
-      navigate("/login");
-      
-    } catch (err) {
-      console.error("Error al restablecer contraseña:", err);
-      
-      const errorData = err.response?.data || {};
-      const errorMessage = errorData.message || "Error al restablecer la contraseña";
 
-      // Formateo de errores de validación si existen
+      Toast.fire({
+        icon: "success",
+        title: "CONTRASEÑA ACTUALIZADA",
+      });
+
+      navigate("/login");
+    } catch (err) {
+      const errorData = err.response?.data || {};
+      const errorMessage =
+        errorData.message || "Error al restablecer la contraseña";
+
       let errorDetailsHtml = "";
       if (errorData.details && Array.isArray(errorData.details)) {
-        const listItems = errorData.details.map(d => {
-            const msg = typeof d === 'object' ? (d.mensaje || d.message) : d;
+        const listItems = errorData.details
+          .map((d) => {
+            const msg =
+              typeof d === "object" ? d.mensaje || d.message : d;
             return `<li style="margin-bottom: 4px;">${msg}</li>`;
-        }).join('');
-        
+          })
+          .join("");
+
         errorDetailsHtml = `
           <div class="text-start mt-3 px-3">
-            <ul style="padding-left: 20px; font-size: 0.9rem; color: ${document.documentElement.getAttribute('data-theme') === 'dark' ? '#ccc' : '#555'}">
+            <ul style="padding-left: 20px; font-size: 0.9rem;">
               ${listItems}
             </ul>
           </div>
@@ -111,15 +111,13 @@ function ResetPassword() {
       }
 
       MySwal.fire({
-        title: 'ERROR',
+        title: "ERROR",
         text: !errorDetailsHtml ? errorMessage : undefined,
-        html: errorDetailsHtml ? `<div>${errorMessage}</div>${errorDetailsHtml}` : undefined,
-        icon: 'error',
-        confirmButtonText: 'CERRAR',
-        confirmButtonColor: '#000',
-        background: document.documentElement.getAttribute('data-theme') === 'dark' ? '#000' : '#fff',
-        color: document.documentElement.getAttribute('data-theme') === 'dark' ? '#fff' : '#000',
-        customClass: { popup: 'rounded-0 border-1 border-secondary' }
+        html: errorDetailsHtml
+          ? `<div>${errorMessage}</div>${errorDetailsHtml}`
+          : undefined,
+        icon: "error",
+        confirmButtonText: "CERRAR",
       });
     } finally {
       setLoading(false);
@@ -127,35 +125,27 @@ function ResetPassword() {
   };
 
   return (
-    // 2. AGREGADO: position: relative al contenedor principal
-    <div className="login-page d-flex align-items-center justify-content-center" style={{ position: 'relative' }}>
-      
-      {/* 3. IMPLEMENTACIÓN: Botón en la esquina superior IZQUIERDA */}
-      <div style={{ position: 'absolute', top: '25px', left: '25px', zIndex: 1050 }}>
+    <div className="d-flex align-items-center justify-content-center min-vh-100 position-relative bg-light">
+      {/* Toggle tema arriba a la izquierda */}
+      <div className="position-absolute top-0 start-0 m-3">
         <ThemeToggle />
       </div>
 
       <Container>
-        <Row className="justify-content-center w-100">
-          <Col md={6} lg={5} xl={4}>
-            
-            {/* CARD FLAT */}
-            <Card className="login-card-flat">
-              <Card.Body className="p-4 p-md-5">
-                
-                <div className="text-center mb-5">
-                  <h2 className="login-title">TasteLogic</h2>
-                  <p className="login-subtitle">NUEVA CONTRASEÑA</p>
+        <Row className="justify-content-center">
+          <Col xs={12} sm={10} md={6} lg={5} xl={4}>
+            <Card>
+              <Card.Body className="p-4">
+                <div className="text-center mb-4">
+                  <h2 className="fw-bold mb-1">TasteLogic</h2>
+                  <p className="text-muted mb-0">NUEVA CONTRASEÑA</p>
                 </div>
 
                 <Form noValidate validated={validated} onSubmit={handleSubmit}>
-                  
-                  {/* PASSWORD */}
-                  <Form.Group className="mb-4" controlId="formPassword">
-                    <Form.Label className="flat-label">Nueva Contraseña</Form.Label>
-                    <div style={{ position: 'relative' }}>
+                  <Form.Group className="mb-3" controlId="formPassword">
+                    <Form.Label>Nueva contraseña</Form.Label>
+                    <div className="position-relative">
                       <Form.Control
-                        className="flat-input"
                         type={showPassword ? "text" : "password"}
                         name="password"
                         placeholder="Mínimo 8 caracteres"
@@ -163,38 +153,25 @@ function ResetPassword() {
                         onChange={handleChange}
                         required
                         minLength={8}
-                        style={{ paddingRight: '45px' }}
                       />
                       <button
                         type="button"
                         onClick={togglePasswordVisibility}
-                        className="password-toggle-flat"
-                        style={{
-                          position: 'absolute',
-                          right: '15px',
-                          top: '50%',
-                          transform: 'translateY(-50%)',
-                          background: 'transparent',
-                          border: 'none',
-                          cursor: 'pointer',
-                          padding: 0,
-                          display: 'flex',
-                        }}
+                        className="btn btn-link p-0 border-0 position-absolute top-50 end-0 translate-middle-y me-2"
+                        style={{ textDecoration: "none" }}
                       >
                         {showPassword ? <Eye size={18} /> : <EyeSlash size={18} />}
                       </button>
                     </div>
-                    <Form.Control.Feedback type="invalid" className="small mt-1">
-                      Mínimo 8 caracteres
+                    <Form.Control.Feedback type="invalid">
+                      Mínimo 8 caracteres.
                     </Form.Control.Feedback>
                   </Form.Group>
 
-                  {/* CONFIRM PASSWORD */}
-                  <Form.Group className="mb-4" controlId="formConfirmPassword">
-                    <Form.Label className="flat-label">Confirmar Contraseña</Form.Label>
-                    <div style={{ position: 'relative' }}>
+                  <Form.Group className="mb-3" controlId="formConfirmPassword">
+                    <Form.Label>Confirmar contraseña</Form.Label>
+                    <div className="position-relative">
                       <Form.Control
-                        className="flat-input"
                         type={showConfirmPassword ? "text" : "password"}
                         name="confirmPassword"
                         placeholder="Repite la contraseña"
@@ -202,52 +179,58 @@ function ResetPassword() {
                         onChange={handleChange}
                         required
                         minLength={8}
-                        style={{ paddingRight: '45px' }}
                       />
                       <button
                         type="button"
                         onClick={toggleConfirmPasswordVisibility}
-                        className="password-toggle-flat"
-                        style={{
-                          position: 'absolute',
-                          right: '15px',
-                          top: '50%',
-                          transform: 'translateY(-50%)',
-                          background: 'transparent',
-                          border: 'none',
-                          cursor: 'pointer',
-                          padding: 0,
-                          display: 'flex',
-                        }}
+                        className="btn btn-link p-0 border-0 position-absolute top-50 end-0 translate-middle-y me-2"
+                        style={{ textDecoration: "none" }}
                       >
-                        {showConfirmPassword ? <Eye size={18} /> : <EyeSlash size={18} />}
+                        {showConfirmPassword ? (
+                          <Eye size={18} />
+                        ) : (
+                          <EyeSlash size={18} />
+                        )}
                       </button>
                     </div>
-                    <Form.Control.Feedback type="invalid" className="small mt-1">
+                    <Form.Control.Feedback type="invalid">
                       Las contraseñas deben coincidir.
                     </Form.Control.Feedback>
                   </Form.Group>
 
                   <Button
                     type="submit"
-                    className="btn-flat-primary w-100 mt-2"
+                    variant="dark"
+                    className="w-100 mt-2"
                     disabled={loading}
                   >
-                    {loading ? "ACTUALIZANDO..." : "CAMBIAR CONTRASEÑA"}
+                    {loading ? (
+                      <>
+                        <Spinner
+                          as="span"
+                          animation="border"
+                          size="sm"
+                          role="status"
+                          className="me-2"
+                        />
+                        ACTUALIZANDO...
+                      </>
+                    ) : (
+                      "CAMBIAR CONTRASEÑA"
+                    )}
                   </Button>
 
-                  <div className="flat-divider"></div>
-
-                  <div className="text-center">
-                    <Link to="/login" className="link-flat small fw-bold">
+                  <div className="text-center mt-3">
+                    <Link
+                      to="/login"
+                      className="fw-semibold small text-decoration-none"
+                    >
                       VOLVER A INICIAR SESIÓN
                     </Link>
                   </div>
-
                 </Form>
               </Card.Body>
             </Card>
-
           </Col>
         </Row>
       </Container>

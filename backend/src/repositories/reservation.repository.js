@@ -1,5 +1,4 @@
 // src/repositories/reservation.repository.js
-
 import { pool } from "../config/db.js";
 
 /**
@@ -9,41 +8,62 @@ import { pool } from "../config/db.js";
 // Obtiene todas las reservas con filtros opcionales
 export const getReservations = async (filters = {}) => {
   try {
-    let query = "SELECT * FROM public.reservations WHERE 1=1";
+    let whereClause = "WHERE 1=1";
     const params = [];
     let paramIndex = 1;
 
     if (filters.user_id) {
-      query += ` AND user_id = $${paramIndex}`;
+      whereClause += ` AND r.user_id = $${paramIndex}`;
       params.push(filters.user_id);
       paramIndex++;
     }
 
-    if (filters.zone_id) {
-      query += ` AND zone_id = $${paramIndex}`;
-      params.push(filters.zone_id);
-      paramIndex++;
-    }
-
-    if (filters.table_id) {
-      query += ` AND table_id = $${paramIndex}`;
-      params.push(filters.table_id);
-      paramIndex++;
-    }
-
     if (filters.status) {
-      query += ` AND status = $${paramIndex}`;
+      whereClause += ` AND r.status = $${paramIndex}`;
       params.push(filters.status);
       paramIndex++;
     }
 
-    if (filters.reservation_date) {
-      query += ` AND DATE(reservation_date) = $${paramIndex}`;
-      params.push(filters.reservation_date);
+    if (filters.zone_id) {
+      whereClause += ` AND r.zone_id = $${paramIndex}`;
+      params.push(filters.zone_id);
       paramIndex++;
     }
 
-    query += " ORDER BY reservation_date DESC";
+    if (filters.from_date) {
+      whereClause += ` AND DATE(r.reservation_date) >= $${paramIndex}`;
+      params.push(filters.from_date);
+      paramIndex++;
+    }
+
+    if (filters.to_date) {
+      whereClause += ` AND DATE(r.reservation_date) <= $${paramIndex}`;
+      params.push(filters.to_date);
+      paramIndex++;
+    }
+
+    const query = `
+      SELECT
+        r.id,
+        r.user_id,
+        r.zone_id,
+        r.table_id,
+        r.reservation_date,
+        r.reservation_time,
+        r.guest_count,
+        r.status,
+        r.special_requirements,
+        r.created_at,
+        r.updated_at,
+        r.reservation_number,       -- 👈 nuevo campo
+        z.name AS zone_name,
+        t.table_number
+      FROM public.reservations r
+      LEFT JOIN public.zones z ON r.zone_id = z.id
+      LEFT JOIN public.tables t ON r.table_id = t.id
+      ${whereClause}
+      ORDER BY r.reservation_date DESC, r.reservation_time DESC
+    `;
 
     const result = await pool.query(query, params);
     return result.rows;
@@ -72,6 +92,7 @@ export const getReservationById = async (id) => {
         r.special_requirements,
         r.created_at,
         r.updated_at,
+        r.reservation_number,       -- 👈 nuevo campo
         u.name as user_name,
         u.email as user_email,
         z.name as zone_name,
@@ -107,16 +128,17 @@ export const createReservation = async ({
   special_requirements = null,
 }) => {
   const client = await pool.connect();
+
   try {
     await client.query("BEGIN");
 
-    // Verificar conflictos
+    // Verificar conflictos de mesa
     const conflictQuery = `
       SELECT * FROM public.reservations
       WHERE table_id = $1
-      AND reservation_date = $2
-      AND reservation_time = $3
-      AND status IN ('confirmed', 'pending')
+        AND reservation_date = $2
+        AND reservation_time = $3
+        AND status IN ('confirmed', 'pending')
     `;
 
     const conflictResult = await client.query(conflictQuery, [
@@ -129,10 +151,10 @@ export const createReservation = async ({
       throw new Error("Mesa no disponible en esa fecha y hora");
     }
 
-    // Crear reserva
+    // Crear reserva (reservation_number lo genera el trigger en la DB)
     const insertQuery = `
       INSERT INTO public.reservations
-      (user_id, zone_id, table_id, reservation_date, reservation_time, guest_count, status, special_requirements)
+        (user_id, zone_id, table_id, reservation_date, reservation_time, guest_count, status, special_requirements)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       RETURNING *
     `;
@@ -166,6 +188,7 @@ export const createReservation = async ({
 
 export const updateReservation = async (id, updateData) => {
   const client = await pool.connect();
+
   try {
     const numId = Number(id);
     if (isNaN(numId) || numId <= 0) throw new Error("ID de reserva inválido");
@@ -196,10 +219,10 @@ export const updateReservation = async (id, updateData) => {
       const conflictQuery = `
         SELECT * FROM public.reservations
         WHERE table_id = $1
-        AND reservation_date = $2
-        AND reservation_time = $3
-        AND id != $4
-        AND status IN ('confirmed', 'pending')
+          AND reservation_date = $2
+          AND reservation_time = $3
+          AND id != $4
+          AND status IN ('confirmed', 'pending')
       `;
 
       const conflictResult = await client.query(conflictQuery, [
@@ -249,7 +272,7 @@ export const updateReservationStatus = async (id, status) => {
     const numId = Number(id);
     if (isNaN(numId) || numId <= 0) throw new Error("ID de reserva inválido");
 
-    const validStatuses = ["pending", "confirmed", "completed", "cancelled"];
+    const validStatuses = ["pending", "confirmed", "completed", "cancelled", "expired"];
     if (!validStatuses.includes(status)) {
       throw new Error(
         `Estado inválido. Debe ser uno de: ${validStatuses.join(", ")}`
@@ -317,7 +340,6 @@ export const deleteReservation = async (id) => {
     if (isNaN(numId) || numId <= 0) throw new Error("ID de reserva inválido");
 
     const query = `DELETE FROM public.reservations WHERE id = $1`;
-
     const result = await pool.query(query, [numId]);
 
     if (result.rowCount === 0) {
@@ -362,9 +384,9 @@ export const checkTableAvailability = async (
       SELECT id, user_id, guest_count
       FROM public.reservations
       WHERE table_id = $1
-      AND reservation_date = $2
-      AND reservation_time = $3
-      AND status IN ('confirmed', 'pending')
+        AND reservation_date = $2
+        AND reservation_time = $3
+        AND status IN ('confirmed', 'pending')
     `;
 
     const params = [table_id, reservation_date, reservation_time];
@@ -387,16 +409,17 @@ export const checkTableAvailability = async (
   }
 };
 
+// Reserva activa “del día”
 export const getActiveReservationByUserId = async (user_id) => {
   const query = `
-    SELECT 
+    SELECT
       r.id,
       r.user_id,
       r.zone_id,
       r.table_id,
       r.reservation_date,
       r.reservation_time,
-      r.guest_count,  -- ⭐ CORREGIDO: era "number_of_guests"
+      r.guest_count,
       r.status,
       t.table_number,
       z.name AS zone_name
@@ -409,7 +432,27 @@ export const getActiveReservationByUserId = async (user_id) => {
     ORDER BY r.reservation_time ASC
     LIMIT 1
   `;
+  const result = await pool.query(query, [user_id]);
+  return result.rows[0] || null;
+};
 
+/**
+ * NUEVA: reserva futura activa por usuario
+ * pending o confirmed con fecha/hora futura
+ */
+export const getActiveFutureReservationByUserId = async (user_id) => {
+  const query = `
+    SELECT r.*
+    FROM public.reservations r
+    WHERE r.user_id = $1
+      AND r.status IN ('pending', 'confirmed')
+      AND (
+        r.reservation_date > CURRENT_DATE
+        OR (r.reservation_date = CURRENT_DATE AND r.reservation_time >= CURRENT_TIME)
+      )
+    ORDER BY r.reservation_date ASC, r.reservation_time ASC
+    LIMIT 1
+  `;
   const result = await pool.query(query, [user_id]);
   return result.rows[0] || null;
 };
@@ -418,7 +461,6 @@ export const getActiveReservationByUserId = async (user_id) => {
  * OBTENER MESAS DISPONIBLES POR ZONA
  */
 
-// Obtiene mesas disponibles por zona y capacidad mínima
 export const getAvailableTablesByZone = async (zone_id, guest_count) => {
   try {
     const query = `
