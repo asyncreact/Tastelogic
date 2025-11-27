@@ -1,5 +1,5 @@
 // src/components/CartSection.jsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Row,
   Col,
@@ -19,6 +19,7 @@ import {
 } from "react-icons/md";
 
 import { useOrder } from "../hooks/useOrder";
+import { useReservation } from "../hooks/useReservation";
 import Swal from "sweetalert2";
 
 const API_URL = (import.meta.env.VITE_API_URL || "http://localhost:4000").replace(
@@ -44,11 +45,46 @@ function CartSection() {
     loading,
   } = useOrder();
 
+  const { fetchMyActiveReservation } = useReservation();
+
   const [orderType, setOrderType] = useState("dine-in");
   const [tableNumber, setTableNumber] = useState("");
   const [deliveryAddress, setDeliveryAddress] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [notes, setNotes] = useState("");
+
+  const [activeReservation, setActiveReservation] = useState(null);
+  const [reservationError, setReservationError] = useState("");
+
+  // Cargar reserva activa cuando el usuario selecciona "Para comer aquí"
+  useEffect(() => {
+    const loadActiveReservation = async () => {
+      if (orderType !== "dine-in") {
+        setActiveReservation(null);
+        setReservationError("");
+        setTableNumber("");
+        return;
+      }
+
+      try {
+        setReservationError("");
+        const reservation = await fetchMyActiveReservation();
+        setActiveReservation(reservation);
+        if (reservation?.table_number) {
+          setTableNumber(reservation.table_number);
+        }
+      } catch (err) {
+        const msg =
+          err.response?.data?.message ||
+          "Para comer aquí necesitas una reserva activa para hoy.";
+        setReservationError(msg);
+        setActiveReservation(null);
+        setTableNumber("");
+      }
+    };
+
+    loadActiveReservation();
+  }, [orderType]); // ✅ sin fetchMyActiveReservation en deps
 
   const handleRemoveItem = async (itemId, itemName) => {
     const result = await Swal.fire({
@@ -106,13 +142,18 @@ function CartSection() {
       return;
     }
 
-    if (orderType === "dine-in" && !tableNumber) {
-      Swal.fire({
-        icon: "warning",
-        title: "Número de mesa requerido",
-        text: "Por favor ingresa el número de mesa",
-      });
-      return;
+    // Para comer aquí: exigir reserva activa
+    if (orderType === "dine-in") {
+      if (!activeReservation) {
+        Swal.fire({
+          icon: "warning",
+          title: "Reserva requerida",
+          text:
+            reservationError ||
+            "Para comer aquí debes tener una reserva activa para hoy.",
+        });
+        return;
+      }
     }
 
     if (orderType === "delivery" && !deliveryAddress) {
@@ -127,10 +168,17 @@ function CartSection() {
     try {
       const orderData = {
         order_type: orderType,
-        table_number: orderType === "dine-in" ? parseInt(tableNumber) : null,
+        reservation_id:
+          orderType === "dine-in" && activeReservation
+            ? activeReservation.id
+            : null,
+        table_id:
+          orderType === "dine-in" && activeReservation
+            ? activeReservation.table_id
+            : null,
         delivery_address: orderType === "delivery" ? deliveryAddress : null,
         payment_method: paymentMethod,
-        notes: notes || null,
+        special_instructions: notes || null,
         items: cart.map((item) => ({
           menu_item_id: item.id,
           quantity: item.quantity,
@@ -152,6 +200,8 @@ function CartSection() {
       setDeliveryAddress("");
       setPaymentMethod("cash");
       setNotes("");
+      setActiveReservation(null);
+      setReservationError("");
 
       window.location.reload();
     } catch (error) {
@@ -324,17 +374,38 @@ function CartSection() {
             </Form.Group>
 
             {orderType === "dine-in" && (
-              <Form.Group className="mb-3">
-                <Form.Label className="small">Número de mesa *</Form.Label>
-                <Form.Control
-                  size="sm"
-                  type="number"
-                  min={1}
-                  placeholder="Ej: 5"
-                  value={tableNumber}
-                  onChange={(e) => setTableNumber(e.target.value)}
-                />
-              </Form.Group>
+              <div className="mb-3">
+                <Form.Label className="small">Detalles de tu reserva</Form.Label>
+
+                {reservationError && (
+                  <Alert variant="warning" className="py-2 small">
+                    {reservationError}
+                  </Alert>
+                )}
+
+                {activeReservation && (
+                  <div className="border rounded p-2 small">
+                    <div>
+                      <strong>Mesa:</strong> {activeReservation.table_number}
+                    </div>
+                    <div>
+                      <strong>Zona:</strong> {activeReservation.zone_name}
+                    </div>
+                    <div>
+                      <strong>Fecha:</strong>{" "}
+                      {activeReservation.reservation_date}
+                    </div>
+                    <div>
+                      <strong>Hora:</strong>{" "}
+                      {activeReservation.reservation_time}
+                    </div>
+                    <div>
+                      <strong>Personas:</strong>{" "}
+                      {activeReservation.guest_count}
+                    </div>
+                  </div>
+                )}
+              </div>
             )}
 
             {orderType === "delivery" && (
@@ -368,7 +439,9 @@ function CartSection() {
             </Form.Group>
 
             <Form.Group className="mb-3">
-              <Form.Label className="small">Notas para el restaurante</Form.Label>
+              <Form.Label className="small">
+                Notas para el restaurante
+              </Form.Label>
               <Form.Control
                 as="textarea"
                 rows={2}

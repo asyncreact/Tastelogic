@@ -38,6 +38,14 @@ export const checkAvailability = (data) => api.post('/reservations/public/check-
 export const getAvailableTables = (params = {}) => api.get('/reservations/public/available-tables', { params });
 
 // ============================================================
+// 📅 RESERVA ACTIVA (Customer)
+// ============================================================
+
+// Obtener la reserva activa de hoy del usuario logueado
+export const getMyActiveReservation = () =>
+  api.get('/reservations/me/active');
+
+// ============================================================
 // 📊 ESTADÍSTICAS (Solo Admin)
 // ============================================================
 

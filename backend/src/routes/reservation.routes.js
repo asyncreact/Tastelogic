@@ -15,6 +15,7 @@ import {
   reservationStatsByDate,
   reservationStatsByZone,
   reservationStatsByStatus,
+  getMyActiveReservation, // ✅ nuevo
 } from "../controllers/reservation.controller.js";
 
 import { authenticate, authorizeRoles } from "../middleware/auth.middleware.js";
@@ -71,6 +72,14 @@ router.get(
 );
 
 /* RUTAS AUTENTICADAS CON NOMBRES ESPECÍFICOS (Antes de /:reservation_id) */
+
+// ✅ NUEVA: obtener la reserva activa de hoy del usuario logueado
+router.get(
+  "/me/active",
+  authenticate,
+  authorizeRoles("customer"),
+  getMyActiveReservation
+);
 
 // Mesas disponibles (autenticada) - alternativa
 router.get(

@@ -35,6 +35,7 @@ function OrderHistory() {
       setLoadingOrders(false);
     };
     loadOrders();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleViewDetails = async (orderId) => {
@@ -93,15 +94,30 @@ function OrderHistory() {
 
   const canCancelOrder = (status) => ["pending", "confirmed"].includes(status);
 
+  const formatTime = (timeString) => {
+    if (!timeString) return "N/A";
+    try {
+      const [h, m, s = "00"] = timeString.split(":");
+      const d = new Date();
+      d.setHours(Number(h), Number(m), Number(s || 0), 0);
+      return d.toLocaleTimeString("es-ES", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      });
+    } catch {
+      return timeString.slice(0, 5);
+    }
+  };
+
   const formatDate = (dateString) => {
     if (!dateString) return "N/A";
     try {
-      return new Date(dateString).toLocaleString("es-ES", {
+      const d = new Date(dateString);
+      return d.toLocaleDateString("es-ES", {
         year: "numeric",
         month: "short",
         day: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
       });
     } catch {
       return "Fecha inválida";
@@ -143,6 +159,7 @@ function OrderHistory() {
 
   return (
     <>
+      {/* Lista */}
       <div className="d-flex flex-column gap-3">
         {orders.map((order) => (
           <Card
@@ -152,23 +169,26 @@ function OrderHistory() {
           >
             <Card.Body className="p-0 d-flex flex-column flex-md-row justify-content-between gap-3">
               <div>
-                <div className="d-flex flex-column flex-sm-row flex-wrap gap-2 mb-1">
-                  <span className="fw-semibold">
-                    Orden {order.order_number || `#${order.id}`}
-                  </span>
-                  <span>·</span>
-                  <span>Estado: {order.status || "N/A"}</span>
+                <div className="fw-semibold mb-1">
+                  Orden {order.order_number || `#${order.id}`}
                 </div>
-                <div className="small mb-1">{formatDate(order.created_at)}</div>
-                <div className="d-flex flex-wrap align-items-center gap-2 small">
-                  <span>Tipo: {order.order_type || "N/A"}</span>
-                  <span>·</span>
-                  <span>Total: ${formatPrice(order.total_amount)}</span>
-                  <span>·</span>
-                  <span>Método pago: {order.payment_method || "No especificado"}</span>
-                  <span>·</span>
-                  <span>Estado pago: {order.payment_status || "Pendiente"}</span>
+
+                <div className="small">
+                  Hora: {formatTime(order.order_time || order.created_at)}
                 </div>
+                <div className="small">
+                  Tipo: {order.order_type || "N/A"}
+                </div>
+                <div className="small">
+                  Estado: {order.status || "N/A"}
+                </div>
+
+                {/* Nombre/correo en la lista si el backend los envía */}
+                {order.user_name && (
+                  <div className="small mt-1 text-muted">
+                    Cliente: {order.user_name} ({order.user_email})
+                  </div>
+                )}
               </div>
 
               <div className="d-flex flex-column flex-sm-row align-items-start align-items-sm-center gap-2 ms-md-3">
@@ -220,18 +240,45 @@ function OrderHistory() {
                       <strong>Información general</strong>
                     </Card.Header>
                     <ListGroup variant="flush">
+                      {/* Cliente: nombre y correo */}
+                      {selectedOrder.user_name && (
+                        <ListGroup.Item className="d-flex justify-content-between">
+                          <span>Cliente</span>
+                          <span className="text-end">
+                            <div>{selectedOrder.user_name}</div>
+                            <div className="text-muted small">
+                              ({selectedOrder.user_email})
+                            </div>
+                          </span>
+                        </ListGroup.Item>
+                      )}
+
                       <ListGroup.Item>
-                        <strong>Fecha:</strong> {formatDate(selectedOrder.created_at)}
+                        <strong>Fecha:</strong>{" "}
+                        {formatDate(
+                          selectedOrder.order_date ||
+                            selectedOrder.created_at
+                        )}
                       </ListGroup.Item>
                       <ListGroup.Item>
-                        <strong>Tipo:</strong> {selectedOrder.order_type || "N/A"}
+                        <strong>Hora:</strong>{" "}
+                        {formatTime(
+                          selectedOrder.order_time ||
+                            selectedOrder.created_at
+                        )}
                       </ListGroup.Item>
                       <ListGroup.Item>
-                        <strong>Estado:</strong> {selectedOrder.status || "N/A"}
+                        <strong>Tipo:</strong>{" "}
+                        {selectedOrder.order_type || "N/A"}
+                      </ListGroup.Item>
+                      <ListGroup.Item>
+                        <strong>Estado:</strong>{" "}
+                        {selectedOrder.status || "N/A"}
                       </ListGroup.Item>
                       {selectedOrder.table_number && (
                         <ListGroup.Item>
-                          <strong>Mesa:</strong> {selectedOrder.table_number}
+                          <strong>Mesa:</strong>{" "}
+                          {selectedOrder.table_number}
                         </ListGroup.Item>
                       )}
                       {selectedOrder.delivery_address && (
@@ -288,7 +335,9 @@ function OrderHistory() {
                       >
                         <div>
                           <div className="fw-semibold">
-                            {item.menu_item_name || item.name || "Producto"}
+                            {item.menu_item_name ||
+                              item.name ||
+                              "Producto"}
                           </div>
                           <div className="small">
                             Cantidad: {item.quantity} · Precio unit.: $

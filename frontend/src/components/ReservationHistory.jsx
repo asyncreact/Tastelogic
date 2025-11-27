@@ -33,7 +33,8 @@ function ReservationHistory() {
       setLoadingReservations(false);
     };
     loadReservations();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // ✅ solo una vez al montar
 
   const handleViewDetails = async (reservationId) => {
     try {
@@ -112,9 +113,21 @@ function ReservationHistory() {
     }
   };
 
+  // ✅ ahora devuelve hh:mm AM/PM
   const formatTime = (timeString) => {
     if (!timeString) return "N/A";
-    return timeString.slice(0, 5);
+    try {
+      const [hours, minutes, seconds = "00"] = timeString.split(":");
+      const date = new Date();
+      date.setHours(Number(hours), Number(minutes), Number(seconds || 0), 0);
+      return date.toLocaleTimeString("es-ES", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      });
+    } catch {
+      return timeString.slice(0, 5);
+    }
   };
 
   const getZoneName = (zoneId) => {
@@ -184,6 +197,15 @@ function ReservationHistory() {
                       Fecha: {formatDate(reservation.reservation_date)} · Hora:{" "}
                       {formatTime(reservation.reservation_time)}
                     </div>
+                    <div className="small">
+                      Estado: {getStatusText(reservation.status)}
+                    </div>
+                    {reservation.user_name && (
+                      <div className="small mt-1 text-muted">
+                        Cliente: {reservation.user_name} (
+                        {reservation.user_email})
+                      </div>
+                    )}
                   </div>
 
                   <div className="d-flex flex-column flex-sm-row gap-2 ms-md-3">
@@ -217,96 +239,102 @@ function ReservationHistory() {
       </Card>
 
       {/* Modal de detalles */}
-      <Modal
-        show={showModal}
-        onHide={() => setShowModal(false)}
-        size="lg"
-        centered
-      >
-        <Modal.Header closeButton>
-          <Modal.Title>
-            {selectedReservation?.reservation_number
-              ? `Detalles de la reserva ${selectedReservation.reservation_number}`
-              : `Detalles de la reserva #${selectedReservation?.id}`}
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          {selectedReservation && (
-            <Card className="border-0 shadow-sm">
-              <ListGroup variant="flush">
-                <ListGroup.Item className="d-flex justify-content-between">
-                  <span>Código</span>
-                  <span>
-                    {selectedReservation.reservation_number ||
-                      `#${selectedReservation.id}`}
-                  </span>
-                </ListGroup.Item>
-                <ListGroup.Item className="d-flex justify-content-between">
-                  <span>Fecha</span>
-                  <span>
-                    {formatDate(selectedReservation.reservation_date)}
-                  </span>
-                </ListGroup.Item>
-                <ListGroup.Item className="d-flex justify-content-between">
-                  <span>Hora</span>
-                  <span>
-                    {formatTime(selectedReservation.reservation_time)}
-                  </span>
-                </ListGroup.Item>
-                <ListGroup.Item className="d-flex justify-content-between">
-                  <span>Mesa</span>
-                  <span>{selectedReservation.table_number}</span>
-                </ListGroup.Item>
-                <ListGroup.Item className="d-flex justify-content-between">
-                  <span>Zona</span>
-                  <span>
-                    {selectedReservation.zone_name ||
-                      getZoneName(selectedReservation.zone_id)}
-                  </span>
-                </ListGroup.Item>
-                <ListGroup.Item className="d-flex justify-content-between">
-                  <span>Personas</span>
-                  <span>{selectedReservation.guest_count}</span>
-                </ListGroup.Item>
-                <ListGroup.Item className="d-flex justify-content-between">
-                  <span>Estado</span>
-                  <span>{getStatusText(selectedReservation.status)}</span>
-                </ListGroup.Item>
-                {selectedReservation.special_requirements && (
-                  <ListGroup.Item>
-                    <span className="d-block mb-1">Notas</span>
-                    <p className="mb-0">
-                      {selectedReservation.special_requirements}
-                    </p>
+        <Modal
+          show={showModal}
+          onHide={() => setShowModal(false)}
+          size="lg"
+          centered
+        >
+          <Modal.Header closeButton>
+            <Modal.Title>
+              {selectedReservation?.reservation_number
+                ? `Detalles de la reserva ${selectedReservation.reservation_number}`
+                : `Detalles de la reserva #${selectedReservation?.id}`}
+            </Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            {selectedReservation && (
+              <Card className="border-0 shadow-sm">
+                <ListGroup variant="flush">
+                  <ListGroup.Item className="d-flex justify-content-between">
+                    <span>Código</span>
+                    <span>
+                      {selectedReservation.reservation_number ||
+                        `#${selectedReservation.id}`}
+                    </span>
                   </ListGroup.Item>
-                )}
-                <ListGroup.Item className="d-flex justify-content-between">
-                  <span>Creada</span>
-                  <span>{formatDate(selectedReservation.created_at)}</span>
-                </ListGroup.Item>
-              </ListGroup>
-            </Card>
-          )}
-        </Modal.Body>
-        <Modal.Footer>
-          {selectedReservation &&
-            canCancelReservation(selectedReservation) && (
+
+                  {selectedReservation.user_name && (
+                    <ListGroup.Item className="d-flex justify-content-between">
+                      <span>Cliente</span>
+                      <span className="text-end">
+                        <div>{selectedReservation.user_name}</div>
+                        <div className="text-muted small">
+                          ({selectedReservation.user_email})
+                        </div>
+                      </span>
+                    </ListGroup.Item>
+                  )}
+
+                  <ListGroup.Item className="d-flex justify-content-between">
+                    <span>Fecha</span>
+                    <span>{formatDate(selectedReservation.reservation_date)}</span>
+                  </ListGroup.Item>
+                  <ListGroup.Item className="d-flex justify-content-between">
+                    <span>Hora</span>
+                    <span>{formatTime(selectedReservation.reservation_time)}</span>
+                  </ListGroup.Item>
+                  <ListGroup.Item className="d-flex justify-content-between">
+                    <span>Mesa</span>
+                    <span>{selectedReservation.table_number}</span>
+                  </ListGroup.Item>
+                  <ListGroup.Item className="d-flex justify-content-between">
+                    <span>Zona</span>
+                    <span>
+                      {selectedReservation.zone_name ||
+                        getZoneName(selectedReservation.zone_id)}
+                    </span>
+                  </ListGroup.Item>
+                  <ListGroup.Item className="d-flex justify-content-between">
+                    <span>Personas</span>
+                    <span>{selectedReservation.guest_count}</span>
+                  </ListGroup.Item>
+                  <ListGroup.Item className="d-flex justify-content-between">
+                    <span>Estado</span>
+                    <span>{getStatusText(selectedReservation.status)}</span>
+                  </ListGroup.Item>
+                  {selectedReservation.special_requirements && (
+                    <ListGroup.Item>
+                      <span className="d-block mb-1">Notas</span>
+                      <p className="mb-0">
+                        {selectedReservation.special_requirements}
+                      </p>
+                    </ListGroup.Item>
+                  )}
+                  <ListGroup.Item className="d-flex justify-content-between">
+                    <span>Creada</span>
+                    <span>{formatDate(selectedReservation.created_at)}</span>
+                  </ListGroup.Item>
+                </ListGroup>
+              </Card>
+            )}
+          </Modal.Body>
+          <Modal.Footer>
+            {selectedReservation && canCancelReservation(selectedReservation) && (
               <Button
                 variant="outline-secondary"
-                onClick={() =>
-                  handleCancelReservation(selectedReservation.id)
-                }
+                onClick={() => handleCancelReservation(selectedReservation.id)}
                 disabled={loadingAction}
               >
                 <MdCancel className="me-2" />
                 {loadingAction ? "Cancelando..." : "Cancelar reserva"}
               </Button>
             )}
-          <Button variant="secondary" onClick={() => setShowModal(false)}>
-            Cerrar
-          </Button>
-        </Modal.Footer>
-      </Modal>
+            <Button variant="secondary" onClick={() => setShowModal(false)}>
+              Cerrar
+            </Button>
+          </Modal.Footer>
+        </Modal>
     </>
   );
 }

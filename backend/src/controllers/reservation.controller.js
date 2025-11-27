@@ -15,6 +15,7 @@ import {
   getReservationStatisticsByZone,
   getReservationStatisticsByStatus,
   getActiveFutureReservationByUserId, // ✅ nuevo
+  getActiveReservationByUserId, // ✅ asegúrate de exportarlo en el repository
 } from "../repositories/reservation.repository.js";
 import { getZoneById } from "../repositories/zone.repository.js";
 import { getTableById, updateTableStatus } from "../repositories/table.repository.js";
@@ -22,6 +23,42 @@ import { getUserById } from "../repositories/user.repository.js";
 import { successResponse } from "../utils/response.js";
 
 /* RESERVAS */
+
+/* ✅ NUEVO: Obtiene la reserva activa de hoy del usuario logueado */
+export const getMyActiveReservation = async (req, res, next) => {
+  try {
+    if (req.user.role !== "customer") {
+      const error = new Error("Solo los clientes pueden consultar su reserva activa.");
+      error.status = 403;
+      throw error;
+    }
+
+    const userId = Number(req.user.id);
+
+    const reservation = await getActiveReservationByUserId(userId);
+
+    if (!reservation) {
+      const error = new Error("No tienes una reserva activa para hoy.");
+      error.status = 404;
+      throw error;
+    }
+
+    return successResponse(res, "Reserva activa encontrada", {
+      id: reservation.id,
+      user_id: reservation.user_id,
+      zone_id: reservation.zone_id,
+      table_id: reservation.table_id,
+      reservation_date: reservation.reservation_date,
+      reservation_time: reservation.reservation_time,
+      guest_count: reservation.guest_count,
+      status: reservation.status,
+      table_number: reservation.table_number,
+      zone_name: reservation.zone_name,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
 
 /* Obtiene todas las reservas con filtros opcionales */
 export const listReservations = async (req, res, next) => {
