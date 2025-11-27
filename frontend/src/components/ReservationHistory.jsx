@@ -19,7 +19,7 @@ function ReservationHistory() {
     fetchReservation,
     removeReservation,
     loading,
-    error,
+    error, // sigue disponible si quieres hacer console.log(error)
   } = useReservation();
 
   const [loadingReservations, setLoadingReservations] = useState(true);
@@ -29,8 +29,11 @@ function ReservationHistory() {
 
   useEffect(() => {
     const loadReservations = async () => {
-      await fetchReservations();
-      setLoadingReservations(false);
+      try {
+        await fetchReservations();
+      } finally {
+        setLoadingReservations(false);
+      }
     };
     loadReservations();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -41,11 +44,11 @@ function ReservationHistory() {
       const reservationData = await fetchReservation(reservationId);
       setSelectedReservation(reservationData);
       setShowModal(true);
-    } catch {
+    } catch (error) {
       Swal.fire({
         icon: "error",
         title: "Error",
-        text: "No se pudo cargar los detalles de la reserva",
+        text: error.message || "No se pudo cargar los detalles de la reserva",
       });
     }
   };
@@ -65,12 +68,12 @@ function ReservationHistory() {
     if (result.isConfirmed) {
       try {
         setLoadingAction(true);
-        await removeReservation(reservationId);
+        const resp = await removeReservation(reservationId);
         setShowModal(false);
         Swal.fire({
           icon: "success",
           title: "Reserva cancelada",
-          text: "La reserva ha sido cancelada exitosamente",
+          text: resp?.message || "La reserva ha sido cancelada exitosamente",
           timer: 2000,
           showConfirmButton: false,
         });
@@ -113,7 +116,6 @@ function ReservationHistory() {
     }
   };
 
-  // ✅ ahora devuelve hh:mm AM/PM
   const formatTime = (timeString) => {
     if (!timeString) return "N/A";
     try {
@@ -149,13 +151,14 @@ function ReservationHistory() {
     );
   }
 
-  if (error) {
-    return (
-      <Alert variant="light" className="text-center border">
-        Error: {error}
-      </Alert>
-    );
-  }
+  // 🔥 Quitamos el render global del error para que no aparezca bajo las pestañas
+  // if (error) {
+  //   return (
+  //     <Alert variant="light" className="text-center border">
+  //       Error: {error}
+  //     </Alert>
+  //   );
+  // }
 
   if (reservations.length === 0) {
     return (
@@ -239,102 +242,105 @@ function ReservationHistory() {
       </Card>
 
       {/* Modal de detalles */}
-        <Modal
-          show={showModal}
-          onHide={() => setShowModal(false)}
-          size="lg"
-          centered
-        >
-          <Modal.Header closeButton>
-            <Modal.Title>
-              {selectedReservation?.reservation_number
-                ? `Detalles de la reserva ${selectedReservation.reservation_number}`
-                : `Detalles de la reserva #${selectedReservation?.id}`}
-            </Modal.Title>
-          </Modal.Header>
-          <Modal.Body>
-            {selectedReservation && (
-              <Card className="border-0 shadow-sm">
-                <ListGroup variant="flush">
+      <Modal
+        show={showModal}
+        onHide={() => setShowModal(false)}
+        size="lg"
+        centered
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>
+            {selectedReservation?.reservation_number
+              ? `Detalles de la reserva ${selectedReservation.reservation_number}`
+              : `Detalles de la reserva #${selectedReservation?.id}`}
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {selectedReservation && (
+            <Card className="border-0 shadow-sm">
+              <ListGroup variant="flush">
+                <ListGroup.Item className="d-flex justify-content-between">
+                  <span>Código</span>
+                  <span>
+                    {selectedReservation.reservation_number ||
+                      `#${selectedReservation.id}`}
+                  </span>
+                </ListGroup.Item>
+
+                {selectedReservation.user_name && (
                   <ListGroup.Item className="d-flex justify-content-between">
-                    <span>Código</span>
-                    <span>
-                      {selectedReservation.reservation_number ||
-                        `#${selectedReservation.id}`}
+                    <span>Cliente</span>
+                    <span className="text-end">
+                      <div>{selectedReservation.user_name}</div>
+                      <div className="text-muted small">
+                        ({selectedReservation.user_email})
+                      </div>
                     </span>
                   </ListGroup.Item>
+                )}
 
-                  {selectedReservation.user_name && (
-                    <ListGroup.Item className="d-flex justify-content-between">
-                      <span>Cliente</span>
-                      <span className="text-end">
-                        <div>{selectedReservation.user_name}</div>
-                        <div className="text-muted small">
-                          ({selectedReservation.user_email})
-                        </div>
-                      </span>
-                    </ListGroup.Item>
-                  )}
-
-                  <ListGroup.Item className="d-flex justify-content-between">
-                    <span>Fecha</span>
-                    <span>{formatDate(selectedReservation.reservation_date)}</span>
+                <ListGroup.Item className="d-flex justify-content-between">
+                  <span>Fecha</span>
+                  <span>{formatDate(selectedReservation.reservation_date)}</span>
+                </ListGroup.Item>
+                <ListGroup.Item className="d-flex justify-content-between">
+                  <span>Hora</span>
+                  <span>{formatTime(selectedReservation.reservation_time)}</span>
+                </ListGroup.Item>
+                <ListGroup.Item className="d-flex justify-content-between">
+                  <span>Mesa</span>
+                  <span>{selectedReservation.table_number}</span>
+                </ListGroup.Item>
+                <ListGroup.Item className="d-flex justify-content-between">
+                  <span>Zona</span>
+                  <span>
+                    {selectedReservation.zone_name ||
+                      getZoneName(selectedReservation.zone_id)}
+                  </span>
+                </ListGroup.Item>
+                <ListGroup.Item className="d-flex justify-content-between">
+                  <span>Personas</span>
+                  <span>{selectedReservation.guest_count}</span>
+                </ListGroup.Item>
+                <ListGroup.Item className="d-flex justify-content-between">
+                  <span>Estado</span>
+                  <span>{getStatusText(selectedReservation.status)}</span>
+                </ListGroup.Item>
+                {selectedReservation.special_requirements && (
+                  <ListGroup.Item>
+                    <span className="d-block mb-1">Notas</span>
+                    <p className="mb-0">
+                      {selectedReservation.special_requirements}
+                    </p>
                   </ListGroup.Item>
-                  <ListGroup.Item className="d-flex justify-content-between">
-                    <span>Hora</span>
-                    <span>{formatTime(selectedReservation.reservation_time)}</span>
-                  </ListGroup.Item>
-                  <ListGroup.Item className="d-flex justify-content-between">
-                    <span>Mesa</span>
-                    <span>{selectedReservation.table_number}</span>
-                  </ListGroup.Item>
-                  <ListGroup.Item className="d-flex justify-content-between">
-                    <span>Zona</span>
-                    <span>
-                      {selectedReservation.zone_name ||
-                        getZoneName(selectedReservation.zone_id)}
-                    </span>
-                  </ListGroup.Item>
-                  <ListGroup.Item className="d-flex justify-content-between">
-                    <span>Personas</span>
-                    <span>{selectedReservation.guest_count}</span>
-                  </ListGroup.Item>
-                  <ListGroup.Item className="d-flex justify-content-between">
-                    <span>Estado</span>
-                    <span>{getStatusText(selectedReservation.status)}</span>
-                  </ListGroup.Item>
-                  {selectedReservation.special_requirements && (
-                    <ListGroup.Item>
-                      <span className="d-block mb-1">Notas</span>
-                      <p className="mb-0">
-                        {selectedReservation.special_requirements}
-                      </p>
-                    </ListGroup.Item>
-                  )}
-                  <ListGroup.Item className="d-flex justify-content-between">
-                    <span>Creada</span>
-                    <span>{formatDate(selectedReservation.created_at)}</span>
-                  </ListGroup.Item>
-                </ListGroup>
-              </Card>
-            )}
-          </Modal.Body>
-          <Modal.Footer>
-            {selectedReservation && canCancelReservation(selectedReservation) && (
+                )}
+                <ListGroup.Item className="d-flex justify-content-between">
+                  <span>Creada</span>
+                  <span>{formatDate(selectedReservation.created_at)}</span>
+                </ListGroup.Item>
+              </ListGroup>
+            </Card>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          {selectedReservation &&
+            canCancelReservation(selectedReservation) && (
               <Button
                 variant="outline-secondary"
-                onClick={() => handleCancelReservation(selectedReservation.id)}
+                onClick={() =>
+                  handleCancelReservation(selectedReservation.id)
+                }
                 disabled={loadingAction}
               >
                 <MdCancel className="me-2" />
                 {loadingAction ? "Cancelando..." : "Cancelar reserva"}
               </Button>
             )}
-            <Button variant="secondary" onClick={() => setShowModal(false)}>
-              Cerrar
-            </Button>
-          </Modal.Footer>
-        </Modal>
+          <Button variant="secondary" onClick={() => setShowModal(false)}>
+            Cerrar
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </>
   );
 }

@@ -76,6 +76,7 @@ function CartSection() {
       } catch (err) {
         const msg =
           err.response?.data?.message ||
+          err.message ||
           "Para comer aquí necesitas una reserva activa para hoy.";
         setReservationError(msg);
         setActiveReservation(null);
@@ -84,7 +85,7 @@ function CartSection() {
     };
 
     loadActiveReservation();
-  }, [orderType]); // ✅ sin fetchMyActiveReservation en deps
+  }, [orderType, fetchMyActiveReservation]);
 
   const handleRemoveItem = async (itemId, itemName) => {
     const result = await Swal.fire({
@@ -186,12 +187,12 @@ function CartSection() {
         })),
       };
 
-      await addOrder(orderData);
+      const result = await addOrder(orderData);
 
       await Swal.fire({
         icon: "success",
         title: "¡Orden creada!",
-        text: "Tu orden ha sido registrada exitosamente",
+        text: result?.message || "Tu orden ha sido registrada exitosamente",
         confirmButtonText: "OK",
       });
 
@@ -205,11 +206,22 @@ function CartSection() {
 
       window.location.reload();
     } catch (error) {
-      Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: error.message || "No se pudo crear la orden",
-      });
+      if (error.details && Array.isArray(error.details)) {
+        const htmlList = error.details
+          .map((d) => `<li>${d.message || d}</li>`)
+          .join("");
+        Swal.fire({
+          icon: "error",
+          title: error.message || "Errores de validación",
+          html: `<ul style="text-align:left;margin:0;padding-left:20px">${htmlList}</ul>`,
+        });
+      } else {
+        Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: error.message || "No se pudo crear la orden",
+        });
+      }
     }
   };
 
@@ -281,7 +293,9 @@ function CartSection() {
                       <div>
                         <div>{item.name}</div>
                         {item.description && (
-                          <div className="small mt-1">{item.description}</div>
+                          <div className="small mt-1">
+                            {item.description}
+                          </div>
                         )}
                       </div>
                       <div>
@@ -302,7 +316,10 @@ function CartSection() {
                             variant="outline-secondary"
                             size="sm"
                             onClick={() =>
-                              updateCartQuantity(item.id, item.quantity - 1)
+                              updateCartQuantity(
+                                item.id,
+                                item.quantity - 1
+                              )
                             }
                             disabled={item.quantity <= 1}
                           >
@@ -313,7 +330,10 @@ function CartSection() {
                             variant="outline-secondary"
                             size="sm"
                             onClick={() =>
-                              updateCartQuantity(item.id, item.quantity + 1)
+                              updateCartQuantity(
+                                item.id,
+                                item.quantity + 1
+                              )
                             }
                           >
                             <MdAdd size={16} />
@@ -324,7 +344,9 @@ function CartSection() {
                       <Button
                         variant="link"
                         className="p-0 small"
-                        onClick={() => handleRemoveItem(item.id, item.name)}
+                        onClick={() =>
+                          handleRemoveItem(item.id, item.name)
+                        }
                       >
                         <MdDelete className="me-1" />
                         Eliminar
@@ -375,7 +397,9 @@ function CartSection() {
 
             {orderType === "dine-in" && (
               <div className="mb-3">
-                <Form.Label className="small">Detalles de tu reserva</Form.Label>
+                <Form.Label className="small">
+                  Detalles de tu reserva
+                </Form.Label>
 
                 {reservationError && (
                   <Alert variant="warning" className="py-2 small">
@@ -386,10 +410,12 @@ function CartSection() {
                 {activeReservation && (
                   <div className="border rounded p-2 small">
                     <div>
-                      <strong>Mesa:</strong> {activeReservation.table_number}
+                      <strong>Mesa:</strong>{" "}
+                      {activeReservation.table_number}
                     </div>
                     <div>
-                      <strong>Zona:</strong> {activeReservation.zone_name}
+                      <strong>Zona:</strong>{" "}
+                      {activeReservation.zone_name}
                     </div>
                     <div>
                       <strong>Fecha:</strong>{" "}

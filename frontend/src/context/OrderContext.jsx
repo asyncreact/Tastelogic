@@ -1,6 +1,6 @@
 // src/context/OrderContext.jsx
-import { createContext, useState, useEffect } from 'react';
-import { useAuth } from '../hooks/useAuth';
+import { createContext, useState, useEffect } from "react";
+import { useAuth } from "../hooks/useAuth";
 import {
   getOrders,
   getOrder,
@@ -14,59 +14,70 @@ import {
   getOrderStatsByDate,
   getOrderStatsByType,
   getTopSellingItems,
-} from '../api/orders';
+} from "../api/orders";
 
 export const OrderContext = createContext();
 
 export function OrderProvider({ children }) {
-  const { user } = useAuth(); // Obtener usuario actual
+  const { user } = useAuth(); // Usuario actual
   const [orders, setOrders] = useState([]);
   const [currentOrder, setCurrentOrder] = useState(null);
-  
-  // Cargar carrito desde localStorage con el user_id
+
+  // Carrito por usuario
   const [cart, setCart] = useState(() => {
     try {
       if (!user) return [];
       const savedCart = localStorage.getItem(`cart_${user.id}`);
       return savedCart ? JSON.parse(savedCart) : [];
     } catch (error) {
-      console.error('Error al cargar carrito:', error);
+      console.error("Error al cargar carrito:", error);
       return [];
     }
   });
-  
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [stats, setStats] = useState(null);
 
-  // Guardar carrito en localStorage cada vez que cambie (con user_id)
+  // Helper: parsear error del backend (similar a AuthContext)
+  const parseApiError = (err, fallback) => {
+    const errorData = err?.response?.data || {};
+    if (errorData.details && Array.isArray(errorData.details)) {
+      const message = errorData.message || fallback;
+      return { message, details: errorData.details };
+    }
+    const message = errorData.message || err.message || fallback;
+    return { message };
+  };
+
+  // Guardar carrito en localStorage
   useEffect(() => {
     try {
       if (user) {
         localStorage.setItem(`cart_${user.id}`, JSON.stringify(cart));
       }
     } catch (error) {
-      console.error('Error al guardar carrito:', error);
+      console.error("Error al guardar carrito:", error);
     }
   }, [cart, user]);
 
-  // Limpiar carrito si el usuario cambia o cierra sesión
+  // Cargar carrito cuando cambia el usuario
   useEffect(() => {
     if (!user) {
       setCart([]);
     } else {
-      // Cargar carrito del usuario actual
       try {
         const savedCart = localStorage.getItem(`cart_${user.id}`);
         setCart(savedCart ? JSON.parse(savedCart) : []);
       } catch (error) {
-        console.error('Error al cargar carrito:', error);
+        console.error("Error al cargar carrito:", error);
         setCart([]);
       }
     }
-  }, [user?.id]); // Solo reaccionar al cambio de ID de usuario
+  }, [user?.id]);
 
-  // Cargar órdenes del usuario/admin
+  // ================= ÓRDENES =================
+
   const fetchOrders = async (params = {}) => {
     try {
       setLoading(true);
@@ -74,32 +85,34 @@ export function OrderProvider({ children }) {
       const response = await getOrders(params);
       setOrders(response.data?.orders || response.data?.data || []);
     } catch (err) {
-      setError(err.response?.data?.message || 'Error al cargar órdenes');
-      console.error('Error fetchOrders:', err);
+      const parsed = parseApiError(err, "Error al cargar órdenes");
+      setError(parsed.message);
+      console.error("Error fetchOrders:", err);
+      // no se relanza; la vista puede revisar error si quiere
     } finally {
       setLoading(false);
     }
   };
 
-  // Obtener una orden específica
   const fetchOrder = async (orderId) => {
     try {
       setLoading(true);
       setError(null);
       const response = await getOrder(orderId);
-      const orderData = response.data?.order || response.data?.data || response.data;
+      const orderData =
+        response.data?.order || response.data?.data || response.data;
       setCurrentOrder(orderData);
       return orderData;
     } catch (err) {
-      setError(err.response?.data?.message || 'Error al cargar orden');
-      console.error('Error fetchOrder:', err);
-      throw err;
+      const parsed = parseApiError(err, "Error al cargar orden");
+      setError(parsed.message);
+      console.error("Error fetchOrder:", err);
+      throw parsed; // para SweetAlert en los componentes
     } finally {
       setLoading(false);
     }
   };
 
-  // Crear nueva orden
   const addOrder = async (orderData) => {
     try {
       setLoading(true);
@@ -107,131 +120,164 @@ export function OrderProvider({ children }) {
       const response = await createOrder(orderData);
       const newOrder = response.data?.order || response.data?.data;
       setOrders((prev) => [newOrder, ...prev]);
-      
-      // Limpiar carrito después de crear orden
+
       setCart([]);
       if (user) {
         localStorage.removeItem(`cart_${user.id}`);
       }
-      
-      return newOrder;
+
+      return {
+        success: true,
+        message: response.data?.message || "Orden creada correctamente",
+        order: newOrder,
+      };
     } catch (err) {
-      setError(err.response?.data?.message || 'Error al crear orden');
-      console.error('Error addOrder:', err);
-      throw err;
+      const parsed = parseApiError(err, "Error al crear orden");
+      setError(parsed.message);
+      console.error("Error addOrder:", err);
+      throw parsed;
     } finally {
       setLoading(false);
     }
   };
 
-  // Actualizar orden completa
   const editOrder = async (orderId, orderData) => {
     try {
       setLoading(true);
       setError(null);
       const response = await updateOrder(orderId, orderData);
       const updatedOrder = response.data?.order || response.data?.data;
-      setOrders((prev) => prev.map((o) => (o.id === orderId ? updatedOrder : o)));
+      setOrders((prev) =>
+        prev.map((o) => (o.id === orderId ? updatedOrder : o))
+      );
       if (currentOrder?.id === orderId) {
         setCurrentOrder(updatedOrder);
       }
-      return updatedOrder;
+      return {
+        success: true,
+        message: response.data?.message || "Orden actualizada correctamente",
+        order: updatedOrder,
+      };
     } catch (err) {
-      setError(err.response?.data?.message || 'Error al actualizar orden');
-      console.error('Error editOrder:', err);
-      throw err;
+      const parsed = parseApiError(err, "Error al actualizar orden");
+      setError(parsed.message);
+      console.error("Error editOrder:", err);
+      throw parsed;
     } finally {
       setLoading(false);
     }
   };
 
-  // Actualizar estado de orden (solo admin)
   const changeOrderStatus = async (orderId, status) => {
     try {
       setLoading(true);
       setError(null);
       const response = await updateOrderStatus(orderId, status);
       const updatedOrder = response.data?.order || response.data?.data;
-      setOrders((prev) => prev.map((o) => (o.id === orderId ? updatedOrder : o)));
+      setOrders((prev) =>
+        prev.map((o) => (o.id === orderId ? updatedOrder : o))
+      );
       if (currentOrder?.id === orderId) {
         setCurrentOrder(updatedOrder);
       }
-      return updatedOrder;
+      return {
+        success: true,
+        message:
+          response.data?.message || "Estado de la orden actualizado",
+        order: updatedOrder,
+      };
     } catch (err) {
-      setError(err.response?.data?.message || 'Error al actualizar estado');
-      console.error('Error changeOrderStatus:', err);
-      throw err;
+      const parsed = parseApiError(err, "Error al actualizar estado");
+      setError(parsed.message);
+      console.error("Error changeOrderStatus:", err);
+      throw parsed;
     } finally {
       setLoading(false);
     }
   };
 
-  // Actualizar estado de pago (solo admin)
   const changePaymentStatus = async (orderId, paymentStatus) => {
     try {
       setLoading(true);
       setError(null);
       const response = await updateOrderPayment(orderId, paymentStatus);
       const updatedOrder = response.data?.order || response.data?.data;
-      setOrders((prev) => prev.map((o) => (o.id === orderId ? updatedOrder : o)));
+      setOrders((prev) =>
+        prev.map((o) => (o.id === orderId ? updatedOrder : o))
+      );
       if (currentOrder?.id === orderId) {
         setCurrentOrder(updatedOrder);
       }
-      return updatedOrder;
+      return {
+        success: true,
+        message:
+          response.data?.message || "Estado de pago actualizado",
+        order: updatedOrder,
+      };
     } catch (err) {
-      setError(err.response?.data?.message || 'Error al actualizar pago');
-      console.error('Error changePaymentStatus:', err);
-      throw err;
+      const parsed = parseApiError(err, "Error al actualizar pago");
+      setError(parsed.message);
+      console.error("Error changePaymentStatus:", err);
+      throw parsed;
     } finally {
       setLoading(false);
     }
   };
 
-  // Cancelar orden
   const cancelOrderById = async (orderId) => {
     try {
       setLoading(true);
       setError(null);
       const response = await cancelOrder(orderId);
       const updatedOrder = response.data?.order || response.data?.data;
-      setOrders((prev) => prev.map((o) => (o.id === orderId ? updatedOrder : o)));
+      setOrders((prev) =>
+        prev.map((o) => (o.id === orderId ? updatedOrder : o))
+      );
       if (currentOrder?.id === orderId) {
         setCurrentOrder(updatedOrder);
       }
-      return updatedOrder;
+      return {
+        success: true,
+        message:
+          response.data?.message || "Orden cancelada correctamente",
+        order: updatedOrder,
+      };
     } catch (err) {
-      setError(err.response?.data?.message || 'Error al cancelar orden');
-      console.error('Error cancelOrderById:', err);
-      throw err;
+      const parsed = parseApiError(err, "Error al cancelar orden");
+      setError(parsed.message);
+      console.error("Error cancelOrderById:", err);
+      throw parsed;
     } finally {
       setLoading(false);
     }
   };
 
-  // Eliminar orden (solo admin)
   const removeOrder = async (orderId) => {
     try {
       setLoading(true);
       setError(null);
-      await deleteOrder(orderId);
+      const response = await deleteOrder(orderId);
       setOrders((prev) => prev.filter((o) => o.id !== orderId));
       if (currentOrder?.id === orderId) {
         setCurrentOrder(null);
       }
+      return {
+        success: true,
+        message:
+          response.data?.message || "Orden eliminada correctamente",
+      };
     } catch (err) {
-      setError(err.response?.data?.message || 'Error al eliminar orden');
-      console.error('Error removeOrder:', err);
-      throw err;
+      const parsed = parseApiError(err, "Error al eliminar orden");
+      setError(parsed.message);
+      console.error("Error removeOrder:", err);
+      throw parsed;
     } finally {
       setLoading(false);
     }
   };
 
-  // ============================================================
-  // 🛒 FUNCIONES DEL CARRITO
-  // ============================================================
+  // ================= CARRITO =================
 
-  // Agregar item al carrito
   const addToCart = (item, quantity = 1) => {
     setCart((prev) => {
       const existing = prev.find((i) => i.id === item.id);
@@ -244,12 +290,10 @@ export function OrderProvider({ children }) {
     });
   };
 
-  // Remover item del carrito
   const removeFromCart = (itemId) => {
     setCart((prev) => prev.filter((i) => i.id !== itemId));
   };
 
-  // Actualizar cantidad de item en carrito
   const updateCartQuantity = (itemId, quantity) => {
     if (quantity <= 0) {
       removeFromCart(itemId);
@@ -260,7 +304,6 @@ export function OrderProvider({ children }) {
     );
   };
 
-  // Limpiar carrito
   const clearCart = () => {
     setCart([]);
     if (user) {
@@ -268,14 +311,14 @@ export function OrderProvider({ children }) {
     }
   };
 
-  // Calcular total del carrito
   const getCartTotal = () => {
-    return cart.reduce((total, item) => total + item.price * item.quantity, 0);
+    return cart.reduce(
+      (total, item) => total + Number(item.price) * item.quantity,
+      0
+    );
   };
 
-  // ============================================================
-  // 📊 ESTADÍSTICAS (Solo Admin)
-  // ============================================================
+  // ================= ESTADÍSTICAS =================
 
   const fetchOrderStats = async () => {
     try {
@@ -284,9 +327,10 @@ export function OrderProvider({ children }) {
       setStats(response.data);
       return response.data;
     } catch (err) {
-      setError(err.response?.data?.message || 'Error al cargar estadísticas');
-      console.error('Error fetchOrderStats:', err);
-      throw err;
+      const parsed = parseApiError(err, "Error al cargar estadísticas");
+      setError(parsed.message);
+      console.error("Error fetchOrderStats:", err);
+      throw parsed;
     } finally {
       setLoading(false);
     }
@@ -297,8 +341,12 @@ export function OrderProvider({ children }) {
       const response = await getOrderStatsByDate(params);
       return response.data;
     } catch (err) {
-      console.error('Error fetchStatsByDate:', err);
-      throw err;
+      const parsed = parseApiError(
+        err,
+        "Error al cargar estadísticas por fecha"
+      );
+      console.error("Error fetchStatsByDate:", err);
+      throw parsed;
     }
   };
 
@@ -307,8 +355,12 @@ export function OrderProvider({ children }) {
       const response = await getOrderStatsByType();
       return response.data;
     } catch (err) {
-      console.error('Error fetchStatsByType:', err);
-      throw err;
+      const parsed = parseApiError(
+        err,
+        "Error al cargar estadísticas por tipo"
+      );
+      console.error("Error fetchStatsByType:", err);
+      throw parsed;
     }
   };
 
@@ -317,12 +369,15 @@ export function OrderProvider({ children }) {
       const response = await getTopSellingItems();
       return response.data;
     } catch (err) {
-      console.error('Error fetchTopSellingItems:', err);
-      throw err;
+      const parsed = parseApiError(
+        err,
+        "Error al cargar productos más vendidos"
+      );
+      console.error("Error fetchTopSellingItems:", err);
+      throw parsed;
     }
   };
 
-  // Limpiar error
   const clearError = () => setError(null);
 
   const value = {
@@ -334,7 +389,7 @@ export function OrderProvider({ children }) {
     error,
     stats,
 
-    // Funciones de órdenes
+    // Órdenes
     fetchOrders,
     fetchOrder,
     addOrder,
@@ -344,7 +399,7 @@ export function OrderProvider({ children }) {
     cancelOrderById,
     removeOrder,
 
-    // Funciones del carrito
+    // Carrito
     addToCart,
     removeFromCart,
     updateCartQuantity,

@@ -14,7 +14,7 @@ import {
   getReservationStatsByDate,
   getReservationStatsByZone,
   getReservationStatsByStatus,
-  getMyActiveReservation, // ✅
+  getMyActiveReservation,
 } from "../api/reservations";
 
 export const ReservationContext = createContext();
@@ -26,6 +26,17 @@ export function ReservationProvider({ children }) {
   const [error, setError] = useState(null);
   const [stats, setStats] = useState(null);
 
+  // Helper para extraer error del backend (similar a Auth)
+  const parseApiError = (err, fallback) => {
+    const errorData = err?.response?.data || {};
+    if (errorData.details && Array.isArray(errorData.details)) {
+      const message = errorData.message || fallback;
+      return { message, details: errorData.details };
+    }
+    const message = errorData.message || err.message || fallback;
+    return { message };
+  };
+
   // Obtener todas las reservas
   const fetchReservations = async (params = {}) => {
     try {
@@ -34,8 +45,10 @@ export function ReservationProvider({ children }) {
       const response = await getReservations(params);
       setReservations(response.data?.reservations || response.data?.data || []);
     } catch (err) {
-      setError(err.response?.data?.message || "Error al cargar reservas");
+      const parsed = parseApiError(err, "Error al cargar reservas");
+      setError(parsed.message);
       console.error("Error fetchReservations:", err);
+      // normalmente solo se muestra en pantalla, no se relanza
     } finally {
       setLoading(false);
     }
@@ -52,26 +65,29 @@ export function ReservationProvider({ children }) {
       setCurrentReservation(reservationData);
       return reservationData;
     } catch (err) {
-      setError(err.response?.data?.message || "Error al cargar reserva");
+      const parsed = parseApiError(err, "Error al cargar reserva");
+      setError(parsed.message);
       console.error("Error fetchReservation:", err);
-      throw err;
+      throw parsed; // <- para que el componente pueda usar SweetAlert
     } finally {
       setLoading(false);
     }
   };
 
-  // ✅ Obtener la reserva activa del usuario logueado (para “comer aquí”)
-  // Versión simple, sin tocar loading/error globales para evitar bucles
+  // Reserva activa (para “comer aquí”) – sin tocar loading/error global
   const fetchMyActiveReservation = async () => {
     try {
       const response = await getMyActiveReservation();
       const reservationData =
         response.data?.data || response.data?.reservation || response.data;
-      // opcional: setCurrentReservation(reservationData);
       return reservationData;
     } catch (err) {
+      const parsed = parseApiError(
+        err,
+        "Error al cargar reserva activa para hoy"
+      );
       console.error("Error fetchMyActiveReservation:", err);
-      throw err;
+      throw parsed; // <- CartSection lo captura y muestra Swal
     }
   };
 
@@ -83,11 +99,16 @@ export function ReservationProvider({ children }) {
       const response = await createReservation(reservationData);
       const newReservation = response.data?.reservation || response.data?.data;
       setReservations((prev) => [newReservation, ...prev]);
-      return newReservation;
+      return {
+        success: true,
+        message: response.data?.message || "Reserva creada correctamente",
+        reservation: newReservation,
+      };
     } catch (err) {
-      setError(err.response?.data?.message || "Error al crear reserva");
+      const parsed = parseApiError(err, "Error al crear reserva");
+      setError(parsed.message);
       console.error("Error addReservation:", err);
-      throw err;
+      throw parsed; // <- para SweetAlert
     } finally {
       setLoading(false);
     }
@@ -107,11 +128,16 @@ export function ReservationProvider({ children }) {
       if (currentReservation?.id === reservationId) {
         setCurrentReservation(updatedReservation);
       }
-      return updatedReservation;
+      return {
+        success: true,
+        message: response.data?.message || "Reserva actualizada correctamente",
+        reservation: updatedReservation,
+      };
     } catch (err) {
-      setError(err.response?.data?.message || "Error al actualizar reserva");
+      const parsed = parseApiError(err, "Error al actualizar reserva");
+      setError(parsed.message);
       console.error("Error editReservation:", err);
-      throw err;
+      throw parsed;
     } finally {
       setLoading(false);
     }
@@ -131,11 +157,17 @@ export function ReservationProvider({ children }) {
       if (currentReservation?.id === reservationId) {
         setCurrentReservation(updatedReservation);
       }
-      return updatedReservation;
+      return {
+        success: true,
+        message:
+          response.data?.message || "Estado de la reserva actualizado",
+        reservation: updatedReservation,
+      };
     } catch (err) {
-      setError(err.response?.data?.message || "Error al actualizar estado");
+      const parsed = parseApiError(err, "Error al actualizar estado");
+      setError(parsed.message);
       console.error("Error changeReservationStatus:", err);
-      throw err;
+      throw parsed;
     } finally {
       setLoading(false);
     }
@@ -146,12 +178,19 @@ export function ReservationProvider({ children }) {
     try {
       setLoading(true);
       setError(null);
-      await cancelReservation(reservationId);
-      await fetchReservations(); // Recargar lista
+      const response = await cancelReservation(reservationId);
+      await fetchReservations();
+      return {
+        success: true,
+        message:
+          response.data?.message ||
+          "Reserva cancelada correctamente",
+      };
     } catch (err) {
-      setError(err.response?.data?.message || "Error al cancelar reserva");
+      const parsed = parseApiError(err, "Error al cancelar reserva");
+      setError(parsed.message);
       console.error("Error removeReservation:", err);
-      throw err;
+      throw parsed;
     } finally {
       setLoading(false);
     }
@@ -162,15 +201,22 @@ export function ReservationProvider({ children }) {
     try {
       setLoading(true);
       setError(null);
-      await deleteReservation(reservationId);
+      const response = await deleteReservation(reservationId);
       setReservations((prev) => prev.filter((r) => r.id !== reservationId));
       if (currentReservation?.id === reservationId) {
         setCurrentReservation(null);
       }
+      return {
+        success: true,
+        message:
+          response.data?.message ||
+          "Reserva eliminada correctamente",
+      };
     } catch (err) {
-      setError(err.response?.data?.message || "Error al eliminar reserva");
+      const parsed = parseApiError(err, "Error al eliminar reserva");
+      setError(parsed.message);
       console.error("Error deleteReservationById:", err);
-      throw err;
+      throw parsed;
     } finally {
       setLoading(false);
     }
@@ -182,8 +228,9 @@ export function ReservationProvider({ children }) {
       const response = await checkAvailability(data);
       return response.data;
     } catch (err) {
+      const parsed = parseApiError(err, "Error al verificar disponibilidad");
       console.error("Error verifyAvailability:", err);
-      throw err;
+      throw parsed;
     }
   };
 
@@ -193,15 +240,17 @@ export function ReservationProvider({ children }) {
       const response = await getAvailableTables(params);
       return response.data?.tables || response.data?.data || [];
     } catch (err) {
-      setError(
-        err.response?.data?.message || "Error al cargar mesas disponibles"
+      const parsed = parseApiError(
+        err,
+        "Error al cargar mesas disponibles"
       );
+      setError(parsed.message);
       console.error("Error fetchAvailableTables:", err);
-      throw err;
+      throw parsed;
     }
   };
 
-  // Obtener estadísticas generales (admin)
+  // Estadísticas
   const fetchReservationStats = async () => {
     try {
       setLoading(true);
@@ -209,59 +258,68 @@ export function ReservationProvider({ children }) {
       setStats(response.data);
       return response.data;
     } catch (err) {
-      setError(err.response?.data?.message || "Error al cargar estadísticas");
+      const parsed = parseApiError(
+        err,
+        "Error al cargar estadísticas"
+      );
+      setError(parsed.message);
       console.error("Error fetchReservationStats:", err);
-      throw err;
+      throw parsed;
     } finally {
       setLoading(false);
     }
   };
 
-  // Obtener estadísticas por fecha (admin)
   const fetchStatsByDate = async (params) => {
     try {
       const response = await getReservationStatsByDate(params);
       return response.data;
     } catch (err) {
+      const parsed = parseApiError(
+        err,
+        "Error al cargar estadísticas por fecha"
+      );
       console.error("Error fetchStatsByDate:", err);
-      throw err;
+      throw parsed;
     }
   };
 
-  // Obtener estadísticas por zona (admin)
   const fetchStatsByZone = async () => {
     try {
       const response = await getReservationStatsByZone();
       return response.data;
     } catch (err) {
+      const parsed = parseApiError(
+        err,
+        "Error al cargar estadísticas por zona"
+      );
       console.error("Error fetchStatsByZone:", err);
-      throw err;
+      throw parsed;
     }
   };
 
-  // Obtener estadísticas por estado (admin)
   const fetchStatsByStatus = async () => {
     try {
       const response = await getReservationStatsByStatus();
       return response.data;
     } catch (err) {
+      const parsed = parseApiError(
+        err,
+        "Error al cargar estadísticas por estado"
+      );
       console.error("Error fetchStatsByStatus:", err);
-      throw err;
+      throw parsed;
     }
   };
 
-  // Limpiar error
   const clearError = () => setError(null);
 
   const value = {
-    // Estado
     reservations,
     currentReservation,
     loading,
     error,
     stats,
-
-    // Funciones de reservas
     fetchReservations,
     fetchReservation,
     addReservation,
@@ -269,21 +327,13 @@ export function ReservationProvider({ children }) {
     changeReservationStatus,
     removeReservation,
     deleteReservationById,
-
-    // Reserva activa (para comer aquí)
     fetchMyActiveReservation,
-
-    // Disponibilidad
     verifyAvailability,
     fetchAvailableTables,
-
-    // Estadísticas (admin)
     fetchReservationStats,
     fetchStatsByDate,
     fetchStatsByZone,
     fetchStatsByStatus,
-
-    // Utilidades
     clearError,
   };
 

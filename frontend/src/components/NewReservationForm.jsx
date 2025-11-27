@@ -88,7 +88,6 @@ function NewReservationForm({ onSuccess }) {
         capacity: Number(t.capacity),
       }));
 
-      // Encontrar la capacidad mínima que sea >= guestCount
       let minSuitableCapacity = null;
       allTables.forEach((t) => {
         if (t.capacity >= guestCount) {
@@ -98,13 +97,11 @@ function NewReservationForm({ onSuccess }) {
         }
       });
 
-      // Si no hay ninguna mesa con capacidad suficiente, lista vacía
       if (minSuitableCapacity === null) {
         setAvailableTables([]);
         return;
       }
 
-      // Solo mesas con esa capacidad exacta (la más cercana hacia arriba)
       const filtered = allTables.filter(
         (t) => t.capacity === minSuitableCapacity
       );
@@ -123,11 +120,13 @@ function NewReservationForm({ onSuccess }) {
     setFormData((prev) => ({
       ...prev,
       [name]: value,
-      ...(["zone_id", "reservation_date", "reservation_time", "guest_count"].includes(
-        name
-      ) && {
-        table_id: "",
-      }),
+      ...(
+        ["zone_id", "reservation_date", "reservation_time", "guest_count"].includes(
+          name
+        ) && {
+          table_id: "",
+        }
+      ),
     }));
   };
 
@@ -158,7 +157,7 @@ function NewReservationForm({ onSuccess }) {
     }
 
     try {
-      await addReservation({
+      const result = await addReservation({
         zone_id: parseInt(formData.zone_id),
         table_id: parseInt(formData.table_id),
         reservation_date: formData.reservation_date,
@@ -170,7 +169,9 @@ function NewReservationForm({ onSuccess }) {
       await Swal.fire({
         icon: "success",
         title: "Reserva creada",
-        text: "Tu reserva ha sido registrada exitosamente. Recibirás una confirmación pronto.",
+        text:
+          result?.message ||
+          "Tu reserva ha sido registrada exitosamente. Recibirás una confirmación pronto.",
         confirmButtonText: "Ok",
       });
 
@@ -186,11 +187,22 @@ function NewReservationForm({ onSuccess }) {
 
       if (onSuccess) onSuccess();
     } catch (error) {
-      Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: error.message || "No se pudo crear la reserva",
-      });
+      if (error.details && Array.isArray(error.details)) {
+        const htmlList = error.details
+          .map((d) => `<li>${d.message || d}</li>`)
+          .join("");
+        Swal.fire({
+          icon: "error",
+          title: error.message || "Errores de validación",
+          html: `<ul style="text-align:left;margin:0;padding-left:20px">${htmlList}</ul>`,
+        });
+      } else {
+        Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: error.message || "No se pudo crear la reserva",
+        });
+      }
     }
   };
 
@@ -211,12 +223,10 @@ function NewReservationForm({ onSuccess }) {
 
   return (
     <div className="py-3">
-      {/* Contenedor centrado: limita ancho máximo */}
       <Row className="justify-content-center">
         <Col lg={10}>
           <Card className="shadow-sm border-0">
             <Card.Body>
-              {/* Encabezado simple */}
               <div className="mb-3 d-flex align-items-center gap-2">
                 <MdEventAvailable size={22} />
                 <div>
@@ -227,7 +237,6 @@ function NewReservationForm({ onSuccess }) {
 
               <Form onSubmit={handleSubmit}>
                 <Row className="g-3">
-                  {/* Fila 1: Zona / Personas (mismo ancho) */}
                   <Col md={6}>
                     <Form.Group controlId="zone_id">
                       <Form.Label>Zona</Form.Label>
@@ -273,7 +282,6 @@ function NewReservationForm({ onSuccess }) {
                     </Form.Group>
                   </Col>
 
-                  {/* Fila 2: Fecha / Hora (mismo ancho) */}
                   <Col md={6}>
                     <Form.Group controlId="reservation_date">
                       <Form.Label>Fecha</Form.Label>
@@ -302,7 +310,6 @@ function NewReservationForm({ onSuccess }) {
                     </Form.Group>
                   </Col>
 
-                  {/* Fila 3: Mesas disponibles (ocupa ancho completo) */}
                   <Col xs={12}>
                     <Form.Group controlId="table_id">
                       <Form.Label>Mesa</Form.Label>
@@ -317,13 +324,15 @@ function NewReservationForm({ onSuccess }) {
                         formData.reservation_time &&
                         formData.guest_count ? (
                         <Alert variant="light" className="border">
-                          No hay mesas para estos datos. Prueba otra hora o zona.
+                          No hay mesas para estos datos. Prueba otra hora o
+                          zona.
                         </Alert>
                       ) : (
                         <div className="d-flex flex-wrap gap-2">
                           {availableTables.map((table) => {
                             const isActive =
-                              String(formData.table_id) === String(table.id);
+                              String(formData.table_id) ===
+                              String(table.id);
                             return (
                               <button
                                 key={table.id}
@@ -357,7 +366,6 @@ function NewReservationForm({ onSuccess }) {
                     </Form.Group>
                   </Col>
 
-                  {/* Fila 4: Notas (ancho completo) */}
                   <Col xs={12}>
                     <Form.Group controlId="special_requirements">
                       <Form.Label>Notas (opcional)</Form.Label>

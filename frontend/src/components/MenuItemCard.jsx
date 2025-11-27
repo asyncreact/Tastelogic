@@ -17,6 +17,11 @@ const getImageUrl = (imageUrl) => {
   return `${API_URL}${cleanPath}`;
 };
 
+const formatPrice = (price) => {
+  const n = parseFloat(price);
+  return isNaN(n) ? "0.00" : n.toFixed(2);
+};
+
 function MenuItemCard({ item }) {
   const { addToCart, cart } = useOrder();
 
@@ -42,7 +47,8 @@ function MenuItemCard({ item }) {
           alt={item.name}
           style={{ height: "200px", objectFit: "cover" }}
           onError={(e) => {
-            e.target.src = "https://via.placeholder.com/200?text=Sin+Imagen";
+            e.target.src =
+              "https://via.placeholder.com/200?text=Sin+Imagen";
           }}
         />
       ) : (
@@ -92,7 +98,7 @@ function MenuItemCard({ item }) {
 
           <div className="d-flex justify-content-between align-items-center mb-2">
             <span className="fw-semibold">
-              ${parseFloat(item.price).toFixed(2)}
+              ${formatPrice(item.price)}
             </span>
             <span className="small">
               {item.is_available ? "Disponible" : "No disponible"}

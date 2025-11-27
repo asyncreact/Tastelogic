@@ -138,22 +138,33 @@ function Cart() {
         })),
       };
 
-      await addOrder(orderData);
+      const result = await addOrder(orderData);
 
       await Swal.fire({
         icon: "success",
         title: "¡Orden creada!",
-        text: "Tu orden ha sido registrada exitosamente",
+        text: result?.message || "Tu orden ha sido registrada exitosamente",
         confirmButtonText: "Ver mis órdenes",
       });
 
       navigate("/orders");
     } catch (error) {
-      Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: error.message || "No se pudo crear la orden",
-      });
+      if (error.details && Array.isArray(error.details)) {
+        const htmlList = error.details
+          .map((d) => `<li>${d.message || d}</li>`)
+          .join("");
+        Swal.fire({
+          icon: "error",
+          title: error.message || "Errores de validación",
+          html: `<ul style="text-align:left;margin:0;padding-left:20px">${htmlList}</ul>`,
+        });
+      } else {
+        Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: error.message || "No se pudo crear la orden",
+        });
+      }
     }
   };
 
@@ -305,7 +316,9 @@ function Cart() {
                           <Button
                             variant="link"
                             className="p-0 small"
-                            onClick={() => handleRemoveItem(item.id, item.name)}
+                            onClick={() =>
+                              handleRemoveItem(item.id, item.name)
+                            }
                           >
                             <MdDelete className="me-1" />
                             Eliminar
@@ -319,7 +332,7 @@ function Cart() {
             </Table>
           </Col>
 
-          {/* Resumen, simple y claro */}
+          {/* Resumen */}
           <Col lg={4}>
             <div
               className="ps-lg-4 pt-3 pt-lg-0 border-top border-lg-top-0 border-lg-start"
@@ -343,7 +356,9 @@ function Cart() {
 
                 {orderType === "dine-in" && (
                   <Form.Group className="mb-3">
-                    <Form.Label className="small">Número de mesa *</Form.Label>
+                    <Form.Label className="small">
+                      Número de mesa *
+                    </Form.Label>
                     <Form.Control
                       size="sm"
                       type="number"

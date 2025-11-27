@@ -28,6 +28,7 @@ function Menu() {
   useEffect(() => {
     fetchCategories();
     fetchItems();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const filteredItems = useMemo(() => {
@@ -61,16 +62,6 @@ function Menu() {
     return (
       <Container className="min-vh-100 d-flex justify-content-center align-items-center">
         <Spinner animation="border" />
-      </Container>
-    );
-  }
-
-  if (error) {
-    return (
-      <Container className="py-4">
-        <Alert variant="light" className="border">
-          Error: {error}
-        </Alert>
       </Container>
     );
   }
