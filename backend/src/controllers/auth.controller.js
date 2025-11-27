@@ -14,7 +14,7 @@ import {
 } from "../repositories/user.repository.js";
 
 import { generateToken } from "../utils/jwt.js";
-import { sendStyledMail } from "../config/mailer.js";
+import { sendMail } from "../config/mailer.js";
 import {
   registerSchema,
   loginSchema,
@@ -31,7 +31,9 @@ export const register = async (req, res, next) => {
     const existing = await getUserByEmail(email);
 
     if (existing) {
-      const error = new Error("Este correo electrónico ya está registrado. Por favor, usa otro o inicia sesión.");
+      const error = new Error(
+        "Este correo electrónico ya está registrado. Por favor, usa otro o inicia sesión."
+      );
       error.status = 409;
       throw error;
     }
@@ -49,7 +51,7 @@ export const register = async (req, res, next) => {
     const verify_url = `${process.env.FRONTEND_URL}/verify/${verification_token}`;
 
     Promise.resolve(
-      sendStyledMail({
+      sendMail({
         to: email,
         subject: "Verifica tu cuenta - TasteLogic",
         title: `¡Bienvenido, ${name}!`,
@@ -80,12 +82,19 @@ export const verify = async (req, res, next) => {
     const user = await verifyUserAccount(token);
 
     if (!user) {
-      const error = new Error("El enlace de verificación es inválido o ha expirado. Solicita uno nuevo.");
+      const error = new Error(
+        "El enlace de verificación es inválido o ha expirado. Solicita uno nuevo."
+      );
       error.status = 400;
       throw error;
     }
 
-    return successResponse(res, "¡Tu cuenta ha sido verificada exitosamente! Ya puedes iniciar sesión.", {}, 200);
+    return successResponse(
+      res,
+      "¡Tu cuenta ha sido verificada exitosamente! Ya puedes iniciar sesión.",
+      {},
+      200
+    );
   } catch (err) {
     next(err);
   }
@@ -100,13 +109,17 @@ export const login = async (req, res, next) => {
     const user = await getUserByEmail(email);
 
     if (!user) {
-      const error = new Error("No encontramos una cuenta con este correo electrónico.");
+      const error = new Error(
+        "No encontramos una cuenta con este correo electrónico."
+      );
       error.status = 404;
       throw error;
     }
 
     if (!user.is_verified) {
-      const error = new Error("Tu cuenta aún no está verificada. Por favor, revisa tu correo.");
+      const error = new Error(
+        "Tu cuenta aún no está verificada. Por favor, revisa tu correo."
+      );
       error.status = 403;
       throw error;
     }
@@ -114,7 +127,9 @@ export const login = async (req, res, next) => {
     const valid = await bcrypt.compare(password, user.password);
 
     if (!valid) {
-      const error = new Error("La contraseña es incorrecta. Por favor, intenta de nuevo.");
+      const error = new Error(
+        "La contraseña es incorrecta. Por favor, intenta de nuevo."
+      );
       error.status = 400;
       throw error;
     }
@@ -145,7 +160,12 @@ export const logout = async (req, res, next) => {
     const user_id = req.user.id;
     await incrementTokenVersion(user_id);
 
-    return successResponse(res, "Has cerrado sesión correctamente. ¡Hasta pronto!", {}, 200);
+    return successResponse(
+      res,
+      "Has cerrado sesión correctamente. ¡Hasta pronto!",
+      {},
+      200
+    );
   } catch (err) {
     next(err);
   }
@@ -160,7 +180,9 @@ export const forgotPassword = async (req, res, next) => {
     const user = await getUserByEmail(email);
 
     if (!user) {
-      const error = new Error("No encontramos una cuenta asociada a este correo electrónico.");
+      const error = new Error(
+        "No encontramos una cuenta asociada a este correo electrónico."
+      );
       error.status = 404;
       throw error;
     }
@@ -171,7 +193,7 @@ export const forgotPassword = async (req, res, next) => {
     const reset_url = `${process.env.FRONTEND_URL}/reset-password/${reset_token}`;
 
     Promise.resolve(
-      sendStyledMail({
+      sendMail({
         to: email,
         subject: "Restablece tu contraseña - TasteLogic",
         title: `Hola ${user.name},`,
@@ -203,7 +225,9 @@ export const resetPassword = async (req, res, next) => {
     const user = await getUserByResetToken(token);
 
     if (!user) {
-      const error = new Error("El enlace para restablecer contraseña es inválido o ha expirado.");
+      const error = new Error(
+        "El enlace para restablecer contraseña es inválido o ha expirado."
+      );
       error.status = 400;
       throw error;
     }

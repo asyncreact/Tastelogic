@@ -21,6 +21,7 @@ import { getZoneById } from "../repositories/zone.repository.js";
 import { getTableById, updateTableStatus } from "../repositories/table.repository.js";
 import { getUserById } from "../repositories/user.repository.js";
 import { successResponse } from "../utils/response.js";
+import { sendMail } from "../config/mailer.js";
 
 /* RESERVAS */
 
@@ -34,7 +35,6 @@ export const getMyActiveReservation = async (req, res, next) => {
     }
 
     const userId = Number(req.user.id);
-
     const reservation = await getActiveReservationByUserId(userId);
 
     if (!reservation) {
@@ -396,6 +396,18 @@ export const addReservation = async (req, res, next) => {
       month: "long",
     });
 
+    // 🔔 Enviar correo de creación de reserva (sin botón)
+    Promise.resolve(
+      sendMail({
+        to: user.email,
+        subject: "Tu reserva en TasteLogic",
+        title: `Hola ${user.name},`,
+        message: `Tu reserva ha sido creada para el ${formattedDate} a las ${reservation_time} en la mesa ${table.table_number} de ${zone.name}.`,
+      })
+    ).catch((err) =>
+      console.error("Error al enviar correo de creación de reserva:", err)
+    );
+
     return successResponse(
       res,
       `¡Reserva confirmada! Mesa ${table.table_number} en ${zone.name} para el ${formattedDate} a las ${reservation_time}`,
@@ -697,6 +709,45 @@ export const updateStatus = async (req, res, next) => {
       await updateTableStatus(existing.table_id, "available");
     }
 
+    // 🔔 Enviar correo según el nuevo estado (sin botón)
+    const user = await getUserById(existing.user_id);
+    const dateObj = new Date(existing.reservation_date);
+    const formattedDate = dateObj.toLocaleDateString("es-ES", {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+    });
+
+    let subject = "";
+    let message = "";
+
+    if (status === "confirmed") {
+      subject = "Tu reserva ha sido confirmada";
+      message = `Tu reserva para el ${formattedDate} a las ${existing.reservation_time} ha sido confirmada.`;
+    } else if (status === "completed") {
+      subject = "Tu reserva ha sido completada";
+      message = `Gracias por tu visita. Tu reserva del ${formattedDate} se marcó como completada.`;
+    } else if (status === "cancelled") {
+      subject = "Tu reserva ha sido cancelada";
+      message = `Tu reserva para el ${formattedDate} ha sido cancelada.`;
+    } else if (status === "expired") {
+      subject = "Tu reserva ha expirado";
+      message = `Tu reserva para el ${formattedDate} ha expirado por no haberse usado a tiempo.`;
+    }
+
+    if (subject) {
+      Promise.resolve(
+        sendMail({
+          to: user.email,
+          subject,
+          title: `Hola ${user.name},`,
+          message,
+        })
+      ).catch((err) =>
+        console.error("Error al enviar correo de cambio de estado:", err)
+      );
+    }
+
     return successResponse(
       res,
       `Estado de tu reserva actualizado a "${statusNames[status]}"`,
@@ -764,6 +815,19 @@ export const cancelReservationHandler = async (req, res, next) => {
 
     // LIBERAR LA MESA
     await updateTableStatus(existing.table_id, "available");
+
+    // 🔔 Correo de cancelación (sin botón)
+    const user = await getUserById(existing.user_id);
+    Promise.resolve(
+      sendMail({
+        to: user.email,
+        subject: "Tu reserva ha sido cancelada",
+        title: `Hola ${user.name},`,
+        message: "Tu reserva ha sido cancelada correctamente.",
+      })
+    ).catch((err) =>
+      console.error("Error al enviar correo de cancelación:", err)
+    );
 
     return successResponse(
       res,
