@@ -175,25 +175,14 @@ function ReservationHistory() {
               >
                 <Card.Body className="p-0 d-flex flex-column flex-md-row justify-content-between gap-3">
                   <div>
-                    <div className="d-flex flex-column flex-sm-row flex-wrap gap-2 mb-1">
-                      <span className="fw-semibold">
-                        {reservation.reservation_number
-                          ? `Reserva ${reservation.reservation_number}`
-                          : `Reserva #${reservation.id}`}
-                      </span>
-                      <span>·</span>
-                      <span>Estado: {getStatusText(reservation.status)}</span>
-                    </div>
-                    <div className="small mb-1">
-                      Fecha: {formatDate(reservation.reservation_date)} · Hora:{" "}
-                      {formatTime(reservation.reservation_time)}
+                    <div className="fw-semibold mb-1">
+                      {reservation.reservation_number
+                        ? `Reserva ${reservation.reservation_number}`
+                        : `Reserva #${reservation.id}`}
                     </div>
                     <div className="small">
-                      Zona:{" "}
-                      {reservation.zone_name ||
-                        getZoneName(reservation.zone_id)}{" "}
-                      · Mesa: {reservation.table_number} · Personas:{" "}
-                      {reservation.guest_count}
+                      Fecha: {formatDate(reservation.reservation_date)} · Hora:{" "}
+                      {formatTime(reservation.reservation_time)}
                     </div>
                   </div>
 
