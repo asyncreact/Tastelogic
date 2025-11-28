@@ -11,12 +11,12 @@ import {
 } from "react-bootstrap";
 import { Link } from "react-router-dom";
 import {
-  MdShoppingCart,
   MdDelete,
   MdAdd,
   MdRemove,
   MdPayment,
 } from "react-icons/md";
+import { RiShoppingBag4Line } from "react-icons/ri";
 
 import { useOrder } from "../hooks/useOrder";
 import { useReservation } from "../hooks/useReservation";
@@ -90,7 +90,7 @@ function CartSection() {
   const handleRemoveItem = async (itemId, itemName) => {
     const result = await Swal.fire({
       title: "¿Eliminar ítem?",
-      text: `¿Deseas eliminar ${itemName} del carrito?`,
+      text: `¿Deseas eliminar ${itemName} de la bolsa?`,
       icon: "warning",
       showCancelButton: true,
       confirmButtonColor: "#b91c1c",
@@ -112,8 +112,8 @@ function CartSection() {
 
   const handleClearCart = async () => {
     const result = await Swal.fire({
-      title: "¿Vaciar carrito?",
-      text: "Se eliminarán todos los ítems del carrito",
+      title: "¿Vaciar bolsa?",
+      text: "Se eliminarán todos los ítems de tu bolsa",
       icon: "warning",
       showCancelButton: true,
       confirmButtonColor: "#b91c1c",
@@ -126,7 +126,7 @@ function CartSection() {
       clearCart();
       Swal.fire({
         icon: "success",
-        title: "Carrito vaciado",
+        title: "Bolsa vaciada",
         timer: 1500,
         showConfirmButton: false,
       });
@@ -137,8 +137,8 @@ function CartSection() {
     if (cart.length === 0) {
       Swal.fire({
         icon: "warning",
-        title: "Carrito vacío",
-        text: "Agrega ítems al carrito antes de continuar",
+        title: "Bolsa vacía",
+        text: "Agrega ítems a tu bolsa antes de continuar",
       });
       return;
     }
@@ -230,8 +230,8 @@ function CartSection() {
   if (cart.length === 0) {
     return (
       <Alert variant="light" className="text-center border-0 py-5">
-        <MdShoppingCart size={48} className="mb-3" />
-        <h5 className="mb-2">Tu carrito está vacío</h5>
+        <RiShoppingBag4Line size={48} className="mb-3" />
+        <h5 className="mb-2">Tu bolsa está vacía</h5>
         <p className="mb-3">
           Agrega productos desde el menú para comenzar tu orden.
         </p>
@@ -247,7 +247,7 @@ function CartSection() {
       {/* Lista de ítems */}
       <Col lg={8}>
         <div className="mb-3">
-          <h5 className="mb-0">Mi carrito</h5>
+          <h5 className="mb-0">Mi bolsa</h5>
           <small>
             {cart.length} ítem{cart.length > 1 ? "s" : ""} en tu orden
           </small>
@@ -282,7 +282,7 @@ function CartSection() {
                       className="border d-flex align-items-center justify-content-center rounded"
                       style={{ width: "72px", height: "72px" }}
                     >
-                      <MdShoppingCart size={22} />
+                      <RiShoppingBag4Line size={22} />
                     </div>
                   )}
                 </td>
@@ -365,7 +365,7 @@ function CartSection() {
             className="p-0 small"
             onClick={handleClearCart}
           >
-            Vaciar carrito
+            Vaciar bolsa
           </Button>
           <small>
             Los precios pueden variar según promociones y disponibilidad.

@@ -10,11 +10,14 @@ import {
   Card,
   ListGroup,
 } from "react-bootstrap";
-import { useOrder } from "../hooks/useOrder";
 import { MdVisibility, MdCancel } from "react-icons/md";
 import Swal from "sweetalert2";
 
+import { useAuth } from "../hooks/useAuth";
+import { useOrder } from "../hooks/useOrder";
+
 function OrderHistory() {
+  const { user } = useAuth();
   const {
     orders,
     fetchOrders,
@@ -31,14 +34,27 @@ function OrderHistory() {
 
   useEffect(() => {
     const loadOrders = async () => {
+      if (!user) {
+        setLoadingOrders(false);
+        return;
+      }
       await fetchOrders();
       setLoadingOrders(false);
     };
     loadOrders();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [user]);
 
   const handleViewDetails = async (orderId) => {
+    if (!user) {
+      await Swal.fire({
+        icon: "info",
+        title: "Inicia sesión",
+        text: "Debes iniciar sesión para ver los detalles de tus órdenes.",
+      });
+      return;
+    }
+
     try {
       const response = await fetchOrder(orderId);
       const orderData =
@@ -146,6 +162,19 @@ function OrderHistory() {
     );
   }
 
+  // Mensaje para usuarios no autenticados (sin botón)
+  if (!user) {
+    return (
+      <Alert variant="light" className="text-center border-0">
+        <h5 className="mb-1">Para ver esta página debes iniciar sesión</h5>
+        <p className="mb-0">
+          Inicia sesión para ver el historial de tus pedidos.
+        </p>
+      </Alert>
+    );
+  }
+
+  // Usuario autenticado pero sin órdenes
   if (orders.length === 0) {
     return (
       <Alert variant="light" className="text-center border-0">
@@ -183,7 +212,6 @@ function OrderHistory() {
                   Estado: {order.status || "N/A"}
                 </div>
 
-                {/* Nombre/correo en la lista si el backend los envía */}
                 {order.user_name && (
                   <div className="small mt-1 text-muted">
                     Cliente: {order.user_name} ({order.user_email})
@@ -240,7 +268,6 @@ function OrderHistory() {
                       <strong>Información general</strong>
                     </Card.Header>
                     <ListGroup variant="flush">
-                      {/* Cliente: nombre y correo */}
                       {selectedOrder.user_name && (
                         <ListGroup.Item className="d-flex justify-content-between">
                           <span>Cliente</span>

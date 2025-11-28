@@ -77,7 +77,7 @@ function App() {
   );
 }
 
-// Redirect component: "/" -> dashboard (cliente) o admin/dashboard según rol
+// Redirect component: "/" -> admin/dashboard si es admin, si no al menú
 function HomeRedirect() {
   const { user, loading } = useAuth();
 
@@ -91,12 +91,12 @@ function HomeRedirect() {
     );
   }
 
-  // Si es admin, lo mandas al dashboard de admin; si no, al dashboard del cliente
   if (user?.role === 'admin') {
     return <Navigate to="/admin/dashboard" replace />;
   }
 
-  return <Navigate to="/dashboard" replace />;
+  // Visitantes y clientes van al menú
+  return <Navigate to="/menu" replace />;
 }
 
 export default App;

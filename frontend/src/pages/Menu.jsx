@@ -1,4 +1,3 @@
-// src/pages/Menu.jsx
 import { useEffect, useState, useMemo } from "react";
 import {
   Container,
@@ -12,6 +11,7 @@ import {
 
 import { MdOutlineFastfood } from "react-icons/md";
 import { BiCategory, BiSearchAlt } from "react-icons/bi";
+import { RiShoppingBag4Line } from "react-icons/ri";
 
 import { useMenu } from "../hooks/useMenu";
 import { useOrder } from "../hooks/useOrder";
@@ -83,8 +83,11 @@ function Menu() {
         </div>
 
         {itemsInCart > 0 && (
-          <div className="small">
-            {itemsInCart} ítem{itemsInCart > 1 ? "s" : ""} en el carrito
+          <div className="small d-flex align-items-center gap-1">
+            <RiShoppingBag4Line size={18} />
+            <span>
+              {itemsInCart} ítem{itemsInCart > 1 ? "s" : ""} en tu bolsa
+            </span>
           </div>
         )}
       </div>

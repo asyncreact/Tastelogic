@@ -8,11 +8,14 @@ import {
   Card,
   ListGroup,
 } from "react-bootstrap";
-import { useReservation } from "../hooks/useReservation";
 import { MdVisibility, MdCancel } from "react-icons/md";
 import Swal from "sweetalert2";
 
+import { useAuth } from "../hooks/useAuth";
+import { useReservation } from "../hooks/useReservation";
+
 function ReservationHistory() {
+  const { user } = useAuth();
   const {
     reservations,
     fetchReservations,
@@ -30,6 +33,11 @@ function ReservationHistory() {
   useEffect(() => {
     const loadReservations = async () => {
       try {
+        // Si no hay usuario, no llamamos al backend
+        if (!user) {
+          setLoadingReservations(false);
+          return;
+        }
         await fetchReservations();
       } finally {
         setLoadingReservations(false);
@@ -37,9 +45,18 @@ function ReservationHistory() {
     };
     loadReservations();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // ✅ solo una vez al montar
+  }, [user]); // ✅ se recalcula solo si cambia el usuario
 
   const handleViewDetails = async (reservationId) => {
+    if (!user) {
+      await Swal.fire({
+        icon: "info",
+        title: "Inicia sesión",
+        text: "Debes iniciar sesión para ver los detalles de tus reservas.",
+      });
+      return;
+    }
+
     try {
       const reservationData = await fetchReservation(reservationId);
       setSelectedReservation(reservationData);
@@ -151,15 +168,19 @@ function ReservationHistory() {
     );
   }
 
-  // 🔥 Quitamos el render global del error para que no aparezca bajo las pestañas
-  // if (error) {
-  //   return (
-  //     <Alert variant="light" className="text-center border">
-  //       Error: {error}
-  //     </Alert>
-  //   );
-  // }
+  // Mensaje para usuarios no autenticados (sin botón)
+  if (!user) {
+    return (
+      <Alert variant="light" className="text-center border-0">
+        <h5 className="mb-1">Para ver esta página debes iniciar sesión</h5>
+        <p className="mb-0">
+          Inicia sesión para ver el historial de tus reservas.
+        </p>
+      </Alert>
+    );
+  }
 
+  // Si el usuario está autenticado pero no tiene reservas
   if (reservations.length === 0) {
     return (
       <Alert variant="light" className="text-center border-0">

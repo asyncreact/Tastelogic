@@ -12,13 +12,13 @@ import {
 } from "react-bootstrap";
 import { Link, useNavigate } from "react-router-dom";
 import {
-  MdShoppingCart,
   MdDelete,
   MdAdd,
   MdRemove,
   MdArrowBack,
   MdPayment,
 } from "react-icons/md";
+import { RiShoppingBag4Line } from "react-icons/ri";
 import { useOrder } from "../hooks/useOrder";
 import Swal from "sweetalert2";
 
@@ -54,7 +54,7 @@ function Cart() {
   const handleRemoveItem = async (itemId, itemName) => {
     const result = await Swal.fire({
       title: "¿Eliminar ítem?",
-      text: `¿Deseas eliminar ${itemName} del carrito?`,
+      text: `¿Deseas eliminar ${itemName} de la bolsa?`,
       icon: "warning",
       showCancelButton: true,
       confirmButtonColor: "#b91c1c",
@@ -76,8 +76,8 @@ function Cart() {
 
   const handleClearCart = async () => {
     const result = await Swal.fire({
-      title: "¿Vaciar carrito?",
-      text: "Se eliminarán todos los ítems del carrito",
+      title: "¿Vaciar bolsa?",
+      text: "Se eliminarán todos los ítems de tu bolsa",
       icon: "warning",
       showCancelButton: true,
       confirmButtonColor: "#b91c1c",
@@ -90,7 +90,7 @@ function Cart() {
       clearCart();
       Swal.fire({
         icon: "success",
-        title: "Carrito vaciado",
+        title: "Bolsa vaciada",
         timer: 1500,
         showConfirmButton: false,
       });
@@ -101,8 +101,8 @@ function Cart() {
     if (cart.length === 0) {
       Swal.fire({
         icon: "warning",
-        title: "Carrito vacío",
-        text: "Agrega ítems al carrito antes de continuar",
+        title: "Bolsa vacía",
+        text: "Agrega ítems a tu bolsa antes de continuar",
       });
       return;
     }
@@ -176,9 +176,9 @@ function Cart() {
       <Row className="align-items-center mb-4">
         <Col>
           <div className="d-flex align-items-center gap-2">
-            <MdShoppingCart size={28} />
+            <RiShoppingBag4Line size={28} />
             <div>
-              <h4 className="mb-0">Mi carrito</h4>
+              <h4 className="mb-0">Mi bolsa</h4>
               <small>Revisa tus productos antes de confirmar tu orden.</small>
             </div>
           </div>
@@ -199,8 +199,8 @@ function Cart() {
 
       {cart.length === 0 ? (
         <Alert variant="light" className="text-center border-0 py-5">
-          <MdShoppingCart size={48} className="mb-3" />
-          <h5 className="mb-2">Tu carrito está vacío</h5>
+          <RiShoppingBag4Line size={48} className="mb-3" />
+          <h5 className="mb-2">Tu bolsa está vacía</h5>
           <p className="mb-3">
             Agrega productos desde el menú para comenzar tu orden.
           </p>
@@ -214,14 +214,14 @@ function Cart() {
           <Col lg={8}>
             <div className="mb-3 d-flex justify-content-between align-items-center">
               <span className="small">
-                {cart.length} ítem{cart.length > 1 ? "s" : ""} en tu carrito
+                {cart.length} ítem{cart.length > 1 ? "s" : ""} en tu bolsa
               </span>
               <Button
                 variant="link"
                 className="p-0 small"
                 onClick={handleClearCart}
               >
-                Vaciar carrito
+                Vaciar bolsa
               </Button>
             </div>
 
@@ -254,7 +254,7 @@ function Cart() {
                           className="border d-flex align-items-center justify-content-center rounded"
                           style={{ width: "80px", height: "80px" }}
                         >
-                          <MdShoppingCart size={22} />
+                          <RiShoppingBag4Line size={22} />
                         </div>
                       )}
                     </td>

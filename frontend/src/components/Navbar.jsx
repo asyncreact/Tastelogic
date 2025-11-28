@@ -1,3 +1,4 @@
+// src/components/AppNavbar.jsx
 import { useState, useMemo } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
@@ -43,10 +44,7 @@ function AppNavbar() {
         {/* --- IZQUIERDA --- */}
         <div className="navbar-left">
           <Link to="/" className="navbar-logo" onClick={closeMenu}>
-            <button
-              className="navbar-icon-button"
-              type="button"
-            >
+            <button className="navbar-icon-button" type="button">
               <span className="navbar-icon-circle">
                 <IoRestaurantOutline size={20} />
               </span>
@@ -55,7 +53,7 @@ function AppNavbar() {
           </Link>
         </div>
 
-        {/* --- CENTRO (siempre visible) --- */}
+        {/* --- CENTRO (menú hamburguesa / desktop) --- */}
         <ul className={`navbar-menu ${isMenuOpen ? "active" : ""}`}>
           {NAV_LINKS.map((link) => {
             const isActive = location.pathname === link.path;
@@ -72,6 +70,30 @@ function AppNavbar() {
             );
           })}
 
+          {/* Links de login / registro en el menú cuando NO hay usuario */}
+          {!user && (
+            <>
+              <li>
+                <Link
+                  to="/login"
+                  className="navbar-link"
+                  onClick={closeMenu}
+                >
+                  Ingresar
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/register"
+                  className="navbar-link"
+                  onClick={closeMenu}
+                >
+                  Registrar
+                </Link>
+              </li>
+            </>
+          )}
+
           {/* Logout en móvil solo si hay usuario */}
           {user && (
             <li className="mobile-logout-item">
@@ -87,21 +109,21 @@ function AppNavbar() {
 
         {/* --- DERECHA --- */}
         <div className="navbar-actions">
+          {/* Carrito SIEMPRE visible */}
+          <Link
+            to="/orders"
+            className="cart-icon"
+            onClick={closeMenu}
+            aria-label="Carrito"
+          >
+            <RiShoppingBag4Line size={20} />
+            {cartItemsCount > 0 && (
+              <span className="cart-badge">{cartItemsCount}</span>
+            )}
+          </Link>
+
           {user ? (
             <>
-              {/* Carrito */}
-              <Link
-                to="/orders"
-                className="cart-icon"
-                onClick={closeMenu}
-                aria-label="Carrito"
-              >
-                <RiShoppingBag4Line size={20} />
-                {cartItemsCount > 0 && (
-                  <span className="cart-badge">{cartItemsCount}</span>
-                )}
-              </Link>
-
               {/* Menú usuario + dropdown */}
               <div className="user-menu">
                 <button className="user-button">
@@ -136,30 +158,16 @@ function AppNavbar() {
             </>
           ) : (
             <>
-              {/* Texto Visitante */}
-              <span className="user-guest-label">Visitante</span>
-
-              {/* Botones auth */}
-              <div className="auth-buttons">
-                <Link
-                  to="/login"
-                  className="user-button"
-                  onClick={closeMenu}
-                >
-                  Ingresar
-                </Link>
-                <Link
-                  to="/register"
-                  className="user-button"
-                  onClick={closeMenu}
-                >
-                  Registrar
-                </Link>
+              {/* Visitante con mismo estilo que Mi Cuenta */}
+              <div className="user-menu">
+                <button className="user-button">
+                  Visitante
+                </button>
               </div>
             </>
           )}
 
-          {/* Toggle menú móvil (siempre, para navegar como visitante o usuario) */}
+          {/* Toggle menú móvil */}
           <button
             className="mobile-menu-toggle"
             onClick={() => setIsMenuOpen(!isMenuOpen)}

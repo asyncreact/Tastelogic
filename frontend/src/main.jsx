@@ -13,7 +13,6 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <BrowserRouter>
-    <ThemeProvider>
       <AuthProvider>
         <MenuProvider>
           <OrderProvider>
@@ -23,7 +22,6 @@ createRoot(document.getElementById('root')).render(
           </OrderProvider>
         </MenuProvider>
       </AuthProvider>
-      </ThemeProvider>
     </BrowserRouter>
   </StrictMode>
 );

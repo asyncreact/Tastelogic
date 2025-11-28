@@ -79,6 +79,12 @@ export function OrderProvider({ children }) {
   // ================= ÓRDENES =================
 
   const fetchOrders = async (params = {}) => {
+    // No llamar al backend si no hay usuario (para que /orders sea pública)
+    if (!user) {
+      setOrders([]);
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
@@ -88,13 +94,17 @@ export function OrderProvider({ children }) {
       const parsed = parseApiError(err, "Error al cargar órdenes");
       setError(parsed.message);
       console.error("Error fetchOrders:", err);
-      // no se relanza; la vista puede revisar error si quiere
     } finally {
       setLoading(false);
     }
   };
 
   const fetchOrder = async (orderId) => {
+    // Sin usuario no tiene sentido pedir detalles al backend protegido
+    if (!user) {
+      throw { message: "Debes iniciar sesión para ver los detalles de la orden." };
+    }
+
     try {
       setLoading(true);
       setError(null);
@@ -114,6 +124,11 @@ export function OrderProvider({ children }) {
   };
 
   const addOrder = async (orderData) => {
+    // Bloqueo explícito si no hay usuario
+    if (!user) {
+      throw { message: "Debes iniciar sesión para confirmar tu pedido." };
+    }
+
     try {
       setLoading(true);
       setError(null);
