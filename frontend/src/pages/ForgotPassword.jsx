@@ -13,7 +13,7 @@ import {
 import { forgotPassword } from "../api/auth";
 import Swal from "sweetalert2";
 import withReactContent from "sweetalert2-react-content";
-import ThemeToggle from "../components/ThemeToggle";
+
 
 const MySwal = withReactContent(Swal);
 
@@ -77,10 +77,6 @@ function ForgotPassword() {
 
   return (
     <div className="d-flex align-items-center justify-content-center min-vh-100 position-relative bg-light">
-      {/* Toggle tema arriba a la izquierda */}
-      <div className="position-absolute top-0 start-0 m-3">
-        <ThemeToggle />
-      </div>
 
       <Container>
         <Row className="justify-content-center">

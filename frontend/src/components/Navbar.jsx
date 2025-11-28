@@ -1,12 +1,12 @@
-import { useState, useMemo } from "react"; // Eliminado useEffect ya no se usa aquí
+import { useState, useMemo } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { useOrder } from "../hooks/useOrder";
-// Eliminados iconos de Sun/Moon ya que están en el toggle
+
 import { RiShoppingBag4Line } from "react-icons/ri";
 import { HiMenuAlt3 } from "react-icons/hi";
-import { IoClose, IoLogOutOutline } from "react-icons/io5";
-import ThemeToggle from "./ThemeToggle"; // <--- IMPORTANTE: Importar el nuevo componente
+import { IoClose, IoLogOutOutline, IoRestaurantOutline } from "react-icons/io5";
+
 import "./css/Navbar.css";
 
 const NAV_LINKS = [
@@ -21,11 +21,9 @@ function AppNavbar() {
   const { cart } = useOrder();
   const navigate = useNavigate();
   const location = useLocation();
-  
-  // Eliminada lógica de isDarkMode
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  // Eliminado useEffect del tema y toggleTheme()
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isLogoAnimating, setIsLogoAnimating] = useState(false);
 
   const handleLogout = async () => {
     setIsMenuOpen(false);
@@ -40,19 +38,33 @@ function AppNavbar() {
     return cart.reduce((total, item) => total + item.quantity, 0);
   }, [cart]);
 
+  const handleLogoClick = () => {
+    // no navega, solo anima el texto
+    setIsLogoAnimating(true);
+    setTimeout(() => setIsLogoAnimating(false), 300);
+  };
+
   return (
     <nav className="navbar">
       <div className="navbar-container">
-        
         {/* --- IZQUIERDA --- */}
         <div className="navbar-left">
-          
-          {/* Aquí usamos el nuevo componente */}
-          <ThemeToggle />
-
-          <Link to="/" className="navbar-logo" onClick={closeMenu}>
-            TASTELOGIC
-          </Link>
+          <button
+            className="navbar-icon-button"
+            type="button"
+            onClick={handleLogoClick}
+          >
+            <span className="navbar-icon-circle">
+              <IoRestaurantOutline size={20} />
+            </span>
+            <span
+              className={`navbar-icon-text ${
+                isLogoAnimating ? "logo-slide" : ""
+              }`}
+            >
+              TASTELOGIC
+            </span>
+          </button>
         </div>
 
         {/* --- CENTRO --- */}
@@ -60,12 +72,11 @@ function AppNavbar() {
           <ul className={`navbar-menu ${isMenuOpen ? "active" : ""}`}>
             {NAV_LINKS.map((link) => {
               const isActive = location.pathname === link.path;
-              
               return (
                 <li key={link.path}>
-                  <Link 
-                    to={link.path} 
-                    className={`navbar-link ${isActive ? "active" : ""}`} 
+                  <Link
+                    to={link.path}
+                    className={`navbar-link ${isActive ? "active" : ""}`}
                     onClick={closeMenu}
                   >
                     {link.label}
@@ -73,9 +84,13 @@ function AppNavbar() {
                 </li>
               );
             })}
-            
+
+            {/* Logout en móvil dentro del menú */}
             <li className="mobile-logout-item">
-              <button onClick={handleLogout} className="navbar-link logout-btn">
+              <button
+                onClick={handleLogout}
+                className="navbar-link logout-btn"
+              >
                 Cerrar Sesión
               </button>
             </li>
@@ -86,9 +101,10 @@ function AppNavbar() {
         <div className="navbar-actions">
           {user ? (
             <>
-              <Link 
-                to="/orders" 
-                className="cart-icon" 
+              {/* Carrito */}
+              <Link
+                to="/orders"
+                className="cart-icon"
                 onClick={closeMenu}
                 aria-label="Carrito"
               >
@@ -98,18 +114,32 @@ function AppNavbar() {
                 )}
               </Link>
 
+              {/* Menú usuario + dropdown */}
               <div className="user-menu">
                 <button className="user-button">
                   {user.name || "Mi Cuenta"}
                 </button>
                 <div className="dropdown-menu">
-                  <Link to="/dashboard" className="dropdown-item" onClick={closeMenu}>Perfil</Link>
-                  <Link to="/reservations" className="dropdown-item" onClick={closeMenu}>Reservas</Link>
+                  <Link
+                    to="/dashboard"
+                    className="dropdown-item"
+                    onClick={closeMenu}
+                  >
+                    Perfil
+                  </Link>
+                  <Link
+                    to="/reservations"
+                    className="dropdown-item"
+                    onClick={closeMenu}
+                  >
+                    Reservas
+                  </Link>
                 </div>
               </div>
 
-              <button 
-                className="desktop-logout-btn" 
+              {/* Logout escritorio */}
+              <button
+                className="desktop-logout-btn"
                 onClick={handleLogout}
                 title="Cerrar Sesión"
               >
@@ -118,17 +148,32 @@ function AppNavbar() {
             </>
           ) : (
             <div className="auth-buttons">
-              <Link to="/login" className="user-button" onClick={closeMenu}>Ingresar</Link>
-              <Link to="/register" className="user-button" onClick={closeMenu}>Registrar</Link>
+              <Link
+                to="/login"
+                className="user-button"
+                onClick={closeMenu}
+              >
+                Ingresar
+              </Link>
+              <Link
+                to="/register"
+                className="user-button"
+                onClick={closeMenu}
+              >
+                Registrar
+              </Link>
             </div>
           )}
 
-          <button 
-            className="mobile-menu-toggle"
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-          >
-            {isMenuOpen ? <IoClose size={24} /> : <HiMenuAlt3 size={24} />}
-          </button>
+          {/* Toggle menú móvil */}
+          {user && (
+            <button
+              className="mobile-menu-toggle"
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+            >
+              {isMenuOpen ? <IoClose size={24} /> : <HiMenuAlt3 size={24} />}
+            </button>
+          )}
         </div>
       </div>
     </nav>
