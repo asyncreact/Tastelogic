@@ -14,8 +14,8 @@ import {
   getReservationStatisticsByDate,
   getReservationStatisticsByZone,
   getReservationStatisticsByStatus,
-  getActiveFutureReservationByUserId, // ✅ nuevo
-  getActiveReservationByUserId, // ✅ asegúrate de exportarlo en el repository
+  getActiveFutureReservationByUserId,
+  getActiveReservationByUserId,
 } from "../repositories/reservation.repository.js";
 import { getZoneById } from "../repositories/zone.repository.js";
 import { getTableById, updateTableStatus } from "../repositories/table.repository.js";
@@ -281,7 +281,7 @@ export const addReservation = async (req, res, next) => {
       user_id = req.body.user_id;
     }
 
-    // 🔒 Validar que el usuario no tenga ya una reserva futura activa
+    // Validar que el usuario no tenga ya una reserva futura activa
     const activeReservation = await getActiveFutureReservationByUserId(
       Number(user_id)
     );
@@ -400,9 +400,13 @@ export const addReservation = async (req, res, next) => {
     Promise.resolve(
       sendMail({
         to: user.email,
-        subject: "Tu reserva en TasteLogic",
+        subject: "¡Tu reserva en TasteLogic está lista!",
         title: `Hola ${user.name},`,
-        message: `Tu reserva ha sido creada para el ${formattedDate} a las ${reservation_time} en la mesa ${table.table_number} de ${zone.name}.`,
+        message:
+          `¡Gracias por reservar con nosotros! \n\n` +
+          `Hemos registrado tu reserva para el ${formattedDate} a las ${reservation_time}.\n` +
+          `Te estaremos esperando en la mesa ${table.table_number} de la zona ${zone.name}.\n\n` +
+          `Si necesitas hacer algún cambio o tienes alguna solicitud especial, puedes responder a este correo.`,
       })
     ).catch((err) =>
       console.error("Error al enviar correo de creación de reserva:", err)
@@ -722,17 +726,30 @@ export const updateStatus = async (req, res, next) => {
     let message = "";
 
     if (status === "confirmed") {
-      subject = "Tu reserva ha sido confirmada";
-      message = `Tu reserva para el ${formattedDate} a las ${existing.reservation_time} ha sido confirmada.`;
+      subject = "¡Tu reserva ha sido confirmada!";
+      message =
+        `Hola ${user.name},\n\n` +
+        `¡Buenas noticias! Tu reserva para el ${formattedDate} a las ${existing.reservation_time} ha sido confirmada.\n` +
+        `Te esperamos con la mesa lista para ti.\n\n` +
+        `Si no puedes asistir o necesitas ajustar algo, avísanos con tiempo.`;
     } else if (status === "completed") {
-      subject = "Tu reserva ha sido completada";
-      message = `Gracias por tu visita. Tu reserva del ${formattedDate} se marcó como completada.`;
+      subject = "Gracias por visitarnos";
+      message =
+        `Gracias por compartir tu tiempo con nosotros, ${user.name}.\n\n` +
+        `Tu reserva del ${formattedDate} se marcó como completada.\n` +
+        `Esperamos que hayas tenido una excelente experiencia y que pronto vuelvas a visitarnos.`;
     } else if (status === "cancelled") {
       subject = "Tu reserva ha sido cancelada";
-      message = `Tu reserva para el ${formattedDate} ha sido cancelada.`;
+      message =
+        `Hola ${user.name},\n\n` +
+        `Hemos cancelado tu reserva para el ${formattedDate} tal como indicaste.\n` +
+        `Si fue un error o deseas hacer una nueva reserva, estaremos encantados de ayudarte.`;
     } else if (status === "expired") {
       subject = "Tu reserva ha expirado";
-      message = `Tu reserva para el ${formattedDate} ha expirado por no haberse usado a tiempo.`;
+      message =
+        `Hola ${user.name},\n\n` +
+        `Tu reserva para el ${formattedDate} ha expirado porque no se utilizó a tiempo.\n` +
+        `Cuando quieras, puedes crear una nueva reserva y con gusto te recibimos.`;
     }
 
     if (subject) {
@@ -823,7 +840,10 @@ export const cancelReservationHandler = async (req, res, next) => {
         to: user.email,
         subject: "Tu reserva ha sido cancelada",
         title: `Hola ${user.name},`,
-        message: "Tu reserva ha sido cancelada correctamente.",
+        message:
+          `Hemos cancelado tu reserva tal como solicitaste.\n\n` +
+          `La mesa ha quedado nuevamente disponible.\n` +
+          `Cuando te animes a visitarnos de nuevo, estaremos encantados de recibirte.`,
       })
     ).catch((err) =>
       console.error("Error al enviar correo de cancelación:", err)
