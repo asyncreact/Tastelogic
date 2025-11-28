@@ -212,13 +212,19 @@ function NewReservationForm({ onSuccess }) {
   };
 
   const getMinTime = () => {
+    const OPEN_TIME = "09:00";
+
     if (formData.reservation_date === getMinDate()) {
       const now = new Date();
-      const hours = String(now.getHours()).padStart(2, "0");
-      const minutes = String(now.getMinutes()).padStart(2, "0");
-      return `${hours}:${minutes}`;
+      const current = `${String(now.getHours()).padStart(2, "0")}:${String(
+        now.getMinutes()
+      ).padStart(2, "0")}`;
+
+      // Si la hora actual es antes de la apertura, usar apertura
+      return current < OPEN_TIME ? OPEN_TIME : current;
     }
-    return "09:00";
+
+    return OPEN_TIME;
   };
 
   return (
@@ -305,6 +311,7 @@ function NewReservationForm({ onSuccess }) {
                         value={formData.reservation_time}
                         onChange={handleChange}
                         min={getMinTime()}
+                        max="23:59"
                         required
                       />
                     </Form.Group>
