@@ -23,7 +23,6 @@ function AppNavbar() {
   const location = useLocation();
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isLogoAnimating, setIsLogoAnimating] = useState(false);
 
   const handleLogout = async () => {
     setIsMenuOpen(false);
@@ -38,33 +37,22 @@ function AppNavbar() {
     return cart.reduce((total, item) => total + item.quantity, 0);
   }, [cart]);
 
-  const handleLogoClick = () => {
-    // no navega, solo anima el texto
-    setIsLogoAnimating(true);
-    setTimeout(() => setIsLogoAnimating(false), 300);
-  };
-
   return (
     <nav className="navbar">
       <div className="navbar-container">
         {/* --- IZQUIERDA --- */}
         <div className="navbar-left">
-          <button
-            className="navbar-icon-button"
-            type="button"
-            onClick={handleLogoClick}
-          >
-            <span className="navbar-icon-circle">
-              <IoRestaurantOutline size={20} />
-            </span>
-            <span
-              className={`navbar-icon-text ${
-                isLogoAnimating ? "logo-slide" : ""
-              }`}
+          <Link to="/" className="navbar-logo" onClick={closeMenu}>
+            <button
+              className="navbar-icon-button"
+              type="button"
             >
-              TASTELOGIC
-            </span>
-          </button>
+              <span className="navbar-icon-circle">
+                <IoRestaurantOutline size={20} />
+              </span>
+              <span className="navbar-icon-text">TASTELOGIC</span>
+            </button>
+          </Link>
         </div>
 
         {/* --- CENTRO --- */}
