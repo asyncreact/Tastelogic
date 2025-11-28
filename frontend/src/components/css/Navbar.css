@@ -127,8 +127,10 @@
   border: 2px solid #ffffff;        /* borde blanco para separarse del navbar */
 }
 
-/* --- Usuario --- */
-.user-menu { position: relative; }
+/* --- Usuario / Visitante --- */
+.user-menu { 
+  position: relative; 
+}
 
 .user-button {
   background: transparent;
@@ -143,14 +145,53 @@
   padding: 10px 24px;
   transition: all 0.3s ease;
   white-space: nowrap;
+  text-decoration: none;            /* sin subrayado */
 }
 
 .user-button:hover {
   border-color: #111827;
   background: #111827;
   color: #ffffff;
+  text-decoration: none;            /* sin subrayado en hover */
 }
 
+/* etiqueta "Visitante" cuando no hay usuario */
+.user-guest-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #6b7280;
+  white-space: nowrap;
+}
+
+/* botones Ingresar / Registrar */
+.auth-buttons {
+  display: flex;
+  gap: 12px;
+}
+
+.auth-buttons .user-button {
+  border-color: #111827;
+  text-decoration: none;            /* sin subrayado */
+}
+
+.auth-buttons .user-button:hover {
+  background: #111827;
+  color: #ffffff;
+  border-color: #111827;
+  text-decoration: none;            /* sin subrayado en hover */
+}
+
+/* por si acaso, quitar subrayado en los Link internos */
+.auth-buttons a {
+  text-decoration: none;
+}
+.auth-buttons a:hover {
+  text-decoration: none;
+}
+
+/* --- Dropdown usuario --- */
 .dropdown-menu {
   position: absolute;
   top: 140%;
@@ -208,12 +249,6 @@
   transform: translateX(3px);
 }
 
-/* --- Auth Buttons --- */
-.auth-buttons {
-  display: flex;
-  gap: 12px;
-}
-
 /* --- Toggle Móvil --- */
 .mobile-menu-toggle {
   display: none;
@@ -223,7 +258,9 @@
   cursor: pointer;
 }
 
-.mobile-logout-item { display: none; }
+.mobile-logout-item { 
+  display: none; 
+}
 
 /* 5. RESPONSIVE (MÓVIL) */
 @media (max-width: 968px) {
@@ -233,7 +270,9 @@
     padding: 0 20px;
   }
 
-  .desktop-logout-btn { display: none; }
+  .desktop-logout-btn { 
+    display: none; 
+  }
 
   .navbar-menu {
     position: fixed;
@@ -279,10 +318,15 @@
     letter-spacing: 2px;
   }
 
-  .mobile-menu-toggle { display: flex; }
-  .user-button,
-  .user-menu,
-  .auth-buttons { display: none; }
+  .mobile-menu-toggle { 
+    display: flex; 
+  }
+
+  /* en móvil ocultamos el dropdown usuario,
+     pero mantenemos los botones de auth */
+  .user-menu { 
+    display: none; 
+  }
 }
 
 /* Icono + texto TASTELOGIC en el navbar */

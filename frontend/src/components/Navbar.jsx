@@ -55,25 +55,25 @@ function AppNavbar() {
           </Link>
         </div>
 
-        {/* --- CENTRO --- */}
-        {user && (
-          <ul className={`navbar-menu ${isMenuOpen ? "active" : ""}`}>
-            {NAV_LINKS.map((link) => {
-              const isActive = location.pathname === link.path;
-              return (
-                <li key={link.path}>
-                  <Link
-                    to={link.path}
-                    className={`navbar-link ${isActive ? "active" : ""}`}
-                    onClick={closeMenu}
-                  >
-                    {link.label}
-                  </Link>
-                </li>
-              );
-            })}
+        {/* --- CENTRO (siempre visible) --- */}
+        <ul className={`navbar-menu ${isMenuOpen ? "active" : ""}`}>
+          {NAV_LINKS.map((link) => {
+            const isActive = location.pathname === link.path;
+            return (
+              <li key={link.path}>
+                <Link
+                  to={link.path}
+                  className={`navbar-link ${isActive ? "active" : ""}`}
+                  onClick={closeMenu}
+                >
+                  {link.label}
+                </Link>
+              </li>
+            );
+          })}
 
-            {/* Logout en móvil dentro del menú */}
+          {/* Logout en móvil solo si hay usuario */}
+          {user && (
             <li className="mobile-logout-item">
               <button
                 onClick={handleLogout}
@@ -82,8 +82,8 @@ function AppNavbar() {
                 Cerrar Sesión
               </button>
             </li>
-          </ul>
-        )}
+          )}
+        </ul>
 
         {/* --- DERECHA --- */}
         <div className="navbar-actions">
@@ -135,33 +135,37 @@ function AppNavbar() {
               </button>
             </>
           ) : (
-            <div className="auth-buttons">
-              <Link
-                to="/login"
-                className="user-button"
-                onClick={closeMenu}
-              >
-                Ingresar
-              </Link>
-              <Link
-                to="/register"
-                className="user-button"
-                onClick={closeMenu}
-              >
-                Registrar
-              </Link>
-            </div>
+            <>
+              {/* Texto Visitante */}
+              <span className="user-guest-label">Visitante</span>
+
+              {/* Botones auth */}
+              <div className="auth-buttons">
+                <Link
+                  to="/login"
+                  className="user-button"
+                  onClick={closeMenu}
+                >
+                  Ingresar
+                </Link>
+                <Link
+                  to="/register"
+                  className="user-button"
+                  onClick={closeMenu}
+                >
+                  Registrar
+                </Link>
+              </div>
+            </>
           )}
 
-          {/* Toggle menú móvil */}
-          {user && (
-            <button
-              className="mobile-menu-toggle"
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-            >
-              {isMenuOpen ? <IoClose size={24} /> : <HiMenuAlt3 size={24} />}
-            </button>
-          )}
+          {/* Toggle menú móvil (siempre, para navegar como visitante o usuario) */}
+          <button
+            className="mobile-menu-toggle"
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+          >
+            {isMenuOpen ? <IoClose size={24} /> : <HiMenuAlt3 size={24} />}
+          </button>
         </div>
       </div>
     </nav>

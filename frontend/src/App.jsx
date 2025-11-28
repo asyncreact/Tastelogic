@@ -31,42 +31,45 @@ import AdminLayout from './layouts/AdminLayout';
 function App() {
   return (
     <Routes>
-      {/* Public routes */}
+      {/* Rutas públicas de auth */}
       <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
       <Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
       <Route path="/verify/:token" element={<VerifyEmail />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password/:token" element={<ResetPassword />} />
 
-      {/* Client routes with Navbar */}
-      <Route element={<PrivateRoute><ClientLayout /></PrivateRoute>}>
+      {/* Rutas cliente PÚBLICAS con navbar */}
+      <Route element={<ClientLayout />}>
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/menu" element={<Menu />} />
         <Route path="/orders" element={<Orders />} />
         <Route path="/reservations" element={<Reservations />} />
       </Route>
 
-      {/* Admin routes without Navbar */}
+      {/* Rutas ADMIN protegidas */}
       <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
         <Route index element={<Navigate to="dashboard" replace />} />
         <Route path="dashboard" element={<AdminDashboard />} />
-        <Route path="users" element={
-          <div className="container py-5">
-            <div className="card shadow">
-              <div className="card-header bg-danger text-white">
-                <h4>Gestión de Usuarios</h4>
+        <Route
+          path="users"
+          element={
+            <div className="container py-5">
+              <div className="card shadow">
+                <div className="card-header bg-danger text-white">
+                  <h4>Gestión de Usuarios</h4>
+                </div>
+                <div className="card-body">Próximamente: Lista de usuarios</div>
               </div>
-              <div className="card-body">Próximamente: Lista de usuarios</div>
             </div>
-          </div>
-        } />
+          }
+        />
         <Route path="menu" element={<AdminMenu />} />
         <Route path="orders" element={<AdminOrders />} />
         <Route path="tables" element={<AdminTables />} />
         <Route path="reservations" element={<AdminReservations />} />
       </Route>
 
-      {/* Other routes */}
+      {/* Otras rutas */}
       <Route path="/" element={<HomeRedirect />} />
       <Route path="/unauthorized" element={<Unauthorized />} />
       <Route path="*" element={<NotFound />} />
@@ -74,7 +77,7 @@ function App() {
   );
 }
 
-// Redirect component
+// Redirect component: "/" -> dashboard (cliente) o admin/dashboard según rol
 function HomeRedirect() {
   const { user, loading } = useAuth();
 
@@ -88,13 +91,12 @@ function HomeRedirect() {
     );
   }
 
-  if (!user) {
-    return <Navigate to="/login" replace />;
+  // Si es admin, lo mandas al dashboard de admin; si no, al dashboard del cliente
+  if (user?.role === 'admin') {
+    return <Navigate to="/admin/dashboard" replace />;
   }
 
-  return user.role === 'admin' 
-    ? <Navigate to="/admin/dashboard" replace />
-    : <Navigate to="/dashboard" replace />;
+  return <Navigate to="/dashboard" replace />;
 }
 
 export default App;
