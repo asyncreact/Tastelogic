@@ -13,7 +13,12 @@ import {
 } from "react-bootstrap";
 import { MdEventSeat, MdOutlineTableBar, MdPeople } from "react-icons/md";
 import { useReservation } from "../../hooks/useReservation";
+import { useUsers } from "../../hooks/useUsers";
 import api from "../../api/auth";
+import Swal from "sweetalert2";
+import withReactContent from "sweetalert2-react-content";
+
+const MySwal = withReactContent(Swal);
 
 function UserInfoHint({ userId, users }) {
   const user = users.find((u) => String(u.id) === String(userId));
@@ -47,6 +52,8 @@ function AdminReservation() {
     clearError,
   } = useReservation();
 
+  const { users, loadingUsers, usersError } = useUsers();
+
   const [searchAdmin, setSearchAdmin] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
 
@@ -67,7 +74,6 @@ function AdminReservation() {
   const [availableTables, setAvailableTables] = useState([]);
   const [loadingTables, setLoadingTables] = useState(false);
   const [loadingZones, setLoadingZones] = useState(true);
-  const [users, setUsers] = useState([]);
 
   useEffect(() => {
     fetchReservations();
@@ -87,18 +93,6 @@ function AdminReservation() {
       }
     };
     loadZones();
-  }, []);
-
-  useEffect(() => {
-    const loadUsers = async () => {
-      try {
-        const res = await api.get("/users?role=customer");
-        setUsers(res.data?.users || res.data?.data || []);
-      } catch (err) {
-        console.error("No se pudieron cargar los usuarios", err);
-      }
-    };
-    loadUsers();
   }, []);
 
   useEffect(() => {
@@ -165,6 +159,43 @@ function AdminReservation() {
 
   // ========== Helpers ==========
 
+  const getUserById = (userId) =>
+    users.find((u) => String(u.id) === String(userId));
+
+  const formatDate = (dateString) => {
+    if (!dateString) return "";
+    const d = new Date(dateString);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
+  const formatTime = (timeString) => {
+    if (!timeString) return "";
+    const [h, m] = timeString.split(":");
+    const hour = Number(h);
+    const suffix = hour >= 12 ? "pm" : "am";
+    const hh = String(hour).padStart(2, "0");
+    return `${hh}:${m} ${suffix}`;
+  };
+
+  const formatZoneName = (reservation) => {
+    if (reservation.zone_name) return reservation.zone_name;
+    const map = {
+      1: "Terraza",
+      2: "Interior",
+      3: "VIP",
+      4: "Bar",
+    };
+    return map[reservation.zone_id] || `Zona ${reservation.zone_id}`;
+  };
+
+  const formatTableLabel = (reservation) => {
+    if (reservation.table_number) return reservation.table_number;
+    return reservation.table_id;
+  };
+
   const openModal = (reservation = null) => {
     setEditingReservation(reservation);
     setReservationForm({
@@ -212,11 +243,62 @@ function AdminReservation() {
     }));
   };
 
+  const showSuccessToast = (title) => {
+    const Toast = MySwal.mixin({
+      toast: true,
+      position: "top-end",
+      showConfirmButton: false,
+      timer: 3000,
+      timerProgressBar: false,
+    });
+
+    Toast.fire({
+      icon: "success",
+      title: title || "Operación realizada correctamente",
+    });
+  };
+
+  const showBackendError = (
+    err,
+    fallback = "Por favor, verifica los datos ingresados"
+  ) => {
+    const baseMessage = err?.message || fallback;
+
+    let details = [];
+    if (Array.isArray(err?.details)) {
+      details = err.details.map((d) =>
+        typeof d === "string"
+          ? d
+          : d.mensaje || d.message || JSON.stringify(d)
+      );
+    }
+
+    let errorDetailsHtml = "";
+    if (details.length) {
+      const listItems = details.map((d) => `<li>${d}</li>`).join("");
+      errorDetailsHtml =
+        `<ul class="mt-2 mb-0 small" style="list-style:none;padding-left:0;">${listItems}</ul>`;
+    }
+
+    MySwal.fire({
+      title: "ERROR",
+      text: !errorDetailsHtml ? baseMessage : undefined,
+      html: errorDetailsHtml ? `<div>${baseMessage}${errorDetailsHtml}</div>` : undefined,
+      icon: "error",
+      confirmButtonText: "CERRAR",
+    });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!reservationForm.table_id) {
-      alert("Por favor, selecciona una mesa disponible");
+      MySwal.fire({
+        title: "ATENCIÓN",
+        text: "Por favor, selecciona una mesa disponible",
+        icon: "warning",
+        confirmButtonText: "ENTENDIDO",
+      });
       return;
     }
 
@@ -226,32 +308,62 @@ function AdminReservation() {
     };
 
     try {
+      let result;
       if (editingReservation) {
-        await editReservation(editingReservation.id, payload);
+        result = await editReservation(editingReservation.id, payload);
       } else {
-        await addReservation(payload);
+        result = await addReservation(payload);
       }
+
+      showSuccessToast(
+        result?.message ||
+          (editingReservation
+            ? "Reserva actualizada correctamente"
+            : "Reserva creada correctamente")
+      );
+
       closeModal();
-    } catch {
-      // manejado en el contexto
+    } catch (err) {
+      showBackendError(
+        err,
+        editingReservation
+          ? "Error al actualizar la reserva"
+          : "Error al crear la reserva"
+      );
     }
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm("¿Seguro que deseas eliminar esta reserva?")) return;
+    const confirmResult = await MySwal.fire({
+      title: "¿Eliminar reserva?",
+      text: "Esta acción no se puede deshacer.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Sí, eliminar",
+      cancelButtonText: "Cancelar",
+      reverseButtons: true,
+    });
+
+    if (!confirmResult.isConfirmed) return;
+
     try {
-      await deleteReservationById(id);
-    } catch {
-      // manejado en contexto
+      const result = await deleteReservationById(id);
+      showSuccessToast(result?.message || "Reserva eliminada correctamente");
+    } catch (err) {
+      showBackendError(err, "Error al eliminar la reserva");
     }
   };
 
   const handleChangeStatus = async (reservation, newStatus) => {
     if (reservation.status === newStatus) return;
+
     try {
-      await changeReservationStatus(reservation.id, newStatus);
-    } catch {
-      // manejado en contexto
+      const result = await changeReservationStatus(reservation.id, newStatus);
+      showSuccessToast(
+        result?.message || "Estado de la reserva actualizado correctamente"
+      );
+    } catch (err) {
+      showBackendError(err, "Error al cambiar el estado de la reserva");
     }
   };
 
@@ -261,8 +373,6 @@ function AdminReservation() {
         return "success";
       case "cancelled":
         return "danger";
-      case "seated":
-        return "primary";
       case "completed":
         return "secondary";
       case "expired":
@@ -281,18 +391,11 @@ function AdminReservation() {
     if (!searchLower) return true;
 
     const number = r.reservation_number?.toLowerCase() || "";
-    const name =
-      `${r.customer_name || ""} ${r.customer_lastname || ""}`.toLowerCase();
-    const email = r.customer_email?.toLowerCase() || "";
-    const phone = r.customer_phone?.toLowerCase() || "";
     const table = String(r.table_id || "");
     const zone = String(r.zone_id || "");
 
     return (
       number.includes(searchLower) ||
-      name.includes(searchLower) ||
-      email.includes(searchLower) ||
-      phone.includes(searchLower) ||
       table.includes(searchLower) ||
       zone.includes(searchLower)
     );
@@ -322,9 +425,6 @@ function AdminReservation() {
             Gestiona reservas, estados y asignación de mesas.
           </p>
         </Col>
-        <Col className="text-end d-none d-md-block">
-          <Button onClick={() => openModal()}>Nueva reserva</Button>
-        </Col>
       </Row>
 
       {/* Barra de filtros */}
@@ -332,7 +432,7 @@ function AdminReservation() {
         <Col md={6} className="mb-2 mb-md-0">
           <Form.Control
             type="search"
-            placeholder="Buscar por número, cliente, email, teléfono, mesa o zona..."
+            placeholder="Buscar por número, mesa o zona..."
             value={searchAdmin}
             onChange={(e) => setSearchAdmin(e.target.value)}
           />
@@ -345,7 +445,6 @@ function AdminReservation() {
             <option value="all">Todos los estados</option>
             <option value="pending">Pendiente</option>
             <option value="confirmed">Confirmada</option>
-            <option value="seated">En mesa</option>
             <option value="completed">Completada</option>
             <option value="cancelled">Cancelada</option>
             <option value="expired">Expirada</option>
@@ -380,67 +479,76 @@ function AdminReservation() {
             </p>
           ) : (
             <div className="d-flex flex-column gap-3">
-              {filteredReservations.map((r) => (
-                <div
-                  key={r.id}
-                  className="d-flex flex-column flex-md-row align-items-md-center justify-content-between border rounded px-3 py-2"
-                >
-                  <div className="mb-2 mb-md-0">
-                    <div className="d-flex align-items-center gap-2">
-                      <span className="fw-semibold">
-                        {r.reservation_number || `Reserva #${r.id}`}
-                      </span>
-                      <Badge bg={getStatusVariant(r.status)}>
-                        {r.status}
-                      </Badge>
-                    </div>
-                    <div className="small text-muted">
-                      {r.customer_name} {r.customer_lastname} ·{" "}
-                      {r.customer_phone} · {r.customer_email}
-                    </div>
-                    <div className="small">
-                      {r.reservation_date} {r.reservation_time} · Mesa{" "}
-                      {r.table_id} · Zona {r.zone_id} ·{" "}
-                      {r.guest_count ?? r.guests} personas
-                    </div>
-                    {r.special_requirements && (
-                      <div className="small text-muted">
-                        Requerimientos: {r.special_requirements}
+              {filteredReservations.map((r) => {
+                const owner = getUserById(r.user_id);
+
+                return (
+                  <div
+                    key={r.id}
+                    className="d-flex flex-column flex-md-row align-items-md-center justify-content-between border rounded px-3 py-2"
+                  >
+                    <div className="mb-2 mb-md-0">
+                      <div className="d-flex align-items-center gap-2">
+                        <span className="fw-semibold">
+                          {r.reservation_number || `Reserva #${r.id}`}
+                        </span>
+                        <Badge bg={getStatusVariant(r.status)}>
+                          {r.status}
+                        </Badge>
                       </div>
-                    )}
-                  </div>
 
-                  <div className="d-flex flex-wrap gap-2 justify-content-md-end">
-                    <Form.Select
-                      size="sm"
-                      value={r.status}
-                      onChange={(e) => handleChangeStatus(r, e.target.value)}
-                    >
-                      <option value="pending">Pendiente</option>
-                      <option value="confirmed">Confirmada</option>
-                      <option value="seated">En mesa</option>
-                      <option value="completed">Completada</option>
-                      <option value="cancelled">Cancelada</option>
-                      <option value="expired">Expirada</option>
-                    </Form.Select>
+                      {owner && (
+                        <div className="small text-muted">
+                          {owner.name} · {owner.email}
+                        </div>
+                      )}
 
-                    <Button
-                      size="sm"
-                      variant="outline-secondary"
-                      onClick={() => openModal(r)}
-                    >
-                      Editar
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline-danger"
-                      onClick={() => handleDelete(r.id)}
-                    >
-                      Eliminar
-                    </Button>
+                      <div className="small">
+                        {formatDate(r.reservation_date)}{" "}
+                        {formatTime(r.reservation_time)} · Mesa{" "}
+                        {formatTableLabel(r)} · Zona{" "}
+                        {formatZoneName(r)} ·{" "}
+                        {r.guest_count ?? r.guests} personas
+                      </div>
+
+                      {r.special_requirements && (
+                        <div className="small text-muted">
+                          Requerimientos: {r.special_requirements}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="d-flex flex-wrap gap-2 justify-content-md-end">
+                      <Form.Select
+                        size="sm"
+                        value={r.status}
+                        onChange={(e) => handleChangeStatus(r, e.target.value)}
+                      >
+                        <option value="pending">Pendiente</option>
+                        <option value="confirmed">Confirmada</option>
+                        <option value="completed">Completada</option>
+                        <option value="cancelled">Cancelada</option>
+                        <option value="expired">Expirada</option>
+                      </Form.Select>
+
+                      <Button
+                        size="sm"
+                        variant="outline-secondary"
+                        onClick={() => openModal(r)}
+                      >
+                        Editar
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline-danger"
+                        onClick={() => handleDelete(r.id)}
+                      >
+                        Eliminar
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </Col>
@@ -465,7 +573,15 @@ function AdminReservation() {
                 onChange={handleFormChange}
                 placeholder="ID del cliente"
               />
-              {reservationForm.user_id && (
+              {loadingUsers && (
+                <Form.Text className="text-muted">
+                  Cargando usuarios...
+                </Form.Text>
+              )}
+              {usersError && (
+                <Form.Text className="text-danger">{usersError}</Form.Text>
+              )}
+              {reservationForm.user_id && !loadingUsers && !usersError && (
                 <UserInfoHint userId={reservationForm.user_id} users={users} />
               )}
             </Form.Group>
@@ -603,7 +719,6 @@ function AdminReservation() {
               >
                 <option value="pending">Pendiente</option>
                 <option value="confirmed">Confirmada</option>
-                <option value="seated">En mesa</option>
                 <option value="completed">Completada</option>
                 <option value="cancelled">Cancelada</option>
                 <option value="expired">Expirada</option>

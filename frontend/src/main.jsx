@@ -2,8 +2,8 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
-import { ThemeProvider } from './context/ThemeContext'
 import { AuthProvider } from './context/AuthContext';
+import { UserProvider } from './context/UserContext';
 import { MenuProvider } from './context/MenuContext';
 import { OrderProvider } from './context/OrderContext';
 import { ReservationProvider } from './context/ReservationContext';
@@ -14,6 +14,7 @@ createRoot(document.getElementById('root')).render(
   <StrictMode>
     <BrowserRouter>
       <AuthProvider>
+      <UserProvider>
         <MenuProvider>
           <OrderProvider>
             <ReservationProvider>
@@ -21,6 +22,7 @@ createRoot(document.getElementById('root')).render(
             </ReservationProvider>
           </OrderProvider>
         </MenuProvider>
+      </UserProvider>
       </AuthProvider>
     </BrowserRouter>
   </StrictMode>

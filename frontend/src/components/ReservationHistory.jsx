@@ -22,7 +22,7 @@ function ReservationHistory() {
     fetchReservation,
     removeReservation,
     loading,
-    error, // sigue disponible si quieres hacer console.log(error)
+    error,
   } = useReservation();
 
   const [loadingReservations, setLoadingReservations] = useState(true);
@@ -33,19 +33,19 @@ function ReservationHistory() {
   useEffect(() => {
     const loadReservations = async () => {
       try {
-        // Si no hay usuario, no llamamos al backend
         if (!user) {
           setLoadingReservations(false);
           return;
         }
-        await fetchReservations();
+        // Solo reservas del usuario actual
+        await fetchReservations({ user_id: user.id });
       } finally {
         setLoadingReservations(false);
       }
     };
     loadReservations();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]); // ✅ se recalcula solo si cambia el usuario
+  }, [user]);
 
   const handleViewDetails = async (reservationId) => {
     if (!user) {
@@ -168,7 +168,6 @@ function ReservationHistory() {
     );
   }
 
-  // Mensaje para usuarios no autenticados (sin botón)
   if (!user) {
     return (
       <Alert variant="light" className="text-center border-0">
@@ -180,7 +179,6 @@ function ReservationHistory() {
     );
   }
 
-  // Si el usuario está autenticado pero no tiene reservas
   if (reservations.length === 0) {
     return (
       <Alert variant="light" className="text-center border-0">
@@ -302,11 +300,15 @@ function ReservationHistory() {
 
                 <ListGroup.Item className="d-flex justify-content-between">
                   <span>Fecha</span>
-                  <span>{formatDate(selectedReservation.reservation_date)}</span>
+                  <span>
+                    {formatDate(selectedReservation.reservation_date)}
+                  </span>
                 </ListGroup.Item>
                 <ListGroup.Item className="d-flex justify-content-between">
                   <span>Hora</span>
-                  <span>{formatTime(selectedReservation.reservation_time)}</span>
+                  <span>
+                    {formatTime(selectedReservation.reservation_time)}
+                  </span>
                 </ListGroup.Item>
                 <ListGroup.Item className="d-flex justify-content-between">
                   <span>Mesa</span>

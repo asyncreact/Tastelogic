@@ -29,7 +29,9 @@ import { sendMail } from "../config/mailer.js";
 export const getMyActiveReservation = async (req, res, next) => {
   try {
     if (req.user.role !== "customer") {
-      const error = new Error("Solo los clientes pueden consultar su reserva activa.");
+      const error = new Error(
+        "Solo los clientes pueden consultar su reserva activa."
+      );
       error.status = 403;
       throw error;
     }
@@ -347,7 +349,9 @@ export const addReservation = async (req, res, next) => {
           table.capacity
         } persona${table.capacity > 1 ? "s" : ""}, pero seleccionaste ${
           guest_count
-        } persona${guest_count > 1 ? "s" : ""}. Por favor, elige una mesa más grande.`
+        } persona${
+          guest_count > 1 ? "s" : ""
+        }. Por favor, elige una mesa más grande.`
       );
       error.status = 400;
       throw error;
@@ -689,6 +693,15 @@ export const updateStatus = async (req, res, next) => {
         "No encontramos tu reserva. Por favor, verifica tus datos."
       );
       error.status = 404;
+      throw error;
+    }
+
+    // 🔒 Bloquear cambios si ya fue cancelada o expirada
+    if (existing.status === "cancelled" || existing.status === "expired") {
+      const error = new Error(
+        "No puedes modificar el estado de una reserva cancelada o expirada"
+      );
+      error.status = 400;
       throw error;
     }
 

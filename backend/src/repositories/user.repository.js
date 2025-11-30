@@ -314,3 +314,28 @@ export const incrementTokenVersion = async (userId) => {
     throw error;
   }
 };
+
+// Lista usuarios con filtro opcional por rol
+export const getUsers = async ({ role } = {}) => {
+  try {
+    let query = `
+      SELECT id, name, email, role, is_verified
+      FROM users
+    `;
+    const params = [];
+
+    if (role) {
+      query += " WHERE role = $1";
+      params.push(role);
+    }
+
+    query += " ORDER BY id ASC;";
+
+    const result = await pool.query(query, params);
+    return result.rows;
+  } catch (error) {
+    console.error("Error al listar usuarios:", error);
+    throw error;
+  }
+};
+

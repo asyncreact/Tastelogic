@@ -13,8 +13,11 @@ import {
 import { BiCategory } from "react-icons/bi";
 import { MdOutlineFastfood } from "react-icons/md";
 import { useMenu } from "../../hooks/useMenu";
+import Swal from "sweetalert2";
+import withReactContent from "sweetalert2-react-content";
 
 const BASE_URL = import.meta.env.VITE_API_URL; // ej: http://localhost:4000/
+const MySwal = withReactContent(Swal);
 
 function AdminMenu() {
   const {
@@ -68,6 +71,54 @@ function AdminMenu() {
     if (relativeOrAbsolute.startsWith("http")) return relativeOrAbsolute;
     const base = BASE_URL.replace(/\/$/, "");
     return `${base}${relativeOrAbsolute}`;
+  };
+
+  // ========= SweetAlert helpers =========
+
+  const showSuccessToast = (title) => {
+    const Toast = MySwal.mixin({
+      toast: true,
+      position: "top-end",
+      showConfirmButton: false,
+      timer: 3000,
+      timerProgressBar: false,
+    });
+
+    Toast.fire({
+      icon: "success",
+      title: title || "Operación realizada correctamente",
+    });
+  };
+
+  const showBackendError = (
+    err,
+    fallback = "Por favor, verifica los datos ingresados"
+  ) => {
+    const baseMessage = err?.message || fallback;
+
+    let details = [];
+    if (Array.isArray(err?.details)) {
+      details = err.details.map((d) =>
+        typeof d === "string"
+          ? d
+          : d.mensaje || d.message || JSON.stringify(d)
+      );
+    }
+
+    let errorDetailsHtml = "";
+    if (details.length) {
+      const listItems = details.map((d) => `<li>${d}</li>`).join("");
+      errorDetailsHtml =
+        `<ul class="mt-2 mb-0 small" style="list-style:none;padding-left:0;">${listItems}</ul>`;
+    }
+
+    MySwal.fire({
+      title: "ERROR",
+      text: !errorDetailsHtml ? baseMessage : undefined,
+      html: errorDetailsHtml ? `<div>${baseMessage}${errorDetailsHtml}</div>` : undefined,
+      icon: "error",
+      confirmButtonText: "CERRAR",
+    });
   };
 
   // ========= Filtros =========
@@ -130,23 +181,49 @@ function AdminMenu() {
   const handleSubmitCategory = async (e) => {
     e.preventDefault();
     try {
+      let result;
       if (editingCategory) {
-        await editCategory(editingCategory.id, categoryForm);
+        result = await editCategory(editingCategory.id, categoryForm);
       } else {
-        await addCategory(categoryForm);
+        result = await addCategory(categoryForm);
       }
+
+      showSuccessToast(
+        result?.message ||
+          (editingCategory
+            ? "Categoría actualizada correctamente"
+            : "Categoría creada correctamente")
+      );
+
       handleCloseCategoryModal();
-    } catch {
-      // manejado en el contexto
+    } catch (err) {
+      showBackendError(
+        err,
+        editingCategory
+          ? "Error al actualizar la categoría"
+          : "Error al crear la categoría"
+      );
     }
   };
 
   const handleDeleteCategory = async (id) => {
-    if (!window.confirm("¿Seguro que deseas eliminar esta categoría?")) return;
+    const confirmResult = await MySwal.fire({
+      title: "¿Eliminar categoría?",
+      text: "Esta acción no se puede deshacer.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Sí, eliminar",
+      cancelButtonText: "Cancelar",
+      reverseButtons: true,
+    });
+
+    if (!confirmResult.isConfirmed) return;
+
     try {
-      await removeCategory(id);
-    } catch {
-      // manejado en el contexto
+      const result = await removeCategory(id);
+      showSuccessToast(result?.message || "Categoría eliminada correctamente");
+    } catch (err) {
+      showBackendError(err, "Error al eliminar la categoría");
     }
   };
 
@@ -209,23 +286,47 @@ function AdminMenu() {
     }
 
     try {
+      let result;
       if (editingItem) {
-        await editItem(editingItem.id, formData);
+        result = await editItem(editingItem.id, formData);
       } else {
-        await addItem(formData);
+        result = await addItem(formData);
       }
+
+      showSuccessToast(
+        result?.message ||
+          (editingItem
+            ? "Item actualizado correctamente"
+            : "Item creado correctamente")
+      );
+
       handleCloseItemModal();
-    } catch {
-      // manejado en el contexto
+    } catch (err) {
+      showBackendError(
+        err,
+        editingItem ? "Error al actualizar el item" : "Error al crear el item"
+      );
     }
   };
 
   const handleDeleteItem = async (id) => {
-    if (!window.confirm("¿Seguro que deseas eliminar este item?")) return;
+    const confirmResult = await MySwal.fire({
+      title: "¿Eliminar item?",
+      text: "Esta acción no se puede deshacer.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Sí, eliminar",
+      cancelButtonText: "Cancelar",
+      reverseButtons: true,
+    });
+
+    if (!confirmResult.isConfirmed) return;
+
     try {
-      await removeItem(id);
-    } catch {
-      // manejado en el contexto
+      const result = await removeItem(id);
+      showSuccessToast(result?.message || "Item eliminado correctamente");
+    } catch (err) {
+      showBackendError(err, "Error al eliminar el item");
     }
   };
 

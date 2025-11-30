@@ -8,6 +8,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { connectDB, pool } from "./src/config/db.js";
 import authRoutes from "./src/routes/auth.routes.js";
+import userRoutes from "./src/routes/user.routes.js";
 import menuRoutes from "./src/routes/menu.routes.js";
 import zoneRoutes from "./src/routes/zone.routes.js";
 import tableRoutes from "./src/routes/table.routes.js";
@@ -67,6 +68,7 @@ app.get("/api/ping", async (req, res, next) => {
 /* RUTAS API */
 
 app.use("/api/auth", authRoutes);
+app.use("/api/users", userRoutes);
 app.use("/api/menu", menuRoutes);
 app.use("/api/zones", zoneRoutes);
 app.use("/api/tables", tableRoutes);

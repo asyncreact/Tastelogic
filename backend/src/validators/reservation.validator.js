@@ -1,5 +1,4 @@
 // src/validators/reservation.validator.js
-
 import { z } from "zod";
 
 // Esquema para crear una reserva
@@ -65,8 +64,8 @@ export const reservationCreateSchema = z.object({
     )
     .refine(
       (val) => {
-        // ✅ FIX: Normalizar ambas fechas a medianoche para permitir HOY
-        const reservationDate = new Date(val + 'T00:00:00');
+        // Normalizar ambas fechas a medianoche para permitir HOY
+        const reservationDate = new Date(val + "T00:00:00");
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         return reservationDate >= today;
@@ -100,9 +99,10 @@ export const reservationCreateSchema = z.object({
       .max(50, "La cantidad máxima de huéspedes es 50")
   ),
   status: z
-    .enum(["pending", "confirmed", "completed", "cancelled"], {
+    .enum(["pending", "confirmed", "completed", "cancelled", "expired"], {
       errorMap: () => ({
-        message: "El estado debe ser: pending, confirmed, completed o cancelled",
+        message:
+          "El estado debe ser: pending, confirmed, completed, cancelled o expired",
       }),
     })
     .optional(),
@@ -121,11 +121,15 @@ export const reservationUpdateSchema = reservationCreateSchema.partial();
 
 // Esquema para actualizar solo el estado de una reserva
 export const reservationStatusSchema = z.object({
-  status: z.enum(["pending", "confirmed", "completed", "cancelled"], {
-    errorMap: () => ({
-      message: "El estado debe ser: pending, confirmed, completed o cancelled",
-    }),
-  }),
+  status: z.enum(
+    ["pending", "confirmed", "completed", "cancelled", "expired"],
+    {
+      errorMap: () => ({
+        message:
+          "El estado debe ser: pending, confirmed, completed, cancelled o expired",
+      }),
+    }
+  ),
 });
 
 // Esquema para verificar disponibilidad
@@ -221,9 +225,10 @@ export const reservationFiltersSchema = z.object({
         .optional()
     ),
   status: z
-    .enum(["pending", "confirmed", "completed", "cancelled"], {
+    .enum(["pending", "confirmed", "completed", "cancelled", "expired"], {
       errorMap: () => ({
-        message: "El estado debe ser: pending, confirmed, completed o cancelled",
+        message:
+          "El estado debe ser: pending, confirmed, completed, cancelled o expired",
       }),
     })
     .optional(),
@@ -252,7 +257,8 @@ export const validateUpdate = (data) => reservationUpdateSchema.parse(data);
 export const validateStatusUpdate = (data) => reservationStatusSchema.parse(data);
 
 // Función para validar verificación de disponibilidad
-export const validateCheckAvailability = (data) => checkAvailabilitySchema.parse(data);
+export const validateCheckAvailability = (data) =>
+  checkAvailabilitySchema.parse(data);
 
 // Función para validar filtros de reservas
 export const validateFilters = (data) => reservationFiltersSchema.parse(data);
