@@ -365,9 +365,12 @@ export const editOrder = async (req, res, next) => {
       throw error;
     }
 
-    if (existing.status === "cancelled") {
+    // Bloquear modificación si ya fue cancelado o completado
+    if (existing.status === "cancelled" || existing.status === "completed") {
       const error = new Error(
-        "No puedes modificar un pedido que ya fue cancelado"
+        existing.status === "cancelled"
+          ? "No puedes modificar un pedido que ya fue cancelado"
+          : "No puedes modificar un pedido que ya fue completado"
       );
       error.status = 400;
       throw error;
@@ -528,6 +531,15 @@ export const updateStatus = async (req, res, next) => {
         "No encontramos tu pedido. Por favor, verifica tus datos."
       );
       error.status = 404;
+      throw error;
+    }
+
+    // Bloquear cambios si ya está completado
+    if (existing.status === "completed") {
+      const error = new Error(
+        "No puedes cambiar el estado de un pedido que ya fue completado"
+      );
+      error.status = 400;
       throw error;
     }
 

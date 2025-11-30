@@ -1,6 +1,8 @@
 // src/context/OrderContext.jsx
+
 import { createContext, useState, useEffect } from "react";
 import { useAuth } from "../hooks/useAuth";
+
 import {
   getOrders,
   getOrder,
@@ -20,14 +22,16 @@ export const OrderContext = createContext();
 
 export function OrderProvider({ children }) {
   const { user } = useAuth(); // Usuario actual
+  const userId = user?.id;
+
   const [orders, setOrders] = useState([]);
   const [currentOrder, setCurrentOrder] = useState(null);
 
   // Carrito por usuario
   const [cart, setCart] = useState(() => {
     try {
-      if (!user) return [];
-      const savedCart = localStorage.getItem(`cart_${user.id}`);
+      if (!userId) return [];
+      const savedCart = localStorage.getItem(`cart_${userId}`);
       return savedCart ? JSON.parse(savedCart) : [];
     } catch (error) {
       console.error("Error al cargar carrito:", error);
@@ -42,10 +46,12 @@ export function OrderProvider({ children }) {
   // Helper: parsear error del backend (similar a AuthContext)
   const parseApiError = (err, fallback) => {
     const errorData = err?.response?.data || {};
+
     if (errorData.details && Array.isArray(errorData.details)) {
       const message = errorData.message || fallback;
       return { message, details: errorData.details };
     }
+
     const message = errorData.message || err.message || fallback;
     return { message };
   };
@@ -53,28 +59,28 @@ export function OrderProvider({ children }) {
   // Guardar carrito en localStorage
   useEffect(() => {
     try {
-      if (user) {
-        localStorage.setItem(`cart_${user.id}`, JSON.stringify(cart));
+      if (userId) {
+        localStorage.setItem(`cart_${userId}`, JSON.stringify(cart));
       }
     } catch (error) {
       console.error("Error al guardar carrito:", error);
     }
-  }, [cart, user]);
+  }, [cart, userId]);
 
   // Cargar carrito cuando cambia el usuario
   useEffect(() => {
-    if (!user) {
+    if (!userId) {
       setCart([]);
     } else {
       try {
-        const savedCart = localStorage.getItem(`cart_${user.id}`);
+        const savedCart = localStorage.getItem(`cart_${userId}`);
         setCart(savedCart ? JSON.parse(savedCart) : []);
       } catch (error) {
         console.error("Error al cargar carrito:", error);
         setCart([]);
       }
     }
-  }, [user?.id]);
+  }, [userId]);
 
   // ================= ÓRDENES =================
 
@@ -135,10 +141,9 @@ export function OrderProvider({ children }) {
       const response = await createOrder(orderData);
       const newOrder = response.data?.order || response.data?.data;
       setOrders((prev) => [newOrder, ...prev]);
-
       setCart([]);
-      if (user) {
-        localStorage.removeItem(`cart_${user.id}`);
+      if (userId) {
+        localStorage.removeItem(`cart_${userId}`);
       }
 
       return {
@@ -162,12 +167,15 @@ export function OrderProvider({ children }) {
       setError(null);
       const response = await updateOrder(orderId, orderData);
       const updatedOrder = response.data?.order || response.data?.data;
+
       setOrders((prev) =>
         prev.map((o) => (o.id === orderId ? updatedOrder : o))
       );
+
       if (currentOrder?.id === orderId) {
         setCurrentOrder(updatedOrder);
       }
+
       return {
         success: true,
         message: response.data?.message || "Orden actualizada correctamente",
@@ -189,12 +197,15 @@ export function OrderProvider({ children }) {
       setError(null);
       const response = await updateOrderStatus(orderId, status);
       const updatedOrder = response.data?.order || response.data?.data;
+
       setOrders((prev) =>
         prev.map((o) => (o.id === orderId ? updatedOrder : o))
       );
+
       if (currentOrder?.id === orderId) {
         setCurrentOrder(updatedOrder);
       }
+
       return {
         success: true,
         message:
@@ -217,12 +228,15 @@ export function OrderProvider({ children }) {
       setError(null);
       const response = await updateOrderPayment(orderId, paymentStatus);
       const updatedOrder = response.data?.order || response.data?.data;
+
       setOrders((prev) =>
         prev.map((o) => (o.id === orderId ? updatedOrder : o))
       );
+
       if (currentOrder?.id === orderId) {
         setCurrentOrder(updatedOrder);
       }
+
       return {
         success: true,
         message:
@@ -245,12 +259,15 @@ export function OrderProvider({ children }) {
       setError(null);
       const response = await cancelOrder(orderId);
       const updatedOrder = response.data?.order || response.data?.data;
+
       setOrders((prev) =>
         prev.map((o) => (o.id === orderId ? updatedOrder : o))
       );
+
       if (currentOrder?.id === orderId) {
         setCurrentOrder(updatedOrder);
       }
+
       return {
         success: true,
         message:
@@ -272,10 +289,13 @@ export function OrderProvider({ children }) {
       setLoading(true);
       setError(null);
       const response = await deleteOrder(orderId);
+
       setOrders((prev) => prev.filter((o) => o.id !== orderId));
+
       if (currentOrder?.id === orderId) {
         setCurrentOrder(null);
       }
+
       return {
         success: true,
         message:
@@ -314,6 +334,7 @@ export function OrderProvider({ children }) {
       removeFromCart(itemId);
       return;
     }
+
     setCart((prev) =>
       prev.map((i) => (i.id === itemId ? { ...i, quantity } : i))
     );
@@ -321,8 +342,8 @@ export function OrderProvider({ children }) {
 
   const clearCart = () => {
     setCart([]);
-    if (user) {
-      localStorage.removeItem(`cart_${user.id}`);
+    if (userId) {
+      localStorage.removeItem(`cart_${userId}`);
     }
   };
 
@@ -431,5 +452,9 @@ export function OrderProvider({ children }) {
     clearError,
   };
 
-  return <OrderContext.Provider value={value}>{children}</OrderContext.Provider>;
+  return (
+    <OrderContext.Provider value={value}>
+      {children}
+    </OrderContext.Provider>
+  );
 }
