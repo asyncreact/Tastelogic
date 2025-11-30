@@ -1,37 +1,20 @@
-// src/pages/admin/AdminMenu.jsx
-import { useState, useEffect } from "react";
+// pages/AdminMenu.jsx
+import { useEffect, useState } from "react";
 import {
   Container,
   Row,
   Col,
-  Card,
-  Button,
-  Table,
-  Modal,
-  Form,
+  Spinner,
   Alert,
-  Badge,
-  Tabs,
-  Tab,
-  Image,
+  Button,
+  Form,
+  Modal,
 } from "react-bootstrap";
-import { Link } from "react-router-dom";
-import {
-  MdRestaurantMenu,
-  MdAdd,
-  MdEdit,
-  MdDelete,
-  MdArrowBack,
-  MdCategory,
-  MdImage,
-  MdCheckCircle,
-} from "react-icons/md";
+import { BiCategory } from "react-icons/bi";
+import { MdOutlineFastfood } from "react-icons/md";
 import { useMenu } from "../../hooks/useMenu";
 
-import Swal from "sweetalert2";
-import withReactContent from "sweetalert2-react-content";
-
-const MySwal = withReactContent(Swal);
+const BASE_URL = import.meta.env.VITE_API_URL; // ej: http://localhost:4000/
 
 function AdminMenu() {
   const {
@@ -50,609 +33,605 @@ function AdminMenu() {
     clearError,
   } = useMenu();
 
-  const [activeTab, setActiveTab] = useState("items");
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [editingCategory, setEditingCategory] = useState(null);
+  const [categoryForm, setCategoryForm] = useState({
+    name: "",
+    description: "",
+    is_active: true,
+  });
 
-  // Modal states and forms
   const [showItemModal, setShowItemModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [itemForm, setItemForm] = useState({
     name: "",
-    description: "",
-    ingredients: "",
     price: "",
     category_id: "",
-    estimated_prep_time: "",
+    description: "",
+    ingredients: "",
+    estimated_prep_time: 10,
     is_available: true,
     image: null,
+    imagePreview: null,
   });
-  const [imagePreview, setImagePreview] = useState(null);
 
-  const [showCategoryModal, setShowCategoryModal] = useState(false);
-  const [editingCategory, setEditingCategory] = useState(null);
-  const [categoryForm, setCategoryForm] = useState({ name: "", description: "" });
+  const [searchAdmin, setSearchAdmin] = useState("");
 
   useEffect(() => {
     fetchCategories();
     fetchItems();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleCategorySubmit = async (e) => {
-    e.preventDefault();
-    clearError();
-    try {
-      if (editingCategory) {
-        await editCategory(editingCategory.id, categoryForm);
-        setShowCategoryModal(false);
-        await MySwal.fire({ icon: "success", title: "Categoría actualizada" });
-      } else {
-        await addCategory(categoryForm);
-        setShowCategoryModal(false);
-        await MySwal.fire({ icon: "success", title: "Categoría creada" });
-      }
-      setCategoryForm({ name: "", description: "" });
-      setEditingCategory(null);
-      await fetchCategories();
-    } catch (err) {
-      await MySwal.fire({
-        icon: "error",
-        title: "Error",
-        text: err.message || "Error al guardar categoría",
-      });
-    }
+  const buildImageUrl = (relativeOrAbsolute) => {
+    if (!relativeOrAbsolute) return null;
+    if (relativeOrAbsolute.startsWith("http")) return relativeOrAbsolute;
+    const base = BASE_URL.replace(/\/$/, "");
+    return `${base}${relativeOrAbsolute}`;
   };
 
-  const handleEditCategory = (category) => {
+  // ========= Filtros =========
+
+  const searchLower = searchAdmin.toLowerCase().trim();
+
+  const filteredCategories = searchLower
+    ? categories.filter((cat) => {
+        const name = cat.name?.toLowerCase() || "";
+        const desc = cat.description?.toLowerCase() || "";
+        return name.includes(searchLower) || desc.includes(searchLower);
+      })
+    : categories;
+
+  const filteredItems = (() => {
+    if (!searchLower) return items;
+
+    const matchingCategoryIds = new Set(
+      filteredCategories.map((cat) => String(cat.id))
+    );
+
+    return items.filter((item) => {
+      const name = item.name?.toLowerCase() || "";
+      const desc = item.description?.toLowerCase() || "";
+      const ing = item.ingredients?.toLowerCase() || "";
+      const inCategory = matchingCategoryIds.has(String(item.category_id));
+
+      const textMatch =
+        name.includes(searchLower) ||
+        desc.includes(searchLower) ||
+        ing.includes(searchLower);
+
+      return textMatch || inCategory;
+    });
+  })();
+
+  // ========= Categorías =========
+
+  const handleOpenCategoryModal = (category = null) => {
     setEditingCategory(category);
     setCategoryForm({
-      name: category.name,
-      description: category.description || "",
+      name: category?.name || "",
+      description: category?.description || "",
+      is_active: category?.is_active ?? true,
     });
     setShowCategoryModal(true);
   };
 
-  const handleDeleteCategory = async (categoryId) => {
-    clearError();
-    const result = await MySwal.fire({
-      title: "¿Estás seguro?",
-      text: "Esta acción eliminará la categoría permanentemente.",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#d33",
-      cancelButtonColor: "#3085d6",
-      confirmButtonText: "Sí, eliminar",
-      cancelButtonText: "Cancelar",
+  const handleCloseCategoryModal = () => {
+    setShowCategoryModal(false);
+    setEditingCategory(null);
+    setCategoryForm({
+      name: "",
+      description: "",
+      is_active: true,
     });
-
-    if (result.isConfirmed) {
-      try {
-        await removeCategory(categoryId);
-        await fetchCategories();
-        await MySwal.fire({
-          icon: "success",
-          title: "Categoría eliminada",
-          timer: 1500,
-          showConfirmButton: false,
-        });
-      } catch (err) {
-        await MySwal.fire({
-          icon: "error",
-          title: "Error",
-          text: err.message || "No se pudo eliminar la categoría",
-        });
-      }
-    }
-  };
-
-  const handleItemSubmit = async (e) => {
-    e.preventDefault();
     clearError();
+  };
+
+  const handleSubmitCategory = async (e) => {
+    e.preventDefault();
     try {
-      if (editingItem) {
-        await editItem(editingItem.id, itemForm);
-        setShowItemModal(false);
-        await MySwal.fire({ icon: "success", title: "Plato actualizado" });
+      if (editingCategory) {
+        await editCategory(editingCategory.id, categoryForm);
       } else {
-        await addItem(itemForm);
-        setShowItemModal(false);
-        await MySwal.fire({ icon: "success", title: "Plato creado" });
+        await addCategory(categoryForm);
       }
-      setItemForm({
-        name: "",
-        description: "",
-        ingredients: "",
-        price: "",
-        category_id: "",
-        estimated_prep_time: "",
-        is_available: true,
-        image: null,
-      });
-      setImagePreview(null);
-      setEditingItem(null);
-      await fetchItems();
-    } catch (err) {
-      await MySwal.fire({
-        icon: "error",
-        title: "Error",
-        text: err.message || "Error al guardar plato",
-      });
+      handleCloseCategoryModal();
+    } catch {
+      // manejado en el contexto
     }
   };
 
-  const handleEditItem = (item) => {
+  const handleDeleteCategory = async (id) => {
+    if (!window.confirm("¿Seguro que deseas eliminar esta categoría?")) return;
+    try {
+      await removeCategory(id);
+    } catch {
+      // manejado en el contexto
+    }
+  };
+
+  // ========= Items =========
+
+  const handleOpenItemModal = (item = null) => {
     setEditingItem(item);
     setItemForm({
-      name: item.name,
-      description: item.description || "",
-      ingredients: item.ingredients || "",
-      price: item.price,
-      category_id: item.category_id,
-      estimated_prep_time: item.estimated_prep_time || "",
-      is_available: item.is_available,
+      name: item?.name || "",
+      price: item?.price || "",
+      category_id: item?.category_id || "",
+      description: item?.description || "",
+      ingredients: item?.ingredients || "",
+      estimated_prep_time: item?.estimated_prep_time ?? 10,
+      is_available: item?.is_available ?? true,
       image: null,
+      imagePreview: buildImageUrl(item?.image_url) || null,
     });
-    if (item.image_url) {
-      setImagePreview(getImageUrl(item.image_url));
-    } else {
-      setImagePreview(null);
-    }
     setShowItemModal(true);
   };
 
-  const handleDeleteItem = async (itemId) => {
-    clearError();
-    const result = await MySwal.fire({
-      title: "¿Estás seguro?",
-      text: "Esta acción eliminará el plato permanentemente.",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#d33",
-      cancelButtonColor: "#3085d6",
-      confirmButtonText: "Sí, eliminar",
-      cancelButtonText: "Cancelar",
+  const handleCloseItemModal = () => {
+    if (itemForm.imagePreview && itemForm.image instanceof File) {
+      URL.revokeObjectURL(itemForm.imagePreview);
+    }
+
+    setShowItemModal(false);
+    setEditingItem(null);
+    setItemForm({
+      name: "",
+      price: "",
+      category_id: "",
+      description: "",
+      ingredients: "",
+      estimated_prep_time: 10,
+      is_available: true,
+      image: null,
+      imagePreview: null,
     });
+    clearError();
+  };
 
-    if (result.isConfirmed) {
-      try {
-        await removeItem(itemId);
-        await fetchItems();
-        await MySwal.fire({
-          icon: "success",
-          title: "Plato eliminado",
-          timer: 1500,
-          showConfirmButton: false,
-        });
-      } catch (err) {
-        await MySwal.fire({
-          icon: "error",
-          title: "Error",
-          text: err.message || "No se pudo eliminar el plato",
-        });
+  const handleSubmitItem = async (e) => {
+    e.preventDefault();
+
+    const formData = new FormData();
+    formData.append("name", itemForm.name);
+    formData.append("price", String(itemForm.price));
+    formData.append("category_id", String(itemForm.category_id));
+    formData.append("description", itemForm.description || "");
+    formData.append("ingredients", itemForm.ingredients || "");
+    formData.append(
+      "estimated_prep_time",
+      String(itemForm.estimated_prep_time || 10)
+    );
+    formData.append("is_available", itemForm.is_available ? "true" : "false");
+
+    if (itemForm.image) {
+      formData.append("image", itemForm.image);
+    }
+
+    try {
+      if (editingItem) {
+        await editItem(editingItem.id, formData);
+      } else {
+        await addItem(formData);
       }
+      handleCloseItemModal();
+    } catch {
+      // manejado en el contexto
     }
   };
 
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setItemForm({ ...itemForm, image: file });
-      const reader = new FileReader();
-      reader.onloadend = () => setImagePreview(reader.result);
-      reader.readAsDataURL(file);
+  const handleDeleteItem = async (id) => {
+    if (!window.confirm("¿Seguro que deseas eliminar este item?")) return;
+    try {
+      await removeItem(id);
+    } catch {
+      // manejado en el contexto
     }
   };
 
-  const API_URL = (import.meta.env.VITE_API_URL || "http://localhost:4000").replace(/\/$/, "");
+  // ========= UI =========
 
-  const getImageUrl = (imageUrl) => {
-    if (!imageUrl) return null;
-    if (imageUrl.startsWith("http")) return imageUrl;
-    const cleanPath = imageUrl.startsWith("/") ? imageUrl : `/${imageUrl}`;
-    return `${API_URL}${cleanPath}`;
-  };
+  if (loading && categories.length === 0 && items.length === 0) {
+    return (
+      <Container className="py-5 text-center">
+        <Spinner animation="border" role="status" />
+        <p className="mt-3 mb-0">Cargando menú de administración...</p>
+      </Container>
+    );
+  }
 
   return (
-    <Container className="py-5">
-      <Card className="shadow-lg border-0">
-        <Card.Header
-          className="text-white border-0"
-          style={{
-            background: "linear-gradient(135deg, #1f2937 0%, #111827 100%)",
-            padding: "1.5rem",
-          }}
-        >
-          <div className="d-flex justify-content-between align-items-center">
-            <div className="d-flex align-items-center">
-              <MdRestaurantMenu size={32} className="me-2" />
-              <h4 className="mb-0">Gestión de Menú</h4>
-            </div>
-            <Button
-              as={Link}
-              to="/admin/dashboard"
-              variant="light"
-              size="sm"
-              className="d-flex align-items-center"
+    <Container className="py-4">
+      {/* Encabezado */}
+      <Row className="mb-3">
+        <Col>
+          <h1 className="h3 d-flex align-items-center gap-2 mb-1">
+            <MdOutlineFastfood />
+            Admin Menú
+          </h1>
+          <p className="text-muted mb-0">
+            Gestiona categorías e items del menú de forma sencilla.
+          </p>
+        </Col>
+      </Row>
+
+      {/* Buscador admin */}
+      <Row className="mb-4">
+        <Col md={6}>
+          <Form.Control
+            type="search"
+            placeholder="Buscar en categorías e items..."
+            value={searchAdmin}
+            onChange={(e) => setSearchAdmin(e.target.value)}
+          />
+        </Col>
+      </Row>
+
+      {error && (
+        <Row className="mb-3">
+          <Col>
+            <Alert
+              variant="danger"
+              dismissible
+              onClose={() => clearError()}
+              className="mb-0"
             >
-              <MdArrowBack size={18} className="me-1" />
-              Volver
-            </Button>
-          </div>
-        </Card.Header>
-        <Card.Body>
-          {error && (
-            <Alert variant="danger" dismissible onClose={clearError}>
               {error}
             </Alert>
+          </Col>
+        </Row>
+      )}
+
+      {/* Categorías */}
+      <Row className="mb-4">
+        <Col className="d-flex justify-content-between align-items-center">
+          <h2 className="h5 d-flex align-items-center gap-2 mb-0">
+            <BiCategory />
+            Categorías
+          </h2>
+          <Button size="sm" onClick={() => handleOpenCategoryModal()}>
+            Nueva categoría
+          </Button>
+        </Col>
+      </Row>
+      <Row className="mb-4">
+        <Col>
+          {filteredCategories.length === 0 ? (
+            <p className="text-muted mb-0">
+              No hay categorías (o ninguna coincide con la búsqueda).
+            </p>
+          ) : (
+            <div className="d-flex flex-column gap-2">
+              {filteredCategories.map((cat) => (
+                <div
+                  key={cat.id}
+                  className="d-flex align-items-center justify-content-between border rounded px-3 py-2"
+                >
+                  <div>
+                    <div className="fw-semibold">{cat.name}</div>
+
+                    {cat.description && (
+                      <div className="small text-muted">
+                        {cat.description}
+                      </div>
+                    )}
+
+                    <div className="small">
+                      {cat.is_active ? "Activa" : "Inactiva"}
+                    </div>
+                  </div>
+                  <div className="d-flex align-items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline-secondary"
+                      onClick={() => handleOpenCategoryModal(cat)}
+                    >
+                      Editar
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline-danger"
+                      onClick={() => handleDeleteCategory(cat.id)}
+                    >
+                      Eliminar
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
           )}
+        </Col>
+      </Row>
 
-          <Tabs activeKey={activeTab} onSelect={(k) => setActiveTab(k)} className="mb-4">
-            <Tab
-              eventKey="items"
-              title={
-                <span className="d-flex align-items-center">
-                  <MdRestaurantMenu size={18} className="me-2" />
-                  Platos
-                </span>
-              }
-            >
-              <div className="d-flex justify-content-between align-items-center mb-3">
-                <h5>Lista de Platos</h5>
-                <Button
-                  style={{
-                    backgroundColor: "#1f2937",
-                    borderColor: "#1f2937",
-                  }}
-                  onClick={() => {
-                    setEditingItem(null);
-                    setItemForm({
-                      name: "",
-                      description: "",
-                      ingredients: "",
-                      price: "",
-                      category_id: "",
-                      estimated_prep_time: "",
-                      is_available: true,
-                      image: null,
-                    });
-                    setImagePreview(null);
-                    setShowItemModal(true);
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#111827")}
-                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#1f2937")}
-                  className="d-flex align-items-center"
-                >
-                  <MdAdd size={20} className="me-1" />
-                  Agregar Plato
-                </Button>
-              </div>
+      {/* Items */}
+      <Row className="mb-3">
+        <Col className="d-flex justify-content-between align-items-center">
+          <h2 className="h5 d-flex align-items-center gap-2 mb-0">
+            <MdOutlineFastfood />
+            Items del menú
+          </h2>
+          <Button size="sm" onClick={() => handleOpenItemModal()}>
+            Nuevo item
+          </Button>
+        </Col>
+      </Row>
+      <Row>
+        <Col>
+          {filteredItems.length === 0 ? (
+            <p className="text-muted mb-0">
+              No hay items (o ninguno coincide con la búsqueda).
+            </p>
+          ) : (
+            <div className="d-flex flex-column gap-3">
+              {filteredItems.map((item) => {
+                const cat = filteredCategories.find(
+                  (c) => String(c.id) === String(item.category_id)
+                );
+                const imageSrc = buildImageUrl(item.image_url);
 
-              {loading ? (
-                <div className="text-center py-5">
-                  <div className="spinner-border" style={{ color: "#1f2937" }} />
-                </div>
-              ) : items.length === 0 ? (
-                <Alert variant="info">No hay platos registrados. Crea el primero.</Alert>
-              ) : (
-                <Table striped bordered hover responsive>
-                  <thead style={{ backgroundColor: "#f3f4f6" }}>
-                    <tr>
-                      <th>ID</th>
-                      <th>Imagen</th>
-                      <th>Nombre</th>
-                      <th>Categoría</th>
-                      <th>Ingredientes</th>
-                      <th>Tiempo Prep.</th>
-                      <th>Precio</th>
-                      <th>Disponible</th>
-                      <th>Acciones</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {items.map((item) => (
-                      <tr key={item.id}>
-                        <td>{item.id}</td>
-                        <td>
-                          {item.image_url ? (
-                            <Image
-                              src={getImageUrl(item.image_url)}
-                              alt={item.name}
-                              rounded
-                              style={{ width: "60px", height: "60px", objectFit: "cover" }}
-                              onError={(e) => {
-                                e.target.src = "https://via.placeholder.com/60?text=Sin+Imagen";
-                              }}
-                            />
-                          ) : (
-                            <div
-                              className="d-flex align-items-center justify-content-center bg-secondary text-white rounded"
-                              style={{ width: "60px", height: "60px" }}
-                            >
-                              <MdImage size={24} />
-                            </div>
-                          )}
-                        </td>
-                        <td>{item.name}</td>
-                        <td>{categories.find((c) => c.id === item.category_id)?.name || "N/A"}</td>
-                        <td>{item.ingredients || "-"}</td>
-                        <td>{item.estimated_prep_time ? `${item.estimated_prep_time} min` : "-"}</td>
-                        <td>${parseFloat(item.price).toFixed(2)}</td>
-                        <td>
-                          <Badge bg={item.is_available ? "success" : "secondary"}>
-                            {item.is_available ? "Sí" : "No"}
-                          </Badge>
-                        </td>
-                        <td>
-                          <Button
-                            variant="warning"
-                            size="sm"
-                            className="me-2"
-                            onClick={() => handleEditItem(item)}
-                          >
-                            <MdEdit size={16} />
-                          </Button>
-                          <Button
-                            variant="danger"
-                            size="sm"
-                            onClick={() => handleDeleteItem(item.id)}
-                          >
-                            <MdDelete size={16} />
-                          </Button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </Table>
-              )}
-            </Tab>
-
-            <Tab
-              eventKey="categories"
-              title={
-                <span className="d-flex align-items-center">
-                  <MdCategory size={18} className="me-2" />
-                  Categorías
-                </span>
-              }
-            >
-              <div className="d-flex justify-content-between align-items-center mb-3">
-                <h5>Lista de Categorías</h5>
-                <Button
-                  style={{
-                    backgroundColor: "#1f2937",
-                    borderColor: "#1f2937",
-                  }}
-                  onClick={() => {
-                    setEditingCategory(null);
-                    setCategoryForm({ name: "", description: "" });
-                    setShowCategoryModal(true);
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#111827")}
-                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#1f2937")}
-                  className="d-flex align-items-center"
-                >
-                  <MdAdd size={20} className="me-1" />
-                  Agregar Categoría
-                </Button>
-              </div>
-
-              {loading ? (
-                <div className="text-center py-5">
-                  <div className="spinner-border" style={{ color: "#1f2937" }} />
-                </div>
-              ) : categories.length === 0 ? (
-                <Alert variant="info">No hay categorías registradas. Crea la primera.</Alert>
-              ) : (
-                <Table striped bordered hover responsive>
-                  <thead style={{ backgroundColor: "#f3f4f6" }}>
-                    <tr>
-                      <th>ID</th>
-                      <th>Nombre</th>
-                      <th>Descripción</th>
-                      <th>Acciones</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {categories.map((category) => (
-                      <tr key={category.id}>
-                        <td>{category.id}</td>
-                        <td>{category.name}</td>
-                        <td>{category.description || "-"}</td>
-                        <td>
-                          <Button
-                            variant="warning"
-                            size="sm"
-                            className="me-2"
-                            onClick={() => handleEditCategory(category)}
-                          >
-                            <MdEdit size={16} />
-                          </Button>
-                          <Button
-                            variant="danger"
-                            size="sm"
-                            onClick={() => handleDeleteCategory(category.id)}
-                          >
-                            <MdDelete size={16} />
-                          </Button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </Table>
-              )}
-            </Tab>
-          </Tabs>
-        </Card.Body>
-      </Card>
-
-      {/* MODAL DE PLATO */}
-      <Modal show={showItemModal} onHide={() => setShowItemModal(false)} size="lg" centered>
-        <Modal.Header closeButton>
-          <Modal.Title className="d-flex align-items-center">
-            <MdRestaurantMenu size={24} className="me-2" />
-            {editingItem ? "Editar Plato" : "Agregar Plato"}
-          </Modal.Title>
-        </Modal.Header>
-        <Form onSubmit={handleItemSubmit}>
-          <Modal.Body>
-            <Form.Group className="mb-3">
-              <Form.Label>Nombre del plato *</Form.Label>
-              <Form.Control
-                type="text"
-                value={itemForm.name}
-                onChange={(e) => setItemForm({ ...itemForm, name: e.target.value })}
-                required
-              />
-            </Form.Group>
-
-            <Form.Group className="mb-3">
-              <Form.Label>Descripción</Form.Label>
-              <Form.Control
-                as="textarea"
-                rows={3}
-                value={itemForm.description}
-                onChange={(e) => setItemForm({ ...itemForm, description: e.target.value })}
-              />
-            </Form.Group>
-
-            <Form.Group className="mb-3">
-              <Form.Label>Ingredientes</Form.Label>
-              <Form.Control
-                as="textarea"
-                rows={2}
-                value={itemForm.ingredients}
-                onChange={(e) => setItemForm({ ...itemForm, ingredients: e.target.value })}
-              />
-            </Form.Group>
-
-            <Row>
-              <Col md={6}>
-                <Form.Group className="mb-3">
-                  <Form.Label>Precio *</Form.Label>
-                  <Form.Control
-                    type="number"
-                    step="0.01"
-                    value={itemForm.price}
-                    onChange={(e) => setItemForm({ ...itemForm, price: e.target.value })}
-                    required
-                  />
-                </Form.Group>
-              </Col>
-              <Col md={6}>
-                <Form.Group className="mb-3">
-                  <Form.Label>Categoría *</Form.Label>
-                  <Form.Select
-                    value={itemForm.category_id}
-                    onChange={(e) => setItemForm({ ...itemForm, category_id: e.target.value })}
-                    required
+                return (
+                  <div
+                    key={item.id}
+                    className="d-flex align-items-center justify-content-between border rounded px-3 py-2"
                   >
-                    <option value="">Seleccionar...</option>
-                    {categories.map((cat) => (
-                      <option key={cat.id} value={cat.id}>
-                        {cat.name}
-                      </option>
-                    ))}
-                  </Form.Select>
-                </Form.Group>
-              </Col>
-            </Row>
+                    <div className="d-flex align-items-center gap-3">
+                      {imageSrc && (
+                        <img
+                          src={imageSrc}
+                          alt={item.name}
+                          style={{
+                            width: 56,
+                            height: 56,
+                            objectFit: "cover",
+                            borderRadius: 8,
+                          }}
+                        />
+                      )}
+                      <div>
+                        <div className="fw-semibold">{item.name}</div>
+                        <div className="small text-muted">
+                          {cat ? cat.name : "Sin categoría"} ·{" "}
+                          {Number(item.price).toFixed(2)}
+                        </div>
+                        <div className="small">
+                          {item.is_available ? "Disponible" : "No disponible"}
+                        </div>
+                      </div>
+                    </div>
 
-            <Form.Group className="mb-3">
-              <Form.Label>Tiempo estimado de preparación (minutos)</Form.Label>
-              <Form.Control
-                type="number"
-                min="0"
-                value={itemForm.estimated_prep_time}
-                onChange={(e) => setItemForm({ ...itemForm, estimated_prep_time: e.target.value })}
-              />
-            </Form.Group>
+                    <div className="d-flex align-items-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline-secondary"
+                        onClick={() => handleOpenItemModal(item)}
+                      >
+                        Editar
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline-danger"
+                        onClick={() => handleDeleteItem(item.id)}
+                      >
+                        Eliminar
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </Col>
+      </Row>
 
-            <Form.Group className="mb-3">
-              <Form.Label>Imagen</Form.Label>
-              <Form.Control type="file" accept="image/*" onChange={handleImageChange} />
-              <Form.Text className="text-muted">Formatos aceptados: JPG, PNG. Máx 5MB</Form.Text>
-
-              {imagePreview && (
-                <div className="mt-3">
-                  <p className="mb-2"><strong>Vista previa:</strong></p>
-                  <Image
-                    src={imagePreview}
-                    alt="Preview"
-                    rounded
-                    style={{ maxWidth: "200px", maxHeight: "200px", objectFit: "cover" }}
-                  />
-                </div>
-              )}
-            </Form.Group>
-
-            <Form.Group className="mb-3">
-              <Form.Check
-                type="checkbox"
-                label="Disponible"
-                checked={itemForm.is_available}
-                onChange={(e) => setItemForm({ ...itemForm, is_available: e.target.checked })}
-              />
-            </Form.Group>
-          </Modal.Body>
-          <Modal.Footer>
-            <Button variant="secondary" onClick={() => { setShowItemModal(false); setImagePreview(null); }}>
-              Cancelar
-            </Button>
-            <Button
-              style={{ backgroundColor: "#1f2937", borderColor: "#1f2937" }}
-              type="submit"
-              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#111827")}
-              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#1f2937")}
-              className="d-flex align-items-center"
-            >
-              <MdCheckCircle size={18} className="me-1" />
-              {editingItem ? "Actualizar" : "Crear"}
-            </Button>
-          </Modal.Footer>
-        </Form>
-      </Modal>
-
-      {/* MODAL DE CATEGORÍA */}
-      <Modal show={showCategoryModal} onHide={() => setShowCategoryModal(false)} centered>
-        <Modal.Header closeButton>
-          <Modal.Title className="d-flex align-items-center">
-            <MdCategory size={24} className="me-2" />
-            {editingCategory ? "Editar Categoría" : "Agregar Categoría"}
-          </Modal.Title>
-        </Modal.Header>
-        <Form onSubmit={handleCategorySubmit}>
+      {/* Modal categoría */}
+      <Modal show={showCategoryModal} onHide={handleCloseCategoryModal} centered>
+        <Form onSubmit={handleSubmitCategory}>
+          <Modal.Header closeButton>
+            <Modal.Title>
+              {editingCategory ? "Editar categoría" : "Nueva categoría"}
+            </Modal.Title>
+          </Modal.Header>
           <Modal.Body>
-            <Form.Group className="mb-3">
-              <Form.Label>Nombre *</Form.Label>
+            <Form.Group className="mb-3" controlId="categoryName">
+              <Form.Label>Nombre</Form.Label>
               <Form.Control
                 type="text"
                 value={categoryForm.name}
-                onChange={(e) => setCategoryForm({ ...categoryForm, name: e.target.value })}
+                onChange={(e) =>
+                  setCategoryForm({ ...categoryForm, name: e.target.value })
+                }
                 required
+                placeholder="Ej: Pizzas"
               />
             </Form.Group>
 
-            <Form.Group className="mb-3">
+            <Form.Group className="mb-3" controlId="categoryDescription">
               <Form.Label>Descripción</Form.Label>
               <Form.Control
                 as="textarea"
                 rows={3}
                 value={categoryForm.description}
-                onChange={(e) => setCategoryForm({ ...categoryForm, description: e.target.value })}
+                onChange={(e) =>
+                  setCategoryForm({
+                    ...categoryForm,
+                    description: e.target.value,
+                  })
+                }
+                placeholder="Descripción opcional de la categoría"
+              />
+            </Form.Group>
+
+            <Form.Group controlId="categoryActive">
+              <Form.Check
+                type="switch"
+                label="Activa"
+                checked={categoryForm.is_active}
+                onChange={(e) =>
+                  setCategoryForm({
+                    ...categoryForm,
+                    is_active: e.target.checked,
+                  })
+                }
               />
             </Form.Group>
           </Modal.Body>
           <Modal.Footer>
-            <Button variant="secondary" onClick={() => setShowCategoryModal(false)}>
+            <Button variant="outline-secondary" onClick={handleCloseCategoryModal}>
               Cancelar
             </Button>
-            <Button
-              style={{ backgroundColor: "#1f2937", borderColor: "#1f2937" }}
-              type="submit"
-              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#111827")}
-              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#1f2937")}
-              className="d-flex align-items-center"
-            >
-              <MdCheckCircle size={18} className="me-1" />
-              {editingCategory ? "Actualizar" : "Crear"}
+            <Button type="submit">
+              {editingCategory ? "Guardar cambios" : "Crear"}
+            </Button>
+          </Modal.Footer>
+        </Form>
+      </Modal>
+
+      {/* Modal item */}
+      <Modal show={showItemModal} onHide={handleCloseItemModal} centered>
+        <Form onSubmit={handleSubmitItem}>
+          <Modal.Header closeButton>
+            <Modal.Title>
+              {editingItem ? "Editar item" : "Nuevo item"}
+            </Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            <Form.Group className="mb-3" controlId="itemName">
+              <Form.Label>Nombre</Form.Label>
+              <Form.Control
+                type="text"
+                value={itemForm.name}
+                onChange={(e) =>
+                  setItemForm({ ...itemForm, name: e.target.value })
+                }
+                required
+                placeholder="Ej: Hamburguesa clásica"
+              />
+            </Form.Group>
+
+            <Form.Group className="mb-3" controlId="itemPrice">
+              <Form.Label>Precio</Form.Label>
+              <Form.Control
+                type="number"
+                step="0.01"
+                min="0"
+                value={itemForm.price}
+                onChange={(e) =>
+                  setItemForm({ ...itemForm, price: e.target.value })
+                }
+                required
+                placeholder="Ej: 9.99"
+              />
+            </Form.Group>
+
+            <Form.Group className="mb-3" controlId="itemCategory">
+              <Form.Label>Categoría</Form.Label>
+              <Form.Select
+                value={itemForm.category_id}
+                onChange={(e) =>
+                  setItemForm({ ...itemForm, category_id: e.target.value })
+                }
+                required
+              >
+                <option value="">Selecciona una categoría</option>
+                {categories.map((cat) => (
+                  <option key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </option>
+                ))}
+              </Form.Select>
+            </Form.Group>
+
+            <Form.Group className="mb-3" controlId="itemDescription">
+              <Form.Label>Descripción</Form.Label>
+              <Form.Control
+                as="textarea"
+                rows={3}
+                value={itemForm.description}
+                onChange={(e) =>
+                  setItemForm({ ...itemForm, description: e.target.value })
+                }
+                placeholder="Descripción breve del plato"
+              />
+            </Form.Group>
+
+            <Form.Group className="mb-3" controlId="itemIngredients">
+              <Form.Label>Ingredientes</Form.Label>
+              <Form.Control
+                as="textarea"
+                rows={3}
+                value={itemForm.ingredients}
+                onChange={(e) =>
+                  setItemForm({ ...itemForm, ingredients: e.target.value })
+                }
+                placeholder="Lista de ingredientes (texto libre)"
+              />
+            </Form.Group>
+
+            <Form.Group className="mb-3" controlId="itemPrepTime">
+              <Form.Label>Tiempo estimado de preparación (minutos)</Form.Label>
+              <Form.Control
+                type="number"
+                min="1"
+                value={itemForm.estimated_prep_time}
+                onChange={(e) =>
+                  setItemForm({
+                    ...itemForm,
+                    estimated_prep_time: e.target.value,
+                  })
+                }
+                placeholder="Ej: 10"
+              />
+            </Form.Group>
+
+            <Form.Group className="mb-3" controlId="itemImage">
+              <Form.Label>Imagen</Form.Label>
+              <Form.Control
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  const file = e.target.files?.[0] || null;
+                  setItemForm((prev) => ({
+                    ...prev,
+                    image: file,
+                    imagePreview: file
+                      ? URL.createObjectURL(file)
+                      : prev.imagePreview,
+                  }));
+                }}
+              />
+              {itemForm.imagePreview && (
+                <div className="mt-2">
+                  <img
+                    src={itemForm.imagePreview}
+                    alt="Previsualización"
+                    style={{
+                      maxWidth: "100%",
+                      maxHeight: 180,
+                      objectFit: "cover",
+                      borderRadius: 4,
+                    }}
+                  />
+                </div>
+              )}
+            </Form.Group>
+
+            <Form.Group controlId="itemAvailable">
+              <Form.Check
+                type="switch"
+                label="Disponible"
+                checked={itemForm.is_available}
+                onChange={(e) =>
+                  setItemForm({ ...itemForm, is_available: e.target.checked })
+                }
+              />
+            </Form.Group>
+          </Modal.Body>
+          <Modal.Footer>
+            <Button variant="outline-secondary" onClick={handleCloseItemModal}>
+              Cancelar
+            </Button>
+            <Button type="submit">
+              {editingItem ? "Guardar cambios" : "Crear"}
             </Button>
           </Modal.Footer>
         </Form>
