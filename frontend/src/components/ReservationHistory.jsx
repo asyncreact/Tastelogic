@@ -156,7 +156,7 @@ function ReservationHistory() {
       3: "VIP",
       4: "Bar",
     };
-    return zones[zoneId] || `Zona #${zoneId}`;
+    return zones[zoneId];
   };
 
   if (loadingReservations || loading) {
