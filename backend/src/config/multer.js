@@ -6,7 +6,7 @@ import fs from "fs";
 
 const createUploadDirs = () => {
   const dirs = ["./uploads/menu", "./uploads/zones"];
-  
+
   dirs.forEach((dir) => {
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
@@ -21,7 +21,8 @@ const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     let uploadPath = "./uploads/menu";
 
-    if (req.originalUrl.includes("/tables/") || req.originalUrl.includes("/zones/")) {
+    // Para /api/zones... y /api/tables... usar carpeta de zonas
+    if (req.originalUrl.includes("/zones") || req.originalUrl.includes("/tables")) {
       uploadPath = "./uploads/zones";
     }
 
@@ -30,12 +31,13 @@ const storage = multer.diskStorage({
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
     const ext = path.extname(file.originalname);
-    const basename = path.basename(file.originalname, ext)
+    const basename = path
+      .basename(file.originalname, ext)
       .toLowerCase()
       .replace(/[^a-z0-9]/g, "-");
 
     let prefix = "menu";
-    if (req.originalUrl.includes("/tables/") || req.originalUrl.includes("/zones/")) {
+    if (req.originalUrl.includes("/zones") || req.originalUrl.includes("/tables")) {
       prefix = "zone";
     }
 
@@ -45,7 +47,9 @@ const storage = multer.diskStorage({
 
 const fileFilter = (req, file, cb) => {
   const allowedTypes = /jpeg|jpg|png|gif|webp/;
-  const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+  const extname = allowedTypes.test(
+    path.extname(file.originalname).toLowerCase()
+  );
   const mimetype = allowedTypes.test(file.mimetype);
 
   if (mimetype && extname) {

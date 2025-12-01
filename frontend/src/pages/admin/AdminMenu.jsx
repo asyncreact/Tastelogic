@@ -16,7 +16,7 @@ import { useMenu } from "../../hooks/useMenu";
 import Swal from "sweetalert2";
 import withReactContent from "sweetalert2-react-content";
 
-const BASE_URL = import.meta.env.VITE_API_URL; // ej: http://localhost:4000/
+const BASE_URL = import.meta.env.VITE_API_URL;
 const MySwal = withReactContent(Swal);
 
 function AdminMenu() {
@@ -345,20 +345,14 @@ function AdminMenu() {
     <Container className="py-4">
       {/* Encabezado */}
       <Row className="mb-3">
-        <Col>
+        <Col md={8}>
           <h1 className="h3 d-flex align-items-center gap-2 mb-1">
             <MdOutlineFastfood />
             Admin Menú
           </h1>
-          <p className="text-muted mb-0">
+          <p className="text-muted mb-2">
             Gestiona categorías e items del menú de forma sencilla.
           </p>
-        </Col>
-      </Row>
-
-      {/* Buscador admin */}
-      <Row className="mb-4">
-        <Col md={6}>
           <Form.Control
             type="search"
             placeholder="Buscar en categorías e items..."
@@ -383,20 +377,20 @@ function AdminMenu() {
         </Row>
       )}
 
-      {/* Categorías */}
-      <Row className="mb-4">
-        <Col className="d-flex justify-content-between align-items-center">
-          <h2 className="h5 d-flex align-items-center gap-2 mb-0">
-            <BiCategory />
-            Categorías
-          </h2>
-          <Button size="sm" onClick={() => handleOpenCategoryModal()}>
-            Nueva categoría
-          </Button>
-        </Col>
-      </Row>
-      <Row className="mb-4">
-        <Col>
+      {/* Dos columnas: categorías izquierda, items derecha */}
+      <Row className="g-4">
+        {/* Categorías */}
+        <Col md={6}>
+          <div className="d-flex justify-content-between align-items-center mb-2">
+            <h2 className="h5 d-flex align-items-center gap-2 mb-0">
+              <BiCategory />
+              Categorías
+            </h2>
+            <Button size="sm" onClick={() => handleOpenCategoryModal()}>
+              + Nueva categoría
+            </Button>
+          </div>
+
           {filteredCategories.length === 0 ? (
             <p className="text-muted mb-0">
               No hay categorías (o ninguna coincide con la búsqueda).
@@ -442,22 +436,19 @@ function AdminMenu() {
             </div>
           )}
         </Col>
-      </Row>
 
-      {/* Items */}
-      <Row className="mb-3">
-        <Col className="d-flex justify-content-between align-items-center">
-          <h2 className="h5 d-flex align-items-center gap-2 mb-0">
-            <MdOutlineFastfood />
-            Items del menú
-          </h2>
-          <Button size="sm" onClick={() => handleOpenItemModal()}>
-            Nuevo item
-          </Button>
-        </Col>
-      </Row>
-      <Row>
-        <Col>
+        {/* Items */}
+        <Col md={6}>
+          <div className="d-flex justify-content-between align-items-center mb-2">
+            <h2 className="h5 d-flex align-items-center gap-2 mb-0">
+              <MdOutlineFastfood />
+              Items del menú
+            </h2>
+            <Button size="sm" onClick={() => handleOpenItemModal()}>
+              + Nuevo item
+            </Button>
+          </div>
+
           {filteredItems.length === 0 ? (
             <p className="text-muted mb-0">
               No hay items (o ninguno coincide con la búsqueda).
