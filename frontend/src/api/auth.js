@@ -13,9 +13,12 @@ const api = axios.create({
 // ✅ Interceptor para agregar token automáticamente
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
+
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+
+  // Siempre devolver config, haya token o no
   return config;
 });
 
@@ -34,9 +37,9 @@ api.interceptors.response.use(
         localStorage.removeItem("user");
         window.location.href = "/login";
       }
-      // Si no hay token (invitado), no redirigimos; dejamos que el componente maneje el error
     }
 
+    // Si no hay token (invitado) o es silentAuth, solo rechazamos el error
     return Promise.reject(error);
   }
 );
@@ -61,7 +64,9 @@ export const resetPassword = (token, data) =>
   api.post(`/auth/reset-password/${token}`, data);
 
 export const getProfile = (silentAuth = false) =>
-  api.get("/auth/me", { silentAuth });
+  api.get("/auth/me", {
+    silentAuth, // propiedad custom que usa el interceptor
+  });
 
 export const logoutUser = () =>
   api.post("/auth/logout");
