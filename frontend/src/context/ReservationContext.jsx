@@ -12,13 +12,10 @@ import {
   getAvailableTables,
   getMyActiveReservation,
 } from "../api/reservations";
-import { useAuth } from "../hooks/useAuth";
 
 export const ReservationContext = createContext();
 
 export function ReservationProvider({ children }) {
-  const { user } = useAuth();
-
   const [reservations, setReservations] = useState([]);
   const [currentReservation, setCurrentReservation] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -75,11 +72,6 @@ export function ReservationProvider({ children }) {
 
   // Reserva activa (para “comer aquí”) – sin tocar loading/error global
   const fetchMyActiveReservation = async () => {
-    // Proteger llamada si no hay usuario
-    if (!user) {
-      throw { message: "Debes iniciar sesión para ver tu reserva activa." };
-    }
-
     try {
       const response = await getMyActiveReservation();
       const reservationData =
@@ -110,16 +102,6 @@ export function ReservationProvider({ children }) {
         reservation: newReservation,
       };
     } catch (err) {
-      // Mensaje personalizado para 401
-      if (err.response?.status === 401) {
-        const custom = {
-          message: "Debes iniciar sesión para crear una reserva.",
-        };
-        setError(custom.message);
-        console.error("Error addReservation (401):", err);
-        throw custom;
-      }
-
       const parsed = parseApiError(err, "Error al crear reserva");
       setError(parsed.message);
       console.error("Error addReservation:", err);

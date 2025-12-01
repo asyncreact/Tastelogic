@@ -1,5 +1,4 @@
 // context/TableContext.jsx
-
 import { createContext, useState, useEffect } from "react";
 import {
   getZones,
@@ -26,9 +25,15 @@ export const TableProvider = ({ children }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Cargar zonas y mesas solo cuando haya usuario autenticado
+  // Cargar zonas y mesas solo cuando haya usuario autenticado y NO sea customer
   useEffect(() => {
     if (!user) {
+      setZones([]);
+      setTables([]);
+      return;
+    }
+
+    if (user.role === "customer") {
       setZones([]);
       setTables([]);
       return;
@@ -66,6 +71,9 @@ export const TableProvider = ({ children }) => {
 
   const fetchZones = async () => {
     try {
+      if (!user || user.role === "customer") {
+        return { success: false, data: [] };
+      }
       setError(null);
       setLoading(true);
       const response = await getZones();
@@ -86,6 +94,9 @@ export const TableProvider = ({ children }) => {
 
   const fetchZone = async (zoneId) => {
     try {
+      if (!user || user.role === "customer") {
+        return { success: false, data: null };
+      }
       setError(null);
       const response = await getZone(zoneId);
       const zoneData = response.data?.data?.zone || response.data?.zone;
@@ -101,6 +112,9 @@ export const TableProvider = ({ children }) => {
 
   const addZone = async (data) => {
     try {
+      if (!user || user.role === "customer") {
+        return { success: false };
+      }
       setError(null);
       const response = await createZone(data);
       const zoneData = response.data?.data?.zone || response.data?.zone;
@@ -133,6 +147,9 @@ export const TableProvider = ({ children }) => {
 
   const editZone = async (zoneId, data) => {
     try {
+      if (!user || user.role === "customer") {
+        return { success: false };
+      }
       setError(null);
       const response = await updateZone(zoneId, data);
       const zoneData = response.data?.data?.zone || response.data?.zone;
@@ -168,6 +185,9 @@ export const TableProvider = ({ children }) => {
 
   const removeZone = async (zoneId) => {
     try {
+      if (!user || user.role === "customer") {
+        return { success: false };
+      }
       setError(null);
       const response = await deleteZone(zoneId);
       const message =
@@ -191,6 +211,9 @@ export const TableProvider = ({ children }) => {
 
   const fetchTables = async () => {
     try {
+      if (!user || user.role === "customer") {
+        return { success: false, data: [] };
+      }
       setError(null);
       setLoading(true);
       const response = await getTables();
@@ -211,6 +234,9 @@ export const TableProvider = ({ children }) => {
 
   const fetchTable = async (tableId) => {
     try {
+      if (!user || user.role === "customer") {
+        return { success: false, data: null };
+      }
       setError(null);
       const response = await getTable(tableId);
       const tableData = response.data?.data?.table || response.data?.table;
@@ -224,10 +250,13 @@ export const TableProvider = ({ children }) => {
     }
   };
 
-  const addTable = async (data) => {
+  const addTable = async (tableDataInput) => {
     try {
+      if (!user || user.role === "customer") {
+        return { success: false };
+      }
       setError(null);
-      const response = await createTable(data);
+      const response = await createTable(tableDataInput);
       const tableData = response.data?.data?.table || response.data?.table;
       const message = response.data?.message || "Mesa creada exitosamente";
 
@@ -258,6 +287,9 @@ export const TableProvider = ({ children }) => {
 
   const editTable = async (tableId, data) => {
     try {
+      if (!user || user.role === "customer") {
+        return { success: false };
+      }
       setError(null);
       const response = await updateTable(tableId, data);
       const tableData = response.data?.data?.table || response.data?.table;
@@ -293,6 +325,9 @@ export const TableProvider = ({ children }) => {
 
   const removeTable = async (tableId) => {
     try {
+      if (!user || user.role === "customer") {
+        return { success: false };
+      }
       setError(null);
       const response = await deleteTable(tableId);
       const message =
