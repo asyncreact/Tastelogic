@@ -8,14 +8,32 @@ import {
   Alert,
   Card,
   Spinner,
+  Modal,
 } from "react-bootstrap";
 import { useReservation } from "../hooks/useReservation";
 import api from "../api/auth";
 import Swal from "sweetalert2";
-import { MdEventAvailable, MdPeople, MdOutlineTableBar } from "react-icons/md";
+import {
+  MdEventAvailable,
+  MdPeople,
+  MdOutlineTableBar,
+} from "react-icons/md";
+
+const API_URL = (import.meta.env.VITE_API_URL || "http://localhost:4000").replace(
+  /\/$/,
+  ""
+);
+
+const getZoneImageUrl = (imageUrl) => {
+  if (!imageUrl) return null;
+  if (imageUrl.startsWith("http")) return imageUrl;
+  const cleanPath = imageUrl.startsWith("/") ? imageUrl : `/${imageUrl}`;
+  return `${API_URL}${cleanPath}`;
+};
 
 function NewReservationForm({ onSuccess }) {
   const { addReservation, fetchAvailableTables, loading } = useReservation();
+
   const [formData, setFormData] = useState({
     zone_id: "",
     table_id: "",
@@ -24,17 +42,23 @@ function NewReservationForm({ onSuccess }) {
     guest_count: "",
     special_requirements: "",
   });
+
   const [zones, setZones] = useState([]);
+  const [selectedZone, setSelectedZone] = useState(null);
+  const [showZoneModal, setShowZoneModal] = useState(false);
+
   const [availableTables, setAvailableTables] = useState([]);
   const [loadingTables, setLoadingTables] = useState(false);
   const [loadingZones, setLoadingZones] = useState(true);
 
+  // Cargar zonas públicas (solo activas)
   useEffect(() => {
     const loadZones = async () => {
       try {
         setLoadingZones(true);
         const response = await api.get("/zones/public");
-        setZones(response.data?.zones || response.data?.data || []);
+        const data = response.data?.zones || response.data?.data || [];
+        setZones(data.filter((z) => z.is_active !== false));
       } catch {
         Swal.fire({
           icon: "error",
@@ -49,6 +73,7 @@ function NewReservationForm({ onSuccess }) {
     loadZones();
   }, []);
 
+  // Cargar mesas solo cuando el formulario base está completo
   useEffect(() => {
     if (
       formData.zone_id &&
@@ -121,7 +146,7 @@ function NewReservationForm({ onSuccess }) {
       ...prev,
       [name]: value,
       ...(
-        ["zone_id", "reservation_date", "reservation_time", "guest_count"].includes(
+        ["reservation_date", "reservation_time", "guest_count"].includes(
           name
         ) && {
           table_id: "",
@@ -132,6 +157,15 @@ function NewReservationForm({ onSuccess }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (!formData.zone_id || !selectedZone) {
+      Swal.fire({
+        icon: "warning",
+        title: "Zona requerida",
+        text: "Por favor selecciona una zona",
+      });
+      return;
+    }
 
     if (!formData.table_id) {
       Swal.fire({
@@ -184,6 +218,7 @@ function NewReservationForm({ onSuccess }) {
         special_requirements: "",
       });
       setAvailableTables([]);
+      setSelectedZone(null);
 
       if (onSuccess) onSuccess();
     } catch (error) {
@@ -220,11 +255,21 @@ function NewReservationForm({ onSuccess }) {
         now.getMinutes()
       ).padStart(2, "0")}`;
 
-      // Si la hora actual es antes de la apertura, usar apertura
       return current < OPEN_TIME ? OPEN_TIME : current;
     }
 
     return OPEN_TIME;
+  };
+
+  const handleSelectZone = (zone) => {
+    setSelectedZone(zone);
+    setFormData((prev) => ({
+      ...prev,
+      zone_id: String(zone.id),
+      table_id: "",
+    }));
+    setAvailableTables([]);
+    setShowZoneModal(false);
   };
 
   return (
@@ -237,184 +282,295 @@ function NewReservationForm({ onSuccess }) {
                 <MdEventAvailable size={22} />
                 <div>
                   <h2 className="h5 mb-1">Crear reserva</h2>
-                  <small>Completa los datos para realizar tu reserva.</small>
+                  <small>Selecciona una zona y luego completa los datos.</small>
                 </div>
               </div>
 
-              <Form onSubmit={handleSubmit}>
-                <Row className="g-3">
-                  <Col md={6}>
-                    <Form.Group controlId="zone_id">
-                      <Form.Label>Zona</Form.Label>
-                      {loadingZones ? (
-                        <div className="d-flex align-items-center gap-2">
-                          <Spinner animation="border" size="sm" />
-                          <span className="small">Cargando...</span>
-                        </div>
-                      ) : (
-                        <Form.Select
-                          name="zone_id"
-                          value={formData.zone_id}
-                          onChange={handleChange}
-                          required
-                        >
-                          <option value="">Selecciona</option>
-                          {zones.map((zone) => (
-                            <option key={zone.id} value={zone.id}>
-                              {zone.name}
-                            </option>
-                          ))}
-                        </Form.Select>
-                      )}
-                    </Form.Group>
-                  </Col>
+              {/* Zonas disponibles como cards */}
+              <div className="mb-4">
+                <h5 className="h6 mb-2">Zonas disponibles</h5>
+                {loadingZones ? (
+                  <div className="d-flex align-items-center gap-2">
+                    <Spinner animation="border" size="sm" />
+                    <span className="small">Cargando zonas...</span>
+                  </div>
+                ) : zones.length === 0 ? (
+                  <Alert variant="light" className="border-0">
+                    No hay zonas disponibles por el momento.
+                  </Alert>
+                ) : (
+                  <Row className="g-3">
+                    {zones.map((zone) => {
+                      const img = getZoneImageUrl(zone.image_url);
+                      const isSelected = selectedZone?.id === zone.id;
 
-                  <Col md={6}>
-                    <Form.Group controlId="guest_count">
-                      <Form.Label>Personas</Form.Label>
-                      <div className="input-group">
-                        <span className="input-group-text">
-                          <MdPeople />
-                        </span>
-                        <Form.Control
-                          type="number"
-                          name="guest_count"
-                          value={formData.guest_count}
-                          onChange={handleChange}
-                          min={1}
-                          required
-                        />
-                      </div>
-                    </Form.Group>
-                  </Col>
-
-                  <Col md={6}>
-                    <Form.Group controlId="reservation_date">
-                      <Form.Label>Fecha</Form.Label>
-                      <Form.Control
-                        type="date"
-                        name="reservation_date"
-                        value={formData.reservation_date}
-                        onChange={handleChange}
-                        min={getMinDate()}
-                        required
-                      />
-                    </Form.Group>
-                  </Col>
-
-                  <Col md={6}>
-                    <Form.Group controlId="reservation_time">
-                      <Form.Label>Hora</Form.Label>
-                      <Form.Control
-                        type="time"
-                        name="reservation_time"
-                        value={formData.reservation_time}
-                        onChange={handleChange}
-                        min={getMinTime()}
-                        max="23:59"
-                        required
-                      />
-                    </Form.Group>
-                  </Col>
-
-                  <Col xs={12}>
-                    <Form.Group controlId="table_id">
-                      <Form.Label>Mesa</Form.Label>
-                      {loadingTables ? (
-                        <div className="d-flex align-items-center gap-2">
-                          <Spinner animation="border" size="sm" />
-                          <span className="small">Buscando mesas...</span>
-                        </div>
-                      ) : availableTables.length === 0 &&
-                        formData.zone_id &&
-                        formData.reservation_date &&
-                        formData.reservation_time &&
-                        formData.guest_count ? (
-                        <Alert variant="light" className="border">
-                          No hay mesas para estos datos. Prueba otra hora o
-                          zona.
-                        </Alert>
-                      ) : (
-                        <div className="d-flex flex-wrap gap-2">
-                          {availableTables.map((table) => {
-                            const isActive =
-                              String(formData.table_id) ===
-                              String(table.id);
-                            return (
-                              <button
-                                key={table.id}
-                                type="button"
-                                className={`btn btn-outline-secondary d-flex align-items-center p-2 rounded-3 ${
-                                  isActive ? "btn-secondary text-white" : ""
-                                }`}
-                                style={{ minWidth: "200px" }}
-                                onClick={() =>
-                                  setFormData((prev) => ({
-                                    ...prev,
-                                    table_id: String(table.id),
-                                  }))
-                                }
+                      return (
+                        <Col key={zone.id} xs={12} md={4}>
+                          <Card
+                            className={`h-100 position-relative ${
+                              isSelected
+                                ? "border-2 border-secondary bg-light"
+                                : "border"
+                            }`}
+                            style={{ cursor: "pointer" }}
+                            onClick={() => {
+                              setSelectedZone(zone);
+                              setShowZoneModal(true);
+                            }}
+                          >
+                            {isSelected && (
+                              <span
+                                className="badge bg-secondary position-absolute"
+                                style={{ top: 8, right: 8 }}
                               >
-                                <MdOutlineTableBar className="me-2" />
-                                <div className="text-start">
-                                  <div className="fw-semibold small">
-                                    Mesa {table.table_number}
-                                  </div>
-                                  <div className="small">
-                                    {table.capacity} max ·{" "}
-                                    {table.zone_name || "Zona"}
-                                  </div>
+                                Zona seleccionada
+                              </span>
+                            )}
+                            <Card.Body className="d-flex align-items-center">
+                              {img && (
+                                <img
+                                  src={img}
+                                  alt={zone.name}
+                                  style={{
+                                    width: 56,
+                                    height: 56,
+                                    objectFit: "cover",
+                                    borderRadius: 8,
+                                    marginRight: 12,
+                                  }}
+                                />
+                              )}
+                              <div>
+                                <div className="fw-semibold">{zone.name}</div>
+                                <div className="small text-muted">
+                                  {zone.description || "Sin descripción"}
                                 </div>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </Form.Group>
-                  </Col>
+                              </div>
+                            </Card.Body>
+                          </Card>
+                        </Col>
+                      );
+                    })}
+                  </Row>
+                )}
+              </div>
 
-                  <Col xs={12}>
-                    <Form.Group controlId="special_requirements">
-                      <Form.Label>Notas (opcional)</Form.Label>
-                      <Form.Control
-                        as="textarea"
-                        rows={2}
-                        name="special_requirements"
-                        value={formData.special_requirements}
-                        onChange={handleChange}
-                        placeholder="Ej: aniversario, alergias, ubicación específica."
-                      />
-                    </Form.Group>
-                  </Col>
-                </Row>
-
-                <div className="d-flex justify-content-end mt-3">
-                  <Button
-                    type="submit"
-                    variant="secondary"
-                    disabled={loading || loadingTables || loadingZones}
-                  >
-                    {loading ? (
-                      <>
-                        <Spinner
-                          as="span"
-                          animation="border"
-                          size="sm"
-                          role="status"
-                          className="me-2"
+              {/* Formulario principal, solo con zona seleccionada */}
+              {selectedZone && (
+                <Form onSubmit={handleSubmit}>
+                  <Row className="g-3">
+                    <Col md={6}>
+                      <Form.Group controlId="zone_readonly">
+                        <Form.Label>Zona seleccionada</Form.Label>
+                        <Form.Control
+                          type="text"
+                          value={selectedZone ? selectedZone.name : ""}
+                          readOnly
                         />
-                        Guardando...
-                      </>
-                    ) : (
-                      "Confirmar reserva"
-                    )}
-                  </Button>
-                </div>
-              </Form>
+                      </Form.Group>
+                    </Col>
+
+                    <Col md={6}>
+                      <Form.Group controlId="guest_count">
+                        <Form.Label>Personas</Form.Label>
+                        <div className="input-group">
+                          <span className="input-group-text">
+                            <MdPeople />
+                          </span>
+                          <Form.Control
+                            type="number"
+                            name="guest_count"
+                            value={formData.guest_count}
+                            onChange={handleChange}
+                            min={1}
+                            required
+                          />
+                        </div>
+                      </Form.Group>
+                    </Col>
+
+                    <Col md={6}>
+                      <Form.Group controlId="reservation_date">
+                        <Form.Label>Fecha</Form.Label>
+                        <Form.Control
+                          type="date"
+                          name="reservation_date"
+                          value={formData.reservation_date}
+                          onChange={handleChange}
+                          min={getMinDate()}
+                          required
+                        />
+                      </Form.Group>
+                    </Col>
+
+                    <Col md={6}>
+                      <Form.Group controlId="reservation_time">
+                        <Form.Label>Hora</Form.Label>
+                        <Form.Control
+                          type="time"
+                          name="reservation_time"
+                          value={formData.reservation_time}
+                          onChange={handleChange}
+                          min={getMinTime()}
+                          max="23:59"
+                          required
+                        />
+                      </Form.Group>
+                    </Col>
+
+                    <Col xs={12}>
+                      <Form.Group controlId="table_id">
+                        <Form.Label>Mesa</Form.Label>
+                        {loadingTables ? (
+                          <div className="d-flex align-items-center gap-2">
+                            <Spinner animation="border" size="sm" />
+                            <span className="small">Buscando mesas...</span>
+                          </div>
+                        ) : availableTables.length === 0 &&
+                          formData.zone_id &&
+                          formData.reservation_date &&
+                          formData.reservation_time &&
+                          formData.guest_count ? (
+                          <Alert variant="light" className="border">
+                            No hay mesas para estos datos. Prueba otra hora o
+                            zona.
+                          </Alert>
+                        ) : (
+                          <div className="d-flex flex-wrap gap-2">
+                            {availableTables.map((table) => {
+                              const isActive =
+                                String(formData.table_id) ===
+                                String(table.id);
+                              return (
+                                <button
+                                  key={table.id}
+                                  type="button"
+                                  className={`btn btn-outline-secondary d-flex align-items-center p-2 rounded-3 ${
+                                    isActive ? "btn-secondary text-white" : ""
+                                  }`}
+                                  style={{ minWidth: "200px" }}
+                                  onClick={() =>
+                                    setFormData((prev) => ({
+                                      ...prev,
+                                      table_id: String(table.id),
+                                    }))
+                                  }
+                                >
+                                  <MdOutlineTableBar className="me-2" />
+                                  <div className="text-start">
+                                    <div className="fw-semibold small">
+                                      Mesa {table.table_number}
+                                    </div>
+                                    <div className="small">
+                                      {table.capacity} max ·{" "}
+                                      {table.zone_name || "Zona"}
+                                    </div>
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </Form.Group>
+                    </Col>
+
+                    <Col xs={12}>
+                      <Form.Group controlId="special_requirements">
+                        <Form.Label>Notas (opcional)</Form.Label>
+                        <Form.Control
+                          as="textarea"
+                          rows={2}
+                          name="special_requirements"
+                          value={formData.special_requirements}
+                          onChange={handleChange}
+                          placeholder="Ej: aniversario, alergias, ubicación específica."
+                        />
+                      </Form.Group>
+                    </Col>
+                  </Row>
+
+                  <div className="d-flex justify-content-end mt-3">
+                    <Button
+                      type="submit"
+                      variant="secondary"
+                      disabled={
+                        loading || loadingTables || loadingZones || !selectedZone
+                      }
+                    >
+                      {loading ? (
+                        <>
+                          <Spinner
+                            as="span"
+                            animation="border"
+                            size="sm"
+                            role="status"
+                            className="me-2"
+                          />
+                          Guardando...
+                        </>
+                      ) : (
+                        "Confirmar reserva"
+                      )}
+                    </Button>
+                  </div>
+                </Form>
+              )}
             </Card.Body>
           </Card>
         </Col>
       </Row>
+
+      {/* Modal de detalle de zona (solo lectura, sin estado visible) */}
+      <Modal
+        show={showZoneModal && !!selectedZone}
+        onHide={() => setShowZoneModal(false)}
+        centered
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>
+            {selectedZone ? selectedZone.name : "Zona"}
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {selectedZone && (
+            <>
+              {getZoneImageUrl(selectedZone.image_url) && (
+                <img
+                  src={getZoneImageUrl(selectedZone.image_url)}
+                  alt={selectedZone.name}
+                  style={{
+                    width: "100%",
+                    maxHeight: 240,
+                    objectFit: "cover",
+                    borderRadius: 8,
+                    marginBottom: 16,
+                  }}
+                />
+              )}
+
+              <p className="mb-2">
+                <strong>Descripción: </strong>
+                {selectedZone.description || "Sin descripción"}
+              </p>
+
+              {selectedZone.capacity && (
+                <p className="mb-0">
+                  <strong>Capacidad aproximada: </strong>
+                  {selectedZone.capacity}
+                </p>
+              )}
+            </>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button
+            variant="secondary"
+            onClick={() => handleSelectZone(selectedZone)}
+          >
+            Reservar en esta zona
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </div>
   );
 }

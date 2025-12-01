@@ -23,6 +23,42 @@ import { getUserById } from "../repositories/user.repository.js";
 import { successResponse } from "../utils/response.js";
 import { sendMail } from "../config/mailer.js";
 
+/* ===== Helper de fechas en ES (local, sin problema de zona horaria) ===== */
+
+const WEEKDAYS_ES = [
+  "domingo",
+  "lunes",
+  "martes",
+  "miércoles",
+  "jueves",
+  "viernes",
+  "sábado",
+];
+
+const MONTHS_ES = [
+  "enero",
+  "febrero",
+  "marzo",
+  "abril",
+  "mayo",
+  "junio",
+  "julio",
+  "agosto",
+  "septiembre",
+  "octubre",
+  "noviembre",
+  "diciembre",
+];
+
+const formatLocalDateEs = (isoDate) => {
+  if (!isoDate) return "";
+  const [year, month, day] = isoDate.split("-").map(Number);
+  const d = new Date(year, month - 1, day); // fecha local sin offset UTC
+  const weekday = WEEKDAYS_ES[d.getDay()];
+  const monthName = MONTHS_ES[d.getMonth()];
+  return `${weekday}, ${day} de ${monthName}${year ? ` de ${year}` : ""}`;
+};
+
 /* RESERVAS */
 
 /* ✅ NUEVO: Obtiene la reserva activa de hoy del usuario logueado */
@@ -232,13 +268,7 @@ export const checkAvailability = async (req, res, next) => {
       reservation_time
     );
 
-    const dateObj = new Date(reservation_date);
-    const formattedDate = dateObj.toLocaleDateString("es-ES", {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
+    const formattedDate = formatLocalDateEs(reservation_date);
 
     const message = availability.available
       ? `¡Perfecto! La mesa ${table.table_number} está disponible para el ${formattedDate} a las ${reservation_time}`
@@ -345,11 +375,11 @@ export const addReservation = async (req, res, next) => {
 
     if (guest_count > table.capacity) {
       const error = new Error(
-        `Lo sentimos, la mesa ${table.table_number} tiene capacidad para ${
-          table.capacity
-        } persona${table.capacity > 1 ? "s" : ""}, pero seleccionaste ${
-          guest_count
-        } persona${
+        `Lo sentimos, la mesa ${
+          table.table_number
+        } tiene capacidad para ${table.capacity} persona${
+          table.capacity > 1 ? "s" : ""
+        }, pero seleccionaste ${guest_count} persona${
           guest_count > 1 ? "s" : ""
         }. Por favor, elige una mesa más grande.`
       );
@@ -364,12 +394,7 @@ export const addReservation = async (req, res, next) => {
     );
 
     if (!availability.available) {
-      const dateObj = new Date(reservation_date);
-      const formattedDate = dateObj.toLocaleDateString("es-ES", {
-        weekday: "long",
-        day: "numeric",
-        month: "long",
-      });
+      const formattedDate = formatLocalDateEs(reservation_date);
 
       const error = new Error(
         `Lo sentimos, la mesa ${
@@ -393,12 +418,7 @@ export const addReservation = async (req, res, next) => {
 
     const reservation = await createReservation(reservation_data);
 
-    const dateObj = new Date(reservation_date);
-    const formattedDate = dateObj.toLocaleDateString("es-ES", {
-      weekday: "long",
-      day: "numeric",
-      month: "long",
-    });
+    const formattedDate = formatLocalDateEs(reservation_date);
 
     // 🔔 Enviar correo de creación de reserva (sin botón)
     Promise.resolve(
@@ -728,12 +748,7 @@ export const updateStatus = async (req, res, next) => {
 
     // 🔔 Enviar correo según el nuevo estado (sin botón)
     const user = await getUserById(existing.user_id);
-    const dateObj = new Date(existing.reservation_date);
-    const formattedDate = dateObj.toLocaleDateString("es-ES", {
-      weekday: "long",
-      day: "numeric",
-      month: "long",
-    });
+    const formattedDate = formatLocalDateEs(existing.reservation_date);
 
     let subject = "";
     let message = "";
