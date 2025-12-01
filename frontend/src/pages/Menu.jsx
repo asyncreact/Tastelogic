@@ -70,7 +70,7 @@ function Menu() {
 
   return (
     <Container className="py-4">
-      {/* Encabezado minimalista */}
+      {/* Encabezado */}
       <div className="d-flex justify-content-between align-items-center mb-4">
         <div className="d-flex align-items-center gap-2">
           <MdOutlineFastfood size={24} />
@@ -147,7 +147,7 @@ function Menu() {
                     String(item.category_id) === String(category.id)
                 )
                 .map((item) => (
-                  <Col key={item.id} xs={12} sm={6} md={4} lg={3}>
+                  <Col key={item.id} xs={12} md={4}>
                     <MenuItemCard item={item} />
                   </Col>
                 ))}
