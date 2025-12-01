@@ -6,7 +6,6 @@ import {
   createTable,
   updateTable,
   deleteTable,
-  getTableStatistics,
 } from "../repositories/table.repository.js";
 import { getZoneById } from "../repositories/zone.repository.js";
 import { successResponse } from "../utils/response.js";
@@ -172,25 +171,6 @@ export const removeTable = async (req, res, next) => {
     const result = await deleteTable(table_id);
 
     return successResponse(res, result.message);
-  } catch (err) {
-    next(err);
-  }
-};
-
-// Obtiene estadísticas de mesas
-export const tableStats = async (req, res, next) => {
-  try {
-    const stats = await getTableStatistics();
-
-    if (!stats || Object.keys(stats).length === 0) {
-      const error = new Error("No hay datos disponibles para mostrar estadísticas");
-      error.status = 404;
-      throw error;
-    }
-
-    return successResponse(res, "Estadísticas de mesas obtenidas correctamente", {
-      statistics: stats,
-    });
   } catch (err) {
     next(err);
   }

@@ -10,10 +10,6 @@ import {
   updatePayment,
   cancelOrderHandler,
   removeOrder,
-  orderStats,
-  orderStatsByDate,
-  orderStatsByType,
-  topSellingItems,
 } from "../controllers/order.controller.js";
 import { authenticate, authorizeRoles } from "../middleware/auth.middleware.js";
 import {
@@ -25,40 +21,6 @@ import {
 } from "../validators/order.validator.js";
 
 const router = express.Router();
-
-/* ESTADÍSTICAS - SOLO ADMIN (Deben ir antes de /:order_id) */
-
-// Estadísticas generales
-router.get(
-  "/statistics/general",
-  authenticate,
-  authorizeRoles("admin"),
-  orderStats
-);
-
-// Estadísticas por fecha
-router.get(
-  "/statistics/by-date",
-  authenticate,
-  authorizeRoles("admin"),
-  orderStatsByDate
-);
-
-// Estadísticas por tipo (dine-in, takeout, delivery)
-router.get(
-  "/statistics/by-type",
-  authenticate,
-  authorizeRoles("admin"),
-  orderStatsByType
-);
-
-// Items más vendidos
-router.get(
-  "/statistics/top-selling",
-  authenticate,
-  authorizeRoles("admin"),
-  topSellingItems
-);
 
 /* CRUD DE PEDIDOS */
 

@@ -12,43 +12,43 @@ import {
   createTable,
   updateTable,
   deleteTable,
-  getTableStats,
 } from "../api/tables";
+import { useAuth } from "../hooks/useAuth";
 
 export const TableContext = createContext(null);
 
 export const TableProvider = ({ children }) => {
+  const { user } = useAuth();
+
   // Estado
   const [zones, setZones] = useState([]);
   const [tables, setTables] = useState([]);
-  const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Cargar zonas, mesas y estadísticas al iniciar
+  // Cargar zonas y mesas solo cuando haya usuario autenticado
   useEffect(() => {
+    if (!user) {
+      setZones([]);
+      setTables([]);
+      return;
+    }
+
     const loadInitialData = async () => {
       setLoading(true);
       try {
-        const [zonesRes, tablesRes, statsRes] = await Promise.all([
+        const [zonesRes, tablesRes] = await Promise.all([
           getZones(),
           getTables(),
-          getTableStats(),
         ]);
 
         const zonesData =
           zonesRes.data?.data?.zones || zonesRes.data?.zones || [];
         const tablesData =
           tablesRes.data?.data?.tables || tablesRes.data?.tables || [];
-        const statsData =
-          statsRes.data?.data?.statistics ||
-          statsRes.data?.statistics ||
-          statsRes.data ||
-          null;
 
         setZones(zonesData);
         setTables(tablesData);
-        setStats(statsData);
       } catch (err) {
         console.error("Error al cargar datos de mesas:", err);
         setError("Error al cargar zonas y mesas");
@@ -58,7 +58,7 @@ export const TableProvider = ({ children }) => {
     };
 
     loadInitialData();
-  }, []);
+  }, [user]);
 
   // ============================================================
   // 🏢 ZONAS
@@ -311,30 +311,6 @@ export const TableProvider = ({ children }) => {
   };
 
   // ============================================================
-  // 📊 ESTADÍSTICAS
-  // ============================================================
-
-  const fetchTableStatistics = async () => {
-    try {
-      setError(null);
-      const response = await getTableStats();
-      const statsData =
-        response.data?.data?.statistics ||
-        response.data?.statistics ||
-        response.data ||
-        null;
-      setStats(statsData);
-      return { success: true, data: statsData };
-    } catch (err) {
-      const errorData = err.response?.data || {};
-      const message =
-        errorData.message || err.message || "Error al obtener estadísticas";
-      setError(message);
-      throw { message };
-    }
-  };
-
-  // ============================================================
   // 🔧 Utilidades
   // ============================================================
 
@@ -344,7 +320,6 @@ export const TableProvider = ({ children }) => {
     // Estado
     zones,
     tables,
-    stats,
     loading,
     error,
 
@@ -361,9 +336,6 @@ export const TableProvider = ({ children }) => {
     addTable,
     editTable,
     removeTable,
-
-    // Estadísticas
-    fetchTableStatistics,
 
     // Utilidades
     clearError,

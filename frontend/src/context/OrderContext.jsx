@@ -12,10 +12,6 @@ import {
   updateOrderPayment,
   cancelOrder,
   deleteOrder,
-  getOrderStats,
-  getOrderStatsByDate,
-  getOrderStatsByType,
-  getTopSellingItems,
 } from "../api/orders";
 
 export const OrderContext = createContext();
@@ -41,7 +37,6 @@ export function OrderProvider({ children }) {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [stats, setStats] = useState(null);
 
   // Helper: parsear error del backend (similar a AuthContext)
   const parseApiError = (err, fallback) => {
@@ -85,7 +80,7 @@ export function OrderProvider({ children }) {
   // ================= ÓRDENES =================
 
   const fetchOrders = async (params = {}) => {
-    // No llamar al backend si no hay usuario (para que /orders sea pública)
+    // No llamar al backend si no hay usuario
     if (!user) {
       setOrders([]);
       return;
@@ -106,7 +101,6 @@ export function OrderProvider({ children }) {
   };
 
   const fetchOrder = async (orderId) => {
-    // Sin usuario no tiene sentido pedir detalles al backend protegido
     if (!user) {
       throw { message: "Debes iniciar sesión para ver los detalles de la orden." };
     }
@@ -123,14 +117,13 @@ export function OrderProvider({ children }) {
       const parsed = parseApiError(err, "Error al cargar orden");
       setError(parsed.message);
       console.error("Error fetchOrder:", err);
-      throw parsed; // para SweetAlert en los componentes
+      throw parsed;
     } finally {
       setLoading(false);
     }
   };
 
   const addOrder = async (orderData) => {
-    // Bloqueo explícito si no hay usuario
     if (!user) {
       throw { message: "Debes iniciar sesión para confirmar tu pedido." };
     }
@@ -354,66 +347,6 @@ export function OrderProvider({ children }) {
     );
   };
 
-  // ================= ESTADÍSTICAS =================
-
-  const fetchOrderStats = async () => {
-    try {
-      setLoading(true);
-      const response = await getOrderStats();
-      setStats(response.data);
-      return response.data;
-    } catch (err) {
-      const parsed = parseApiError(err, "Error al cargar estadísticas");
-      setError(parsed.message);
-      console.error("Error fetchOrderStats:", err);
-      throw parsed;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchStatsByDate = async (params) => {
-    try {
-      const response = await getOrderStatsByDate(params);
-      return response.data;
-    } catch (err) {
-      const parsed = parseApiError(
-        err,
-        "Error al cargar estadísticas por fecha"
-      );
-      console.error("Error fetchStatsByDate:", err);
-      throw parsed;
-    }
-  };
-
-  const fetchStatsByType = async () => {
-    try {
-      const response = await getOrderStatsByType();
-      return response.data;
-    } catch (err) {
-      const parsed = parseApiError(
-        err,
-        "Error al cargar estadísticas por tipo"
-      );
-      console.error("Error fetchStatsByType:", err);
-      throw parsed;
-    }
-  };
-
-  const fetchTopSellingItems = async () => {
-    try {
-      const response = await getTopSellingItems();
-      return response.data;
-    } catch (err) {
-      const parsed = parseApiError(
-        err,
-        "Error al cargar productos más vendidos"
-      );
-      console.error("Error fetchTopSellingItems:", err);
-      throw parsed;
-    }
-  };
-
   const clearError = () => setError(null);
 
   const value = {
@@ -423,7 +356,6 @@ export function OrderProvider({ children }) {
     cart,
     loading,
     error,
-    stats,
 
     // Órdenes
     fetchOrders,
@@ -441,12 +373,6 @@ export function OrderProvider({ children }) {
     updateCartQuantity,
     clearCart,
     getCartTotal,
-
-    // Estadísticas
-    fetchOrderStats,
-    fetchStatsByDate,
-    fetchStatsByType,
-    fetchTopSellingItems,
 
     // Utilidades
     clearError,

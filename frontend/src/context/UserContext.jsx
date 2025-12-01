@@ -1,15 +1,25 @@
 // src/context/UserContext.jsx
 import { createContext, useState, useEffect } from "react";
 import api from "../api/auth";
+import { useAuth } from "../hooks/useAuth";
 
 export const UserContext = createContext(null);
 
 export const UserProvider = ({ children }) => {
+  const { user } = useAuth();
+
   const [users, setUsers] = useState([]);
   const [loadingUsers, setLoadingUsers] = useState(true);
   const [usersError, setUsersError] = useState(null);
 
   useEffect(() => {
+    // Si no hay usuario o no es admin, no pedimos la lista
+    if (!user || user.role !== "admin") {
+      setUsers([]);
+      setLoadingUsers(false);
+      return;
+    }
+
     const loadUsers = async () => {
       try {
         setLoadingUsers(true);
@@ -30,12 +40,16 @@ export const UserProvider = ({ children }) => {
     };
 
     loadUsers();
-  }, []);
+  }, [user]);
 
   const getUserById = (id) =>
     users.find((u) => String(u.id) === String(id)) || null;
 
   const refreshUsers = async () => {
+    if (!user || user.role !== "admin") {
+      throw new Error("No autorizado para recargar usuarios.");
+    }
+
     try {
       setLoadingUsers(true);
       setUsersError(null);
@@ -63,5 +77,9 @@ export const UserProvider = ({ children }) => {
     refreshUsers,
   };
 
-  return <UserContext.Provider value={value}>{children}</UserContext.Provider>;
+  return (
+  <UserContext.Provider value={value}>
+    {children}
+  </UserContext.Provider>) 
+  
 };

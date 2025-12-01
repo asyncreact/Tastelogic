@@ -18,8 +18,16 @@ const getImageUrl = (imageUrl) => {
 };
 
 const formatPrice = (price) => {
-  const n = parseFloat(price);
-  return isNaN(n) ? "0.00" : n.toFixed(2);
+  const n = Number(price) || 0;
+  return n
+    .toLocaleString("es-DO", {
+      style: "currency",
+      currency: "DOP",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })
+    .replace(/\s*/g, "")
+    .replace(/^DOP/, "RD$");
 };
 
 function MenuItemCard({ item }) {
@@ -27,34 +35,53 @@ function MenuItemCard({ item }) {
   const [showModal, setShowModal] = useState(false);
 
   const quantityInCart = cart.find((i) => i.id === item.id)?.quantity || 0;
+  const imageSrc = getImageUrl(item.image_url);
+
+  // Lógica para bloquear ítems
+  const isUnavailable =
+    !item.is_available ||
+    item.stock === 0 ||
+    item.category_is_disabled === true ||
+    item.category?.is_active === false;
+
+  const unavailableReason =
+    item.stock === 0
+      ? "Se acabaron las unidades"
+      : "No disponible por el momento";
 
   const handleAddToCart = () => {
+    if (isUnavailable) return;
     addToCart(item, 1);
     Swal.fire({
       icon: "success",
       title: "Agregado",
-      text: `${item.name} agregado al carrito`,
+      text: `${item.name} agregado a tu pedido`,
       timer: 1500,
       showConfirmButton: false,
     });
   };
 
-  const imageSrc = getImageUrl(item.image_url);
-
-  const handleOpenModal = () => setShowModal(true);
+  const handleOpenModal = () => {
+    if (isUnavailable) return;
+    setShowModal(true);
+  };
   const handleCloseModal = () => setShowModal(false);
 
   return (
     <>
-      {/* CARD CON HOVER */}
+      {/* CARD CON HOVER Y ESTADO BLOQUEADO */}
       <Card
-        className="border-0 shadow-sm mb-3"
+        className={`border-0 shadow-sm mb-3 ${
+          isUnavailable ? "bg-light text-muted" : ""
+        }`}
         style={{
-          cursor: "pointer",
+          cursor: isUnavailable ? "not-allowed" : "pointer",
           transition: "box-shadow 0.15s ease, transform 0.15s ease",
+          opacity: isUnavailable ? 0.6 : 1,
         }}
         onClick={handleOpenModal}
         onMouseEnter={(e) => {
+          if (isUnavailable) return;
           e.currentTarget.style.boxShadow = "0 8px 16px rgba(0,0,0,0.12)";
           e.currentTarget.style.transform = "translateY(-2px)";
         }}
@@ -75,6 +102,7 @@ function MenuItemCard({ item }) {
                 objectFit: "cover",
                 borderRadius: 8,
                 marginRight: 12,
+                filter: isUnavailable ? "grayscale(1)" : "none",
               }}
               onError={(e) => {
                 e.target.src = "https://via.placeholder.com/56?text=Sin+Img";
@@ -94,14 +122,22 @@ function MenuItemCard({ item }) {
             </div>
           )}
 
-          {/* Texto en columna */}
+          {/* Texto en columna: Nombre -> Precio -> Descripción -> Estado si no disponible */}
           <div className="flex-grow-1">
+            {/* 1. Nombre */}
             <div className="fw-semibold">{item.name}</div>
-            <div className="small text-muted">
-              {item.description || item.name} · {formatPrice(item.price)}
-            </div>
+
+            {/* 2. Precio */}
+            <div className="small">{formatPrice(item.price)}</div>
+
+            {/* 3. Descripción */}
+            {item.description && (
+              <div className="small text-muted">{item.description}</div>
+            )}
+
+            {/* Estado solo si NO disponible */}
             <div className="small">
-              {item.is_available ? "Disponible" : "No disponible"}
+              {isUnavailable && unavailableReason}
             </div>
           </div>
 
@@ -111,12 +147,12 @@ function MenuItemCard({ item }) {
               position: "relative",
               flexShrink: 0,
             }}
-            onClick={(e) => e.stopPropagation()} // evitar abrir modal al usar el botón
+            onClick={(e) => e.stopPropagation()}
           >
             <Button
               variant="outline-secondary"
               onClick={handleAddToCart}
-              disabled={!item.is_available}
+              disabled={isUnavailable}
               className="d-flex align-items-center justify-content-center"
               style={{
                 width: 28,
@@ -194,6 +230,11 @@ function MenuItemCard({ item }) {
           )}
 
           <p className="mb-2">
+            <strong>Precio: </strong>
+            {formatPrice(item.price)}
+          </p>
+
+          <p className="mb-2">
             <strong>Descripción: </strong>
             {item.description || "Sin descripción"}
           </p>
@@ -212,14 +253,12 @@ function MenuItemCard({ item }) {
             </p>
           )}
 
-          <p className="mb-2">
-            <strong>Precio: </strong>${formatPrice(item.price)}
-          </p>
-
-          <p className="mb-0">
-            <strong>Estado: </strong>
-            {item.is_available ? "Disponible" : "No disponible"}
-          </p>
+          {isUnavailable && (
+            <p className="mb-0">
+              <strong>Estado: </strong>
+              {unavailableReason}
+            </p>
+          )}
         </Modal.Body>
 
         <Modal.Footer>
@@ -232,7 +271,7 @@ function MenuItemCard({ item }) {
               handleAddToCart();
               handleCloseModal();
             }}
-            disabled={!item.is_available}
+            disabled={isUnavailable}
           >
             Añadir al carrito
           </Button>

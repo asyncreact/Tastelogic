@@ -10,10 +10,6 @@ import {
   deleteReservation,
   checkTableAvailability,
   getAvailableTablesByZone,
-  getReservationStatistics,
-  getReservationStatisticsByDate,
-  getReservationStatisticsByZone,
-  getReservationStatisticsByStatus,
   getActiveFutureReservationByUserId,
   getActiveReservationByUserId,
 } from "../repositories/reservation.repository.js";
@@ -50,14 +46,25 @@ const MONTHS_ES = [
   "diciembre",
 ];
 
-const formatLocalDateEs = (isoDate) => {
-  if (!isoDate) return "";
-  const [year, month, day] = isoDate.split("-").map(Number);
-  const d = new Date(year, month - 1, day); // fecha local sin offset UTC
-  const weekday = WEEKDAYS_ES[d.getDay()];
-  const monthName = MONTHS_ES[d.getMonth()];
-  return `${weekday}, ${day} de ${monthName}${year ? ` de ${year}` : ""}`;
-};
+  const formatLocalDateEs = (isoDate) => {
+    if (!isoDate) return "";
+
+    // Si viene como Date, conviértelo a YYYY-MM-DD
+    if (isoDate instanceof Date) {
+      const year = isoDate.getFullYear();
+      const month = String(isoDate.getMonth() + 1).padStart(2, "0");
+      const day = String(isoDate.getDate()).padStart(2, "0");
+      isoDate = `${year}-${month}-${day}`;
+    }
+
+    if (typeof isoDate !== "string") return "";
+
+    const [year, month, day] = isoDate.split("-").map(Number);
+    const d = new Date(year, month - 1, day); // fecha local sin offset UTC
+    const weekday = WEEKDAYS_ES[d.getDay()];
+    const monthName = MONTHS_ES[d.getMonth()];
+    return `${weekday}, ${day} de ${monthName}${year ? ` de ${year}` : ""}`;
+  };
 
 /* RESERVAS */
 
@@ -922,120 +929,6 @@ export const removeReservation = async (req, res, next) => {
     return successResponse(
       res,
       "Tu reserva ha sido eliminada permanentemente"
-    );
-  } catch (err) {
-    next(err);
-  }
-};
-
-/* Obtiene estadísticas generales de reservas */
-export const reservationStats = async (req, res, next) => {
-  try {
-    const filters = {};
-    if (req.query.zone_id) {
-      filters.zone_id = Number(req.query.zone_id);
-    }
-    if (req.query.reservation_date) {
-      filters.reservation_date = req.query.reservation_date;
-    }
-
-    const stats = await getReservationStatistics(filters);
-
-    if (!stats || Object.keys(stats).length === 0) {
-      const error = new Error(
-        "No hay datos disponibles para mostrar estadísticas"
-      );
-      error.status = 404;
-      throw error;
-    }
-
-    return successResponse(res, "Estadísticas generadas correctamente", {
-      statistics: stats,
-    });
-  } catch (err) {
-    next(err);
-  }
-};
-
-/* Obtiene estadísticas de reservas por fecha */
-export const reservationStatsByDate = async (req, res, next) => {
-  try {
-    const filters = {};
-    if (req.query.zone_id) {
-      filters.zone_id = Number(req.query.zone_id);
-    }
-
-    const stats = await getReservationStatisticsByDate(filters);
-
-    if (!stats || stats.length === 0) {
-      const error = new Error(
-        "No hay datos disponibles para mostrar estadísticas por fecha"
-      );
-      error.status = 404;
-      throw error;
-    }
-
-    return successResponse(
-      res,
-      `Estadísticas generadas: ${stats.length} período${
-        stats.length > 1 ? "s" : ""
-      }`,
-      { statistics: stats, count: stats.length }
-    );
-  } catch (err) {
-    next(err);
-  }
-};
-
-/* Obtiene estadísticas de reservas por zona */
-export const reservationStatsByZone = async (req, res, next) => {
-  try {
-    const stats = await getReservationStatisticsByZone();
-
-    if (!stats || stats.length === 0) {
-      const error = new Error(
-        "No hay datos disponibles para mostrar estadísticas por zona"
-      );
-      error.status = 404;
-      throw error;
-    }
-
-    return successResponse(
-      res,
-      `Estadísticas generadas: ${stats.length} zona${
-        stats.length > 1 ? "s" : ""
-      }`,
-      { statistics: stats, count: stats.length }
-    );
-  } catch (err) {
-    next(err);
-  }
-};
-
-/* Obtiene estadísticas de reservas por estado */
-export const reservationStatsByStatus = async (req, res, next) => {
-  try {
-    const filters = {};
-    if (req.query.zone_id) {
-      filters.zone_id = Number(req.query.zone_id);
-    }
-
-    const stats = await getReservationStatisticsByStatus(filters);
-
-    if (!stats || stats.length === 0) {
-      const error = new Error(
-        "No hay datos disponibles para mostrar estadísticas por estado"
-      );
-      error.status = 404;
-      throw error;
-    }
-
-    return successResponse(
-      res,
-      `Estadísticas generadas: ${stats.length} estado${
-        stats.length > 1 ? "s" : ""
-      }`,
-      { statistics: stats, count: stats.length }
     );
   } catch (err) {
     next(err);

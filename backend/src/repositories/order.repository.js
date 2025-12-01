@@ -65,7 +65,6 @@ export const getOrderById = async (id) => {
     const numId = Number(id);
     if (isNaN(numId) || numId <= 0) throw new Error("ID de pedido inválido");
 
-    // Obtener información del pedido
     const orderQuery = `
       SELECT 
         o.id,
@@ -95,12 +94,11 @@ export const getOrderById = async (id) => {
     `;
 
     const orderResult = await pool.query(orderQuery, [numId]);
-    
+
     if (orderResult.rows.length === 0) return null;
 
     const order = orderResult.rows[0];
 
-    // Obtener items del pedido
     const itemsQuery = `
       SELECT 
         oi.id,
@@ -143,13 +141,12 @@ export const createOrder = async ({
   payment_method = null,
   payment_status = "pending",
   special_instructions = null,
-  items = [], // Array de items: [{menu_item_id, quantity, unit_price, subtotal, special_notes}]
+  items = [],
 }) => {
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
 
-    // Crear pedido principal
     const orderQuery = `
       INSERT INTO public.orders 
       (user_id, reservation_id, table_id, order_type, total_amount, status, payment_method, payment_status, special_instructions)
@@ -171,7 +168,6 @@ export const createOrder = async ({
 
     const order = orderResult.rows[0];
 
-    // Insertar items del pedido si existen
     if (items && items.length > 0) {
       const itemsQuery = `
         INSERT INTO public.order_items 
@@ -264,7 +260,14 @@ export const updateOrderStatus = async (id, status) => {
     const numId = Number(id);
     if (isNaN(numId) || numId <= 0) throw new Error("ID de pedido inválido");
 
-    const validStatuses = ["pending", "confirmed", "preparing", "ready", "completed", "cancelled"];
+    const validStatuses = [
+      "pending",
+      "confirmed",
+      "preparing",
+      "ready",
+      "completed",
+      "cancelled",
+    ];
     if (!validStatuses.includes(status)) {
       throw new Error(
         `Estado inválido. Debe ser uno de: ${validStatuses.join(", ")}`
@@ -379,131 +382,6 @@ export const deleteOrder = async (id) => {
     return { message: "Pedido eliminado correctamente" };
   } catch (error) {
     console.error("Error en deleteOrder:", error);
-    throw error;
-  }
-};
-
-/**
- * ESTADÍSTICAS DE PEDIDOS
- */
-
-export const getOrderStatistics = async (filters = {}) => {
-  try {
-    let whereClause = "WHERE 1=1";
-    const params = [];
-    let paramIndex = 1;
-
-    if (filters.order_date) {
-      whereClause += ` AND DATE(order_date) = $${paramIndex}`;
-      params.push(filters.order_date);
-      paramIndex++;
-    }
-
-    if (filters.order_type) {
-      whereClause += ` AND order_type = $${paramIndex}`;
-      params.push(filters.order_type);
-      paramIndex++;
-    }
-
-    const query = `
-      SELECT 
-        COUNT(*) as total_orders,
-        SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed_count,
-        SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending_count,
-        SUM(CASE WHEN status = 'preparing' THEN 1 ELSE 0 END) as preparing_count,
-        SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) as cancelled_count,
-        SUM(CASE WHEN payment_status = 'paid' THEN total_amount ELSE 0 END)::DECIMAL(10,2) as total_revenue,
-        AVG(total_amount)::DECIMAL(10,2) as avg_order_amount
-      FROM public.orders
-      ${whereClause}
-    `;
-
-    const result = await pool.query(query, params);
-    return result.rows[0];
-  } catch (error) {
-    console.error("Error en getOrderStatistics:", error);
-    throw error;
-  }
-};
-
-export const getOrderStatisticsByDate = async (filters = {}) => {
-  try {
-    let whereClause = "WHERE 1=1";
-    const params = [];
-    let paramIndex = 1;
-
-    if (filters.order_type) {
-      whereClause += ` AND order_type = $${paramIndex}`;
-      params.push(filters.order_type);
-      paramIndex++;
-    }
-
-    const query = `
-      SELECT 
-        DATE(order_date) as date,
-        COUNT(*) as total_orders,
-        SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed_count,
-        SUM(CASE WHEN payment_status = 'paid' THEN total_amount ELSE 0 END)::DECIMAL(10,2) as total_revenue
-      FROM public.orders
-      ${whereClause}
-      GROUP BY DATE(order_date)
-      ORDER BY DATE(order_date) DESC
-    `;
-
-    const result = await pool.query(query, params);
-    return result.rows;
-  } catch (error) {
-    console.error("Error en getOrderStatisticsByDate:", error);
-    throw error;
-  }
-};
-
-export const getOrderStatisticsByType = async () => {
-  try {
-    const query = `
-      SELECT 
-        order_type,
-        COUNT(*) as total_count,
-        SUM(total_amount)::DECIMAL(10,2) as total_revenue
-      FROM public.orders
-      WHERE status = 'completed'
-      GROUP BY order_type
-      ORDER BY total_count DESC
-    `;
-
-    const result = await pool.query(query);
-    return result.rows;
-  } catch (error) {
-    console.error("Error en getOrderStatisticsByType:", error);
-    throw error;
-  }
-};
-
-export const getTopSellingItems = async (limit = 10) => {
-  try {
-    const query = `
-      SELECT 
-        mi.id,
-        mi.name,
-        mi.category_id,
-        mc.name as category_name,
-        SUM(oi.quantity) as total_quantity_sold,
-        COUNT(DISTINCT oi.order_id) as number_of_orders,
-        SUM(oi.subtotal)::DECIMAL(10,2) as total_revenue
-      FROM public.order_items oi
-      JOIN public.menu_items mi ON oi.menu_item_id = mi.id
-      LEFT JOIN public.menu_categories mc ON mi.category_id = mc.id
-      JOIN public.orders o ON oi.order_id = o.id
-      WHERE o.status = 'completed'
-      GROUP BY mi.id, mi.name, mi.category_id, mc.name
-      ORDER BY total_quantity_sold DESC
-      LIMIT $1
-    `;
-
-    const result = await pool.query(query, [limit]);
-    return result.rows;
-  } catch (error) {
-    console.error("Error en getTopSellingItems:", error);
     throw error;
   }
 };

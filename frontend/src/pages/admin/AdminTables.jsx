@@ -56,7 +56,7 @@ function AdminTable() {
   const [showTableModal, setShowTableModal] = useState(false);
   const [editingTable, setEditingTable] = useState(null);
   const [tableForm, setTableForm] = useState({
-    table_number: "",
+    // table_number se usará solo al editar
     capacity: 2,
     zone_id: "",
     status: "available",
@@ -176,7 +176,7 @@ function AdminTable() {
   const handleZoneChange = (e) => {
     const { name, value, type, checked, files } = e.target;
 
-    if (type === "checkbox") {
+    if (type === "checkbox" || type === "switch") {
       setZoneForm((prev) => ({ ...prev, [name]: checked }));
     } else if (type === "file") {
       const file = files?.[0] || null;
@@ -201,10 +201,10 @@ function AdminTable() {
     e.preventDefault();
     try {
       if (editingZone) {
-        await editZone(editingZone.id, zoneForm); // objeto plano
+        await editZone(editingZone.id, zoneForm);
         showSuccessToast("Zona actualizada correctamente");
       } else {
-        await addZone(zoneForm);                  // objeto plano
+        await addZone(zoneForm);
         showSuccessToast("Zona creada correctamente");
       }
       handleCloseZoneModal();
@@ -240,7 +240,7 @@ function AdminTable() {
   const handleOpenCreateTable = () => {
     setEditingTable(null);
     setTableForm({
-      table_number: "",
+      // sin table_number: lo genera el backend si se omite
       capacity: 2,
       zone_id: zones[0]?.id || "",
       status: "available",
@@ -265,7 +265,7 @@ function AdminTable() {
     setShowTableModal(false);
     setEditingTable(null);
     setTableForm({
-      table_number: "",
+      // sin table_number por defecto
       capacity: 2,
       zone_id: "",
       status: "available",
@@ -276,7 +276,7 @@ function AdminTable() {
 
   const handleTableChange = (e) => {
     const { name, value, type, checked } = e.target;
-    if (type === "checkbox") {
+    if (type === "checkbox" || type === "switch") {
       setTableForm((prev) => ({ ...prev, [name]: checked }));
     } else if (name === "capacity") {
       setTableForm((prev) => ({ ...prev, [name]: Number(value) || 0 }));
@@ -288,11 +288,17 @@ function AdminTable() {
   const handleSubmitTable = async (e) => {
     e.preventDefault();
     try {
+      // construir payload para no enviar table_number vacío
+      const payload = { ...tableForm };
+      if (!payload.table_number) {
+        delete payload.table_number;
+      }
+
       if (editingTable) {
-        await editTable(editingTable.id, tableForm);
+        await editTable(editingTable.id, payload);
         showSuccessToast("Mesa actualizada correctamente");
       } else {
-        await addTable(tableForm);
+        await addTable(payload);
         showSuccessToast("Mesa creada correctamente");
       }
       handleCloseTableModal();
@@ -543,7 +549,7 @@ function AdminTable() {
 
             <Form.Group className="mb-3">
               <Form.Check
-                type="checkbox"
+                type="switch"
                 label="Zona activa"
                 name="is_active"
                 checked={zoneForm.is_active}
@@ -606,10 +612,14 @@ function AdminTable() {
               <Form.Label>Número de mesa</Form.Label>
               <Form.Control
                 name="table_number"
-                value={tableForm.table_number}
+                value={tableForm.table_number || ""}
                 onChange={handleTableChange}
-                placeholder="Ej: 1, 2, 10A"
-                required
+                placeholder={
+                  editingTable
+                    ? "Ej: 1, 2, 10A"
+                    : "Se generará automáticamente si lo dejas vacío"
+                }
+                required={!!editingTable}
               />
             </Form.Group>
 
@@ -655,7 +665,7 @@ function AdminTable() {
 
             <Form.Group className="mb-3">
               <Form.Check
-                type="checkbox"
+                type="switch"
                 label="Mesa activa"
                 name="is_active"
                 checked={tableForm.is_active}

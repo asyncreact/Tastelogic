@@ -11,11 +11,7 @@ import {
   updateStatus,
   cancelReservationHandler,
   removeReservation,
-  reservationStats,
-  reservationStatsByDate,
-  reservationStatsByZone,
-  reservationStatsByStatus,
-  getMyActiveReservation, // ✅ nuevo
+  getMyActiveReservation,
 } from "../controllers/reservation.controller.js";
 
 import { authenticate, authorizeRoles } from "../middleware/auth.middleware.js";
@@ -41,39 +37,9 @@ router.post(
   checkAvailability
 );
 
-/* ESTADÍSTICAS - SOLO ADMIN (Deben ir antes de /:reservation_id) */
-
-router.get(
-  "/statistics/general",
-  authenticate,
-  authorizeRoles("admin"),
-  reservationStats
-);
-
-router.get(
-  "/statistics/by-date",
-  authenticate,
-  authorizeRoles("admin"),
-  reservationStatsByDate
-);
-
-router.get(
-  "/statistics/by-zone",
-  authenticate,
-  authorizeRoles("admin"),
-  reservationStatsByZone
-);
-
-router.get(
-  "/statistics/by-status",
-  authenticate,
-  authorizeRoles("admin"),
-  reservationStatsByStatus
-);
-
 /* RUTAS AUTENTICADAS CON NOMBRES ESPECÍFICOS (Antes de /:reservation_id) */
 
-// ✅ NUEVA: obtener la reserva activa de hoy del usuario logueado
+// Reserva activa de hoy del usuario logueado
 router.get(
   "/me/active",
   authenticate,

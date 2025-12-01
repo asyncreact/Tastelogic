@@ -1,3 +1,4 @@
+// src/pages/Menu.jsx
 import { useEffect, useState, useMemo } from "react";
 import {
   Container,
@@ -46,7 +47,8 @@ function Menu() {
         (item.ingredients &&
           item.ingredients.toLowerCase().includes(searchLower));
 
-      return matchesCategory && matchesSearch && item.is_available;
+      // 👇 ya no filtramos por item.is_available
+      return matchesCategory && matchesSearch;
     });
   }, [items, searchTerm, selectedCategory]);
 
@@ -121,6 +123,17 @@ function Menu() {
           </Form.Select>
         </Col>
       </Row>
+
+      {/* Errores globales */}
+      {error && (
+        <Row className="mb-3">
+          <Col>
+            <Alert variant="danger" className="mb-0">
+              {error}
+            </Alert>
+          </Col>
+        </Row>
+      )}
 
       {/* Listado */}
       {filteredItems.length === 0 ? (

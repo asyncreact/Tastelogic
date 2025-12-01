@@ -21,7 +21,9 @@ const validateNumber = (value, fieldName, allowNegative = false) => {
   const num = Number(value);
   if (isNaN(num) || (!allowNegative && num < 0)) {
     throw new Error(
-      `${fieldName} debe ser un número válido ${allowNegative ? "" : "no negativo"}`
+      `${fieldName} debe ser un número válido ${
+        allowNegative ? "" : "no negativo"
+      }`
     );
   }
   return num;
@@ -96,7 +98,9 @@ const TABLE_VALIDATORS = {
     const validStatuses = ["available", "reserved"];
     if (!validStatuses.includes(value)) {
       throw new Error(
-        `Estado inválido: ${value}. Debe ser uno de: ${validStatuses.join(", ")}`
+        `Estado inválido: ${value}. Debe ser uno de: ${validStatuses.join(
+          ", "
+        )}`
       );
     }
     return value;
@@ -160,7 +164,9 @@ export const getTables = async (filters = {}) => {
       const validStatuses = ["available", "reserved"];
       if (!validStatuses.includes(filters.status)) {
         throw new Error(
-          `Estado inválido: ${filters.status}. Debe ser uno de: ${validStatuses.join(", ")}`
+          `Estado inválido: ${filters.status}. Debe ser uno de: ${validStatuses.join(
+            ", "
+          )}`
         );
       }
       query += ` AND t.status = $${paramCount}`;
@@ -316,30 +322,6 @@ export const deleteTable = async (id) => {
   }
 };
 
-// Obtiene estadísticas generales de mesas
-export const getTableStatistics = async () => {
-  try {
-    const query = `
-      SELECT
-        COUNT(*) as total_tables,
-        COUNT(CASE WHEN status = 'available' THEN 1 END) as available_count,
-        COUNT(CASE WHEN status = 'reserved' THEN 1 END) as reserved_count,
-        AVG(capacity)::INTEGER as avg_capacity,
-        SUM(capacity) as total_capacity,
-        MIN(capacity) as min_capacity,
-        MAX(capacity) as max_capacity
-      FROM public.tables
-      WHERE is_active = true;
-    `;
-
-    const { rows } = await pool.query(query);
-    return rows[0] || {};
-  } catch (error) {
-    console.error("Error al obtener estadísticas de mesas:", error);
-    throw error;
-  }
-};
-
 // Actualiza el estado de una mesa
 export const updateTableStatus = async (table_id, status) => {
   try {
@@ -349,7 +331,9 @@ export const updateTableStatus = async (table_id, status) => {
     const validStatuses = ["available", "reserved"];
     if (!validStatuses.includes(status)) {
       throw new Error(
-        `Estado inválido: ${status}. Debe ser uno de: ${validStatuses.join(", ")}`
+        `Estado inválido: ${status}. Debe ser uno de: ${validStatuses.join(
+          ", "
+        )}`
       );
     }
 
@@ -361,7 +345,7 @@ export const updateTableStatus = async (table_id, status) => {
     `;
 
     const { rows } = await pool.query(query, [status, validatedTableId]);
-    
+
     if (rows.length === 0) {
       throw new Error("Mesa no encontrada");
     }

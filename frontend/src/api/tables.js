@@ -33,10 +33,9 @@ export const updateZone = (zoneId, data) => {
 
 export const deleteZone = (zoneId) => api.delete(`/zones/${zoneId}`);
 
-// 🪑 MESAS (igual que ya tienes)
+// 🪑 MESAS
 export const getTables = () => api.get('/tables');
 export const getTable = (tableId) => api.get(`/tables/${tableId}`);
 export const createTable = (data) => api.post('/tables', data);
 export const updateTable = (tableId, data) => api.put(`/tables/${tableId}`, data);
 export const deleteTable = (tableId) => api.delete(`/tables/${tableId}`);
-export const getTableStats = () => api.get('/tables/statistics');

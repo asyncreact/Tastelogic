@@ -55,7 +55,7 @@ export const getReservations = async (filters = {}) => {
         r.special_requirements,
         r.created_at,
         r.updated_at,
-        r.reservation_number,       -- 👈 nuevo campo
+        r.reservation_number,
         z.name AS zone_name,
         t.table_number
       FROM public.reservations r
@@ -92,7 +92,7 @@ export const getReservationById = async (id) => {
         r.special_requirements,
         r.created_at,
         r.updated_at,
-        r.reservation_number,       -- 👈 nuevo campo
+        r.reservation_number,
         u.name as user_name,
         u.email as user_email,
         z.name as zone_name,
@@ -151,7 +151,7 @@ export const createReservation = async ({
       throw new Error("Mesa no disponible en esa fecha y hora");
     }
 
-    // Crear reserva (reservation_number lo genera el trigger en la DB)
+    // Crear reserva
     const insertQuery = `
       INSERT INTO public.reservations
         (user_id, zone_id, table_id, reservation_date, reservation_time, guest_count, status, special_requirements)
@@ -464,7 +464,9 @@ export const getActiveFutureReservationByUserId = async (user_id) => {
 export const getAvailableTablesByZone = async (zone_id, guest_count) => {
   try {
     const query = `
-      SELECT t.*, z.name AS zone_name
+      SELECT 
+        t.*,
+        z.name AS zone_name
       FROM public.tables t
       LEFT JOIN public.zones z ON t.zone_id = z.id
       WHERE t.zone_id = $1
@@ -478,134 +480,6 @@ export const getAvailableTablesByZone = async (zone_id, guest_count) => {
     return rows;
   } catch (error) {
     console.error("Error al obtener mesas disponibles por zona:", error);
-    throw error;
-  }
-};
-
-/**
- * ESTADÍSTICAS
- */
-
-export const getReservationStatistics = async (filters = {}) => {
-  try {
-    let whereClause = "WHERE 1=1";
-    const params = [];
-    let paramIndex = 1;
-
-    if (filters.zone_id) {
-      whereClause += ` AND zone_id = $${paramIndex}`;
-      params.push(filters.zone_id);
-      paramIndex++;
-    }
-
-    if (filters.reservation_date) {
-      whereClause += ` AND DATE(reservation_date) = $${paramIndex}`;
-      params.push(filters.reservation_date);
-      paramIndex++;
-    }
-
-    const query = `
-      SELECT
-        COUNT(*) as total_reservations,
-        SUM(CASE WHEN status = 'confirmed' THEN 1 ELSE 0 END) as confirmed_count,
-        SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending_count,
-        SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed_count,
-        SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) as cancelled_count,
-        SUM(guest_count) as total_guests,
-        AVG(guest_count)::DECIMAL(10,2) as avg_guests
-      FROM public.reservations
-      ${whereClause}
-    `;
-
-    const result = await pool.query(query, params);
-    return result.rows[0];
-  } catch (error) {
-    console.error("Error en getReservationStatistics:", error);
-    throw error;
-  }
-};
-
-export const getReservationStatisticsByDate = async (filters = {}) => {
-  try {
-    let whereClause = "WHERE 1=1";
-    const params = [];
-    let paramIndex = 1;
-
-    if (filters.zone_id) {
-      whereClause += ` AND zone_id = $${paramIndex}`;
-      params.push(filters.zone_id);
-      paramIndex++;
-    }
-
-    const query = `
-      SELECT
-        DATE(reservation_date) as date,
-        COUNT(*) as total_reservations,
-        SUM(CASE WHEN status = 'confirmed' THEN 1 ELSE 0 END) as confirmed_count,
-        SUM(guest_count) as total_guests
-      FROM public.reservations
-      ${whereClause}
-      GROUP BY DATE(reservation_date)
-      ORDER BY DATE(reservation_date) DESC
-    `;
-
-    const result = await pool.query(query, params);
-    return result.rows;
-  } catch (error) {
-    console.error("Error en getReservationStatisticsByDate:", error);
-    throw error;
-  }
-};
-
-export const getReservationStatisticsByZone = async () => {
-  try {
-    const query = `
-      SELECT
-        z.name as zone_name,
-        COUNT(*) as total_reservations,
-        SUM(CASE WHEN status = 'confirmed' THEN 1 ELSE 0 END) as confirmed_count,
-        SUM(guest_count) as total_guests
-      FROM public.reservations r
-      LEFT JOIN public.zones z ON r.zone_id = z.id
-      GROUP BY z.name
-      ORDER BY total_reservations DESC
-    `;
-
-    const result = await pool.query(query);
-    return result.rows;
-  } catch (error) {
-    console.error("Error en getReservationStatisticsByZone:", error);
-    throw error;
-  }
-};
-
-export const getReservationStatisticsByStatus = async (filters = {}) => {
-  try {
-    let whereClause = "WHERE 1=1";
-    const params = [];
-    let paramIndex = 1;
-
-    if (filters.zone_id) {
-      whereClause += ` AND zone_id = $${paramIndex}`;
-      params.push(filters.zone_id);
-      paramIndex++;
-    }
-
-    const query = `
-      SELECT
-        status,
-        COUNT(*) as total_count,
-        SUM(guest_count) as total_guests
-      FROM public.reservations
-      ${whereClause}
-      GROUP BY status
-      ORDER BY total_count DESC
-    `;
-
-    const result = await pool.query(query, params);
-    return result.rows;
-  } catch (error) {
-    console.error("Error en getReservationStatisticsByStatus:", error);
     throw error;
   }
 };

@@ -7,7 +7,6 @@ import {
   addTable,
   editTable,
   removeTable,
-  tableStats,
 } from "../controllers/table.controller.js";
 
 import { authenticate, authorizeRoles } from "../middleware/auth.middleware.js";
@@ -23,6 +22,8 @@ router.get("/public/all", listTable);
 router.get("/public/available", listTable);
 
 // Rutas protegidas con autenticación
+
+// Crear mesa
 router.post(
   "/",
   authenticate,
@@ -31,16 +32,15 @@ router.post(
   addTable
 );
 
-router.get("/", authenticate, authorizeRoles("admin", "customer"), listTable);
-
-// ✅ Mover la ruta de estadísticas arriba
+// Listar mesas (panel)
 router.get(
-  "/statistics",
+  "/",
   authenticate,
-  authorizeRoles("admin"),
-  tableStats
+  authorizeRoles("admin", "customer"),
+  listTable
 );
 
+// Obtener mesa por ID
 router.get(
   "/:table_id",
   authenticate,
@@ -48,6 +48,7 @@ router.get(
   showTable
 );
 
+// Actualizar mesa (PUT)
 router.put(
   "/:table_id",
   authenticate,
@@ -56,6 +57,7 @@ router.put(
   editTable
 );
 
+// Actualizar mesa (PATCH)
 router.patch(
   "/:table_id",
   authenticate,
@@ -64,6 +66,7 @@ router.patch(
   editTable
 );
 
+// Eliminar mesa
 router.delete(
   "/:table_id",
   authenticate,

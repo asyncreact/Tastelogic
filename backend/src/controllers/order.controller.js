@@ -9,10 +9,6 @@ import {
   updatePaymentStatus,
   cancelOrder,
   deleteOrder,
-  getOrderStatistics,
-  getOrderStatisticsByDate,
-  getOrderStatisticsByType,
-  getTopSellingItems,
 } from "../repositories/order.repository.js";
 import { getUserById } from "../repositories/user.repository.js";
 import { getTableById } from "../repositories/table.repository.js";
@@ -850,126 +846,6 @@ export const removeOrder = async (req, res, next) => {
     return successResponse(
       res,
       "Tu pedido ha sido eliminado permanentemente"
-    );
-  } catch (err) {
-    next(err);
-  }
-};
-
-/* Obtiene estadísticas generales de pedidos */
-export const orderStats = async (req, res, next) => {
-  try {
-    const filters = {};
-
-    if (req.query.order_date) {
-      filters.order_date = req.query.order_date;
-    }
-
-    if (req.query.order_type) {
-      filters.order_type = req.query.order_type;
-    }
-
-    const stats = await getOrderStatistics(filters);
-
-    if (!stats || Object.keys(stats).length === 0) {
-      const error = new Error(
-        "No hay datos disponibles para mostrar estadísticas"
-      );
-      error.status = 404;
-      throw error;
-    }
-
-    return successResponse(
-      res,
-      "Estadísticas generadas correctamente",
-      { statistics: stats }
-    );
-  } catch (err) {
-    next(err);
-  }
-};
-
-/* Obtiene estadísticas de pedidos por fecha */
-export const orderStatsByDate = async (req, res, next) => {
-  try {
-    const filters = {};
-
-    if (req.query.order_type) {
-      filters.order_type = req.query.order_type;
-    }
-
-    const stats = await getOrderStatisticsByDate(filters);
-
-    if (!stats || stats.length === 0) {
-      const error = new Error(
-        "No hay datos disponibles para mostrar estadísticas por fecha"
-      );
-      error.status = 404;
-      throw error;
-    }
-
-    return successResponse(
-      res,
-      `Estadísticas generadas: ${stats.length} período${
-        stats.length > 1 ? "s" : ""
-      }`,
-      { statistics: stats, count: stats.length }
-    );
-  } catch (err) {
-    next(err);
-  }
-};
-
-/* Obtiene estadísticas de pedidos por tipo */
-export const orderStatsByType = async (req, res, next) => {
-  try {
-    const stats = await getOrderStatisticsByType();
-
-    if (!stats || stats.length === 0) {
-      const error = new Error(
-        "No hay datos disponibles para mostrar estadísticas por tipo"
-      );
-      error.status = 404;
-      throw error;
-    }
-
-    return successResponse(
-      res,
-      `Estadísticas generadas: ${stats.length} tipo${
-        stats.length > 1 ? "s" : ""
-      }`,
-      { statistics: stats, count: stats.length }
-    );
-  } catch (err) {
-    next(err);
-  }
-};
-
-/* Obtiene los items más vendidos */
-export const topSellingItems = async (req, res, next) => {
-  try {
-    const limit = req.query.limit ? Number(req.query.limit) : 10;
-
-    if (isNaN(limit) || limit < 1 || limit > 100) {
-      const error = new Error("El límite debe estar entre 1 y 100");
-      error.status = 400;
-      throw error;
-    }
-
-    const items = await getTopSellingItems(limit);
-
-    if (!items || items.length === 0) {
-      const error = new Error(
-        "No hay datos disponibles para mostrar items más vendidos"
-      );
-      error.status = 404;
-      throw error;
-    }
-
-    return successResponse(
-      res,
-      `Top ${items.length} items más vendidos`,
-      { items, count: items.length }
     );
   } catch (err) {
     next(err);
