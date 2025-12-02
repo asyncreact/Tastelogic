@@ -1,5 +1,7 @@
 // context/TableContext.jsx
+
 import { createContext, useState, useEffect } from "react";
+
 import {
   getZones,
   getZone,
@@ -12,6 +14,7 @@ import {
   updateTable,
   deleteTable,
 } from "../api/tables";
+
 import { useAuth } from "../hooks/useAuth";
 
 export const TableContext = createContext(null);
@@ -27,12 +30,14 @@ export const TableProvider = ({ children }) => {
 
   /* Cargar datos iniciales solo si el usuario no es customer */
   useEffect(() => {
+    // Sin usuario: limpiar y salir
     if (!user) {
       setZones([]);
       setTables([]);
       return;
     }
 
+    // Usuario tipo customer: no cargar nada
     if (user.role === "customer") {
       setZones([]);
       setTables([]);
@@ -47,7 +52,6 @@ export const TableProvider = ({ children }) => {
           getTables(),
         ]);
 
-        /* Compatibilidad con distintas estructuras de respuesta */
         const zonesData =
           zonesRes.data?.data?.zones || zonesRes.data?.zones || [];
         const tablesData =
@@ -72,11 +76,14 @@ export const TableProvider = ({ children }) => {
       if (!user || user.role === "customer") {
         return { success: false, data: [] };
       }
+
       setError(null);
       setLoading(true);
+
       const response = await getZones();
       const zonesData =
         response.data?.data?.zones || response.data?.zones || [];
+
       setZones(zonesData);
       return { success: true, data: zonesData };
     } catch (err) {
@@ -96,6 +103,7 @@ export const TableProvider = ({ children }) => {
       if (!user || user.role === "customer") {
         return { success: false, data: null };
       }
+
       setError(null);
       const response = await getZone(zoneId);
       const zoneData = response.data?.data?.zone || response.data?.zone;
@@ -115,6 +123,7 @@ export const TableProvider = ({ children }) => {
       if (!user || user.role === "customer") {
         return { success: false };
       }
+
       setError(null);
       const response = await createZone(data);
       const zoneData = response.data?.data?.zone || response.data?.zone;
@@ -151,6 +160,7 @@ export const TableProvider = ({ children }) => {
       if (!user || user.role === "customer") {
         return { success: false };
       }
+
       setError(null);
       const response = await updateZone(zoneId, data);
       const zoneData = response.data?.data?.zone || response.data?.zone;
@@ -190,6 +200,7 @@ export const TableProvider = ({ children }) => {
       if (!user || user.role === "customer") {
         return { success: false };
       }
+
       setError(null);
       const response = await deleteZone(zoneId);
       const message =
@@ -213,11 +224,14 @@ export const TableProvider = ({ children }) => {
       if (!user || user.role === "customer") {
         return { success: false, data: [] };
       }
+
       setError(null);
       setLoading(true);
+
       const response = await getTables();
       const tablesData =
         response.data?.data?.tables || response.data?.tables || [];
+
       setTables(tablesData);
       return { success: true, data: tablesData };
     } catch (err) {
@@ -237,6 +251,7 @@ export const TableProvider = ({ children }) => {
       if (!user || user.role === "customer") {
         return { success: false, data: null };
       }
+
       setError(null);
       const response = await getTable(tableId);
       const tableData = response.data?.data?.table || response.data?.table;
@@ -256,6 +271,7 @@ export const TableProvider = ({ children }) => {
       if (!user || user.role === "customer") {
         return { success: false };
       }
+
       setError(null);
       const response = await createTable(tableDataInput);
       const tableData = response.data?.data?.table || response.data?.table;
@@ -292,6 +308,7 @@ export const TableProvider = ({ children }) => {
       if (!user || user.role === "customer") {
         return { success: false };
       }
+
       setError(null);
       const response = await updateTable(tableId, data);
       const tableData = response.data?.data?.table || response.data?.table;
@@ -331,6 +348,7 @@ export const TableProvider = ({ children }) => {
       if (!user || user.role === "customer") {
         return { success: false };
       }
+
       setError(null);
       const response = await deleteTable(tableId);
       const message =

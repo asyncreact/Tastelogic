@@ -125,7 +125,6 @@ function ResetPassword() {
 
   return (
     <div className="d-flex align-items-center justify-content-center min-vh-100 position-relative bg-light">
-
       <Container>
         <Row className="justify-content-center">
           <Col xs={12} sm={10} md={6} lg={5} xl={4}>

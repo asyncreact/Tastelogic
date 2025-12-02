@@ -15,7 +15,6 @@ import Swal from "sweetalert2";
 import withReactContent from "sweetalert2-react-content";
 import { Eye, EyeSlash } from "react-bootstrap-icons";
 
-
 const MySwal = withReactContent(Swal);
 
 function Login() {
@@ -102,7 +101,6 @@ function Login() {
 
   return (
     <div className="d-flex align-items-center justify-content-center min-vh-100 position-relative bg-light">
-
       <Container>
         <Row className="justify-content-center">
           <Col xs={12} sm={10} md={6} lg={5} xl={4}>
@@ -114,7 +112,6 @@ function Login() {
                 </div>
 
                 <Form noValidate validated={validated} onSubmit={handleSubmit}>
-                  {/* EMAIL */}
                   <Form.Group className="mb-3" controlId="formEmail">
                     <Form.Label>Email</Form.Label>
                     <Form.Control
@@ -130,7 +127,6 @@ function Login() {
                     </Form.Control.Feedback>
                   </Form.Group>
 
-                  {/* PASSWORD */}
                   <Form.Group className="mb-3" controlId="formPassword">
                     <div className="d-flex justify-content-between align-items-center mb-1">
                       <Form.Label className="mb-0">Contraseña</Form.Label>
@@ -166,7 +162,6 @@ function Login() {
                     </Form.Control.Feedback>
                   </Form.Group>
 
-                  {/* BUTTON */}
                   <Button
                     type="submit"
                     variant="dark"
@@ -189,11 +184,13 @@ function Login() {
                     )}
                   </Button>
 
-                  {/* REGISTRO */}
                   <div className="text-center mt-3">
                     <p className="mb-0 small text-muted">
                       ¿Nuevo usuario?{" "}
-                      <Link to="/register" className="fw-semibold text-decoration-none">
+                      <Link
+                        to="/register"
+                        className="fw-semibold text-decoration-none"
+                      >
                         Crear Cuenta
                       </Link>
                     </p>

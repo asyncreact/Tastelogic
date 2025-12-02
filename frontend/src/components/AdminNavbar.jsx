@@ -8,7 +8,6 @@ import { IoClose, IoLogOutOutline, IoRestaurantOutline } from "react-icons/io5";
 
 import "./css/Navbar.css";
 
-// NAV LINKS para admin (sin 'Usuarios')
 const ADMIN_NAV_LINKS = [
   { path: "/admin/dashboard", label: "Panel" },
   { path: "/admin/orders", label: "Pedidos" },
@@ -35,7 +34,6 @@ function AdminNavbar() {
   return (
     <nav className="navbar admin-navbar">
       <div className="navbar-container">
-        {/* IZQUIERDA */}
         <div className="navbar-left">
           <Link
             to="/admin/dashboard"
@@ -51,7 +49,6 @@ function AdminNavbar() {
           </Link>
         </div>
 
-        {/* CENTRO */}
         <ul className={`navbar-menu ${isMenuOpen ? "active" : ""}`}>
           {ADMIN_NAV_LINKS.map((link) => {
             const isActive = location.pathname === link.path;
@@ -68,7 +65,6 @@ function AdminNavbar() {
             );
           })}
 
-          {/* Logout en móvil */}
           {user && (
             <li className="mobile-logout-item">
               <button
@@ -81,13 +77,9 @@ function AdminNavbar() {
           )}
         </ul>
 
-        {/* DERECHA */}
         <div className="navbar-actions">
-          {/* SIN CARRITO EN ADMIN */}
-
           {user && (
             <>
-              {/* Menú usuario + dropdown */}
               <div className="user-menu">
                 <button className="user-button">
                   {user.name || "Admin"}
@@ -110,7 +102,6 @@ function AdminNavbar() {
                 </div>
               </div>
 
-              {/* Logout escritorio */}
               <button
                 className="desktop-logout-btn"
                 onClick={handleLogout}
@@ -121,7 +112,6 @@ function AdminNavbar() {
             </>
           )}
 
-          {/* Toggle menú móvil */}
           <button
             className="mobile-menu-toggle"
             onClick={() => setIsMenuOpen(!isMenuOpen)}

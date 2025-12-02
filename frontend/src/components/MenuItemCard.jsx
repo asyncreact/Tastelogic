@@ -37,7 +37,6 @@ function MenuItemCard({ item }) {
   const quantityInCart = cart.find((i) => i.id === item.id)?.quantity || 0;
   const imageSrc = getImageUrl(item.image_url);
 
-  // Lógica para bloquear ítems
   const isUnavailable =
     !item.is_available ||
     item.stock === 0 ||
@@ -69,7 +68,6 @@ function MenuItemCard({ item }) {
 
   return (
     <>
-      {/* CARD CON HOVER Y ESTADO BLOQUEADO */}
       <Card
         className={`border-0 shadow-sm mb-3 ${
           isUnavailable ? "bg-light text-muted" : ""
@@ -91,7 +89,6 @@ function MenuItemCard({ item }) {
         }}
       >
         <Card.Body className="d-flex align-items-center">
-          {/* Imagen cuadrada a la izquierda */}
           {imageSrc ? (
             <img
               src={imageSrc}
@@ -122,26 +119,20 @@ function MenuItemCard({ item }) {
             </div>
           )}
 
-          {/* Texto en columna: Nombre -> Precio -> Descripción -> Estado si no disponible */}
           <div className="flex-grow-1">
-            {/* 1. Nombre */}
             <div className="fw-semibold">{item.name}</div>
 
-            {/* 2. Precio */}
             <div className="small">{formatPrice(item.price)}</div>
 
-            {/* 3. Descripción */}
             {item.description && (
               <div className="small text-muted">{item.description}</div>
             )}
 
-            {/* Estado solo si NO disponible */}
             <div className="small">
               {isUnavailable && unavailableReason}
             </div>
           </div>
 
-          {/* Botón circular con + y contador */}
           <div
             style={{
               position: "relative",
@@ -197,7 +188,6 @@ function MenuItemCard({ item }) {
         </Card.Body>
       </Card>
 
-      {/* MODAL DE DETALLES */}
       <Modal show={showModal} onHide={handleCloseModal} centered>
         <Modal.Header closeButton>
           <Modal.Title>{item.name}</Modal.Title>

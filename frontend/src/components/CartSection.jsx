@@ -56,7 +56,6 @@ function CartSection() {
   const [activeReservation, setActiveReservation] = useState(null);
   const [reservationError, setReservationError] = useState("");
 
-  // Cargar reserva activa cuando el usuario selecciona "Para comer aquí"
   useEffect(() => {
     const loadActiveReservation = async () => {
       if (orderType !== "dine-in") {
@@ -143,7 +142,6 @@ function CartSection() {
       return;
     }
 
-    // Para comer aquí: exigir reserva activa
     if (orderType === "dine-in") {
       if (!activeReservation) {
         Swal.fire({
@@ -244,7 +242,6 @@ function CartSection() {
 
   return (
     <Row className="gy-4">
-      {/* Lista de ítems */}
       <Col lg={8}>
         <div className="mb-3">
           <h5 className="mb-0">Mi bolsa</h5>
@@ -373,7 +370,6 @@ function CartSection() {
         </div>
       </Col>
 
-      {/* Resumen de orden */}
       <Col lg={4}>
         <div
           className="ps-lg-4 pt-3 pt-lg-0 border-top border-lg-top-0 border-lg-start"

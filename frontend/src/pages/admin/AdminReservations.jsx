@@ -157,8 +157,6 @@ function AdminReservation() {
     }
   };
 
-  // ========== Helpers ==========
-
   const getUserById = (userId) =>
     users.find((u) => String(u.id) === String(userId));
 
@@ -382,8 +380,6 @@ function AdminReservation() {
     }
   };
 
-  // ========== Filtros de búsqueda ==========
-
   const searchLower = searchAdmin.toLowerCase().trim();
 
   const filteredReservations = reservations.filter((r) => {
@@ -401,8 +397,6 @@ function AdminReservation() {
     );
   });
 
-  // ========== UI ==========
-
   if (loading && reservations.length === 0) {
     return (
       <Container className="py-5 text-center">
@@ -414,7 +408,6 @@ function AdminReservation() {
 
   return (
     <Container className="py-4">
-      {/* Encabezado */}
       <Row className="mb-3">
         <Col>
           <h1 className="h3 d-flex align-items-center gap-2 mb-1">
@@ -427,7 +420,6 @@ function AdminReservation() {
         </Col>
       </Row>
 
-      {/* Barra de filtros */}
       <Row className="mb-4">
         <Col md={6} className="mb-2 mb-md-0">
           <Form.Control
@@ -470,7 +462,6 @@ function AdminReservation() {
         </Row>
       )}
 
-      {/* Lista de reservas */}
       <Row>
         <Col>
           {filteredReservations.length === 0 ? (
@@ -554,7 +545,6 @@ function AdminReservation() {
         </Col>
       </Row>
 
-      {/* Modal crear/editar reserva */}
       <Modal show={showModal} onHide={closeModal} centered>
         <Form onSubmit={handleSubmit}>
           <Modal.Header closeButton>

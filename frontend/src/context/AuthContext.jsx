@@ -11,8 +11,8 @@ export const AuthProvider = ({ children }) => {
     return savedUser ? JSON.parse(savedUser) : null;
   });
 
-  const [loading, setLoading] = useState(true); /* Estado de carga */
-  const [error, setError] = useState(null);     /* Errores de autenticación */
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null); 
 
   /* Verificar token al iniciar la aplicación */
   useEffect(() => {
@@ -148,7 +148,6 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  /* Valores expuestos por el contexto */
   const value = {
     user,
     loading,

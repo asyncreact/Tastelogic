@@ -11,7 +11,9 @@ function Orders() {
     <Container className="py-4 py-md-5">
       <div className="mb-4">
         <h3 className="mb-1">Mis pedidos</h3>
-        <small>Administra tu carrito actual y revisa el historial de órdenes.</small>
+        <small>
+          Administra tu carrito actual y revisa el historial de órdenes.
+        </small>
       </div>
 
       <Tabs

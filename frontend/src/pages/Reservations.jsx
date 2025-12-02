@@ -9,7 +9,6 @@ function Reservations() {
 
   return (
     <Container className="py-4 py-md-5">
-      {/* Encabezado estilo Orders */}
       <div className="mb-4">
         <h3 className="mb-1">Mis reservas</h3>
         <small>

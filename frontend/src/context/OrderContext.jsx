@@ -1,6 +1,5 @@
 // src/context/OrderContext.jsx
-
-import { createContext, useState, useEffect } from "react";
+import { createContext, useState, useEffect, useCallback } from "react";
 import { useAuth } from "../hooks/useAuth";
 
 import {
@@ -77,26 +76,29 @@ export function OrderProvider({ children }) {
     }
   }, [userId]);
 
-  /* Obtener todas las órdenes */
-  const fetchOrders = async (params = {}) => {
-    if (!user) {
-      setOrders([]);
-      return;
-    }
+  /* Obtener todas las órdenes (memoizado para evitar loops) */
+  const fetchOrders = useCallback(
+    async (params = {}) => {
+      if (!user) {
+        setOrders([]);
+        return;
+      }
 
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await getOrders(params);
-      setOrders(response.data?.orders || response.data?.data || []);
-    } catch (err) {
-      const parsed = parseApiError(err, "Error al cargar órdenes");
-      setError(parsed.message);
-      console.error("Error fetchOrders:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await getOrders(params);
+        setOrders(response.data?.orders || response.data?.data || []);
+      } catch (err) {
+        const parsed = parseApiError(err, "Error al cargar órdenes");
+        setError(parsed.message);
+        console.error("Error fetchOrders:", err);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [user] // solo depende de user
+  );
 
   /* Obtener una orden específica */
   const fetchOrder = async (orderId) => {

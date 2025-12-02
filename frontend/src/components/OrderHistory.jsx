@@ -162,7 +162,6 @@ function OrderHistory() {
     );
   }
 
-  // Mensaje para usuarios no autenticados (sin botón)
   if (!user) {
     return (
       <Alert variant="light" className="text-center border-0">
@@ -174,7 +173,6 @@ function OrderHistory() {
     );
   }
 
-  // Usuario autenticado pero sin órdenes
   if (orders.length === 0) {
     return (
       <Alert variant="light" className="text-center border-0">
@@ -188,7 +186,6 @@ function OrderHistory() {
 
   return (
     <>
-      {/* Lista */}
       <div className="d-flex flex-column gap-3">
         {orders.map((order) => (
           <Card
@@ -245,7 +242,6 @@ function OrderHistory() {
         ))}
       </div>
 
-      {/* Modal de detalles */}
       <Modal
         show={showModal}
         onHide={() => setShowModal(false)}

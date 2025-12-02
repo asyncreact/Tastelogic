@@ -1,4 +1,3 @@
-// pages/AdminMenu.jsx
 import { useEffect, useState } from "react";
 import {
   Container,
@@ -63,7 +62,6 @@ function AdminMenu() {
   useEffect(() => {
     fetchCategories();
     fetchItems();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const buildImageUrl = (relativeOrAbsolute) => {
@@ -72,8 +70,6 @@ function AdminMenu() {
     const base = BASE_URL.replace(/\/$/, "");
     return `${base}${relativeOrAbsolute}`;
   };
-
-  // ========= SweetAlert helpers =========
 
   const showSuccessToast = (title) => {
     const Toast = MySwal.mixin({
@@ -121,8 +117,6 @@ function AdminMenu() {
     });
   };
 
-  // ========= Filtros =========
-
   const searchLower = searchAdmin.toLowerCase().trim();
 
   const filteredCategories = searchLower
@@ -154,8 +148,6 @@ function AdminMenu() {
       return textMatch || inCategory;
     });
   })();
-
-  // ========= Categorías =========
 
   const handleOpenCategoryModal = (category = null) => {
     setEditingCategory(category);
@@ -209,7 +201,7 @@ function AdminMenu() {
   const handleDeleteCategory = async (id) => {
     const confirmResult = await MySwal.fire({
       title: "¿Eliminar categoría?",
-      text: "Esta acción no se puede deshacer.",
+      text: "Esta acción no se puede deshacer. También se eliminarán todos los items de esta categoría.",
       icon: "warning",
       showCancelButton: true,
       confirmButtonText: "Sí, eliminar",
@@ -220,14 +212,21 @@ function AdminMenu() {
     if (!confirmResult.isConfirmed) return;
 
     try {
+      const itemsInCategory = items.filter(
+        (item) => String(item.category_id) === String(id)
+      );
+      for (const item of itemsInCategory) {
+        await removeItem(item.id);
+      }
+
       const result = await removeCategory(id);
-      showSuccessToast(result?.message || "Categoría eliminada correctamente");
+      showSuccessToast(
+        result?.message || "Categoría e items eliminados correctamente"
+      );
     } catch (err) {
-      showBackendError(err, "Error al eliminar la categoría");
+      showBackendError(err, "Error al eliminar la categoría o sus items");
     }
   };
-
-  // ========= Items =========
 
   const handleOpenItemModal = (item = null) => {
     setEditingItem(item);
@@ -330,8 +329,6 @@ function AdminMenu() {
     }
   };
 
-  // ========= UI =========
-
   if (loading && categories.length === 0 && items.length === 0) {
     return (
       <Container className="py-5 text-center">
@@ -343,7 +340,6 @@ function AdminMenu() {
 
   return (
     <Container className="py-4">
-      {/* Encabezado */}
       <Row className="mb-3">
         <Col md={8}>
           <h1 className="h3 d-flex align-items-center gap-2 mb-1">
@@ -377,9 +373,7 @@ function AdminMenu() {
         </Row>
       )}
 
-      {/* Dos columnas: categorías izquierda, items derecha */}
       <Row className="g-4">
-        {/* Categorías */}
         <Col md={6}>
           <div className="d-flex justify-content-between align-items-center mb-2">
             <h2 className="h5 d-flex align-items-center gap-2 mb-0">
@@ -437,7 +431,6 @@ function AdminMenu() {
           )}
         </Col>
 
-        {/* Items */}
         <Col md={6}>
           <div className="d-flex justify-content-between align-items-center mb-2">
             <h2 className="h5 d-flex align-items-center gap-2 mb-0">
@@ -483,7 +476,7 @@ function AdminMenu() {
                         <div className="fw-semibold">{item.name}</div>
                         <div className="small text-muted">
                           {cat ? cat.name : "Sin categoría"} ·{" "}
-                          {Number(item.price).toFixed(2)}
+                          RD$ {Number(item.price).toFixed(2)}
                         </div>
                         <div className="small">
                           {item.is_available ? "Disponible" : "No disponible"}
@@ -515,7 +508,6 @@ function AdminMenu() {
         </Col>
       </Row>
 
-      {/* Modal categoría */}
       <Modal show={showCategoryModal} onHide={handleCloseCategoryModal} centered>
         <Form onSubmit={handleSubmitCategory}>
           <Modal.Header closeButton>
@@ -578,7 +570,6 @@ function AdminMenu() {
         </Form>
       </Modal>
 
-      {/* Modal item */}
       <Modal show={showItemModal} onHide={handleCloseItemModal} centered>
         <Form onSubmit={handleSubmitItem}>
           <Modal.Header closeButton>
@@ -601,7 +592,7 @@ function AdminMenu() {
             </Form.Group>
 
             <Form.Group className="mb-3" controlId="itemPrice">
-              <Form.Label>Precio</Form.Label>
+              <Form.Label>Precio (RD$)</Form.Label>
               <Form.Control
                 type="number"
                 step="0.01"
@@ -611,7 +602,7 @@ function AdminMenu() {
                   setItemForm({ ...itemForm, price: e.target.value })
                 }
                 required
-                placeholder="Ej: 9.99"
+                placeholder="Ej: 250.00"
               />
             </Form.Group>
 

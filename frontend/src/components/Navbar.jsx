@@ -41,7 +41,6 @@ function AppNavbar() {
   return (
     <nav className="navbar">
       <div className="navbar-container">
-        {/* --- IZQUIERDA --- */}
         <div className="navbar-left">
           <Link to="/" className="navbar-logo" onClick={closeMenu}>
             <button className="navbar-icon-button" type="button">
@@ -53,7 +52,6 @@ function AppNavbar() {
           </Link>
         </div>
 
-        {/* --- CENTRO (menú hamburguesa / desktop) --- */}
         <ul className={`navbar-menu ${isMenuOpen ? "active" : ""}`}>
           {NAV_LINKS.map((link) => {
             const isActive = location.pathname === link.path;
@@ -70,7 +68,6 @@ function AppNavbar() {
             );
           })}
 
-          {/* Links de login / registro en el menú cuando NO hay usuario */}
           {!user && (
             <>
               <li>
@@ -94,7 +91,6 @@ function AppNavbar() {
             </>
           )}
 
-          {/* Logout en móvil solo si hay usuario */}
           {user && (
             <li className="mobile-logout-item">
               <button
@@ -107,9 +103,7 @@ function AppNavbar() {
           )}
         </ul>
 
-        {/* --- DERECHA --- */}
         <div className="navbar-actions">
-          {/* Carrito SIEMPRE visible */}
           <Link
             to="/orders"
             className="cart-icon"
@@ -124,7 +118,6 @@ function AppNavbar() {
 
           {user ? (
             <>
-              {/* Menú usuario + dropdown */}
               <div className="user-menu">
                 <button className="user-button">
                   {user.name || "Mi Cuenta"}
@@ -147,7 +140,6 @@ function AppNavbar() {
                 </div>
               </div>
 
-              {/* Logout escritorio */}
               <button
                 className="desktop-logout-btn"
                 onClick={handleLogout}
@@ -158,7 +150,6 @@ function AppNavbar() {
             </>
           ) : (
             <>
-              {/* Visitante con mismo estilo que Mi Cuenta */}
               <div className="user-menu">
                 <button className="user-button">
                   Visitante
@@ -167,7 +158,6 @@ function AppNavbar() {
             </>
           )}
 
-          {/* Toggle menú móvil */}
           <button
             className="mobile-menu-toggle"
             onClick={() => setIsMenuOpen(!isMenuOpen)}

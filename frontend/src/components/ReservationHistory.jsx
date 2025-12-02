@@ -37,7 +37,6 @@ function ReservationHistory() {
           setLoadingReservations(false);
           return;
         }
-        // Solo reservas del usuario actual
         await fetchReservations({ user_id: user.id });
       } finally {
         setLoadingReservations(false);
@@ -216,7 +215,7 @@ function ReservationHistory() {
                         : `Reserva #${reservation.id}`}
                     </div>
                     <div className="small">
-                      Fecha: {formatDate(reservation.reservation_date)} · Hora:{" "}
+                      Fecha: {formatDate(reservation.reservation_date)} · Hora{" "}
                       {formatTime(reservation.reservation_time)}
                     </div>
                     <div className="small">
@@ -260,7 +259,6 @@ function ReservationHistory() {
         </Card.Body>
       </Card>
 
-      {/* Modal de detalles */}
       <Modal
         show={showModal}
         onHide={() => setShowModal(false)}

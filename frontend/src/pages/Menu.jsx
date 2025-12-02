@@ -47,7 +47,6 @@ function Menu() {
         (item.ingredients &&
           item.ingredients.toLowerCase().includes(searchLower));
 
-      // 👇 ya no filtramos por item.is_available
       return matchesCategory && matchesSearch;
     });
   }, [items, searchTerm, selectedCategory]);
@@ -72,7 +71,6 @@ function Menu() {
 
   return (
     <Container className="py-4">
-      {/* Encabezado */}
       <div className="d-flex justify-content-between align-items-center mb-4">
         <div className="d-flex align-items-center gap-2">
           <MdOutlineFastfood size={24} />
@@ -94,7 +92,6 @@ function Menu() {
         )}
       </div>
 
-      {/* Buscador y filtros */}
       <Row className="mb-4 g-3">
         <Col md={8}>
           <InputGroup>
@@ -124,7 +121,6 @@ function Menu() {
         </Col>
       </Row>
 
-      {/* Errores globales */}
       {error && (
         <Row className="mb-3">
           <Col>
@@ -135,7 +131,6 @@ function Menu() {
         </Row>
       )}
 
-      {/* Listado */}
       {filteredItems.length === 0 ? (
         <Alert variant="light" className="text-center border-0">
           No se encontraron resultados.
@@ -147,7 +142,6 @@ function Menu() {
       ) : (
         visibleCategories.map((category) => (
           <div key={category.id} className="mb-5">
-            {/* Título de categoría */}
             <h4 className="h5 mb-3 d-flex align-items-center gap-2">
               <BiCategory />
               <span>{category.name}</span>
@@ -156,8 +150,7 @@ function Menu() {
             <Row className="g-4">
               {filteredItems
                 .filter(
-                  (item) =>
-                    String(item.category_id) === String(category.id)
+                  (item) => String(item.category_id) === String(category.id)
                 )
                 .map((item) => (
                   <Col key={item.id} xs={12} md={4}>

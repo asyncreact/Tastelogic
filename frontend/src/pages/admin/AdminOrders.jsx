@@ -19,7 +19,6 @@ import withReactContent from "sweetalert2-react-content";
 
 const MySwal = withReactContent(Swal);
 
-// Componente reutilizable para mostrar info del usuario
 function UserInfoInline({ userId, users }) {
   const user = users.find((u) => String(u.id) === String(userId));
 
@@ -34,7 +33,6 @@ function UserInfoInline({ userId, users }) {
   );
 }
 
-// Helpers para fecha y hora
 const formatDate = (dateString) => {
   if (!dateString) return "";
   const d = new Date(dateString);
@@ -79,8 +77,7 @@ function AdminOrders() {
 
   useEffect(() => {
     fetchOrders();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [fetchOrders]);
 
   const getStatusVariant = (status) => {
     switch (status) {
@@ -266,7 +263,6 @@ function AdminOrders() {
 
   return (
     <Container className="py-4">
-      {/* Encabezado */}
       <Row className="mb-3">
         <Col>
           <h1 className="h3 d-flex align-items-center gap-2 mb-1">
@@ -276,7 +272,6 @@ function AdminOrders() {
         </Col>
       </Row>
 
-      {/* Barra de filtros */}
       <Row className="mb-4">
         <Col md={6} className="mb-2 mb-md-0">
           <Form.Control
@@ -313,7 +308,6 @@ function AdminOrders() {
         </Col>
       </Row>
 
-      {/* Error global */}
       {error && (
         <Row className="mb-3">
           <Col>
@@ -324,7 +318,6 @@ function AdminOrders() {
         </Row>
       )}
 
-      {/* Lista de órdenes */}
       <Row>
         <Col>
           {filteredOrders.length === 0 ? (
@@ -431,7 +424,6 @@ function AdminOrders() {
         </Col>
       </Row>
 
-      {/* Modal de detalle de orden */}
       <Modal show={showDetailModal} onHide={handleCloseDetail} centered size="lg">
         <Modal.Header closeButton>
           <Modal.Title>Detalle de la orden</Modal.Title>
@@ -456,8 +448,8 @@ function AdminOrders() {
                 <strong>Tipo:</strong> {currentOrder.order_type}
               </p>
               <p className="mb-1">
-                <strong>Fecha:</strong> {formatDate(currentOrder.order_date)}{" "}
-                · <strong>Hora:</strong> {formatTime(currentOrder.order_time)}
+                <strong>Fecha:</strong> {formatDate(currentOrder.order_date)} ·{" "}
+                <strong>Hora:</strong> {formatTime(currentOrder.order_time)}
               </p>
               <p className="mb-1">
                 <strong>Estado:</strong>{" "}

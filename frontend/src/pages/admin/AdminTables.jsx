@@ -56,7 +56,6 @@ function AdminTable() {
   const [showTableModal, setShowTableModal] = useState(false);
   const [editingTable, setEditingTable] = useState(null);
   const [tableForm, setTableForm] = useState({
-    // table_number se usará solo al editar
     capacity: 2,
     zone_id: "",
     status: "available",
@@ -65,14 +64,20 @@ function AdminTable() {
 
   const [searchAdmin, setSearchAdmin] = useState("");
 
-  // ================== Carga inicial ==================
+  // Cargar zonas y mesas solo una vez al montar
   useEffect(() => {
-    fetchZones();
-    fetchTables();
+    const loadData = async () => {
+      try {
+        await fetchZones();
+        await fetchTables();
+      } catch (e) {
+        console.error("Error cargando zonas/mesas:", e);
+      }
+    };
+    loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ========= SweetAlert helpers =========
   const showSuccessToast = (title) => {
     const Toast = MySwal.mixin({
       toast: true,
@@ -118,7 +123,6 @@ function AdminTable() {
     });
   };
 
-  // ================== Filtros ==================
   const filteredZones = zones.filter((z) =>
     `${z.name ?? ""} ${z.description ?? ""}`
       .toLowerCase()
@@ -131,7 +135,6 @@ function AdminTable() {
       .includes(searchAdmin.toLowerCase())
   );
 
-  // ================== Handlers Zonas ==================
   const handleOpenCreateZone = () => {
     setEditingZone(null);
     setZoneForm({
@@ -236,11 +239,9 @@ function AdminTable() {
     });
   };
 
-  // ================== Handlers Mesas ==================
   const handleOpenCreateTable = () => {
     setEditingTable(null);
     setTableForm({
-      // sin table_number: lo genera el backend si se omite
       capacity: 2,
       zone_id: zones[0]?.id || "",
       status: "available",
@@ -265,7 +266,6 @@ function AdminTable() {
     setShowTableModal(false);
     setEditingTable(null);
     setTableForm({
-      // sin table_number por defecto
       capacity: 2,
       zone_id: "",
       status: "available",
@@ -288,7 +288,6 @@ function AdminTable() {
   const handleSubmitTable = async (e) => {
     e.preventDefault();
     try {
-      // construir payload para no enviar table_number vacío
       const payload = { ...tableForm };
       if (!payload.table_number) {
         delete payload.table_number;
@@ -327,7 +326,6 @@ function AdminTable() {
     });
   };
 
-  // ================== Render ==================
   if (loading && zones.length === 0 && tables.length === 0) {
     return (
       <Container className="py-5 text-center">
@@ -373,7 +371,6 @@ function AdminTable() {
       )}
 
       <Row className="g-4">
-        {/* ZONAS */}
         <Col md={6}>
           <div className="d-flex justify-content-between align-items-center mb-2">
             <h4 className="d-flex align-items-center gap-2 mb-0">
@@ -449,7 +446,6 @@ function AdminTable() {
           )}
         </Col>
 
-        {/* MESAS */}
         <Col md={6}>
           <div className="d-flex justify-content-between align-items-center mb-2">
             <h4 className="d-flex align-items-center gap-2 mb-0">
@@ -513,7 +509,6 @@ function AdminTable() {
         </Col>
       </Row>
 
-      {/* MODAL ZONA */}
       <Modal
         show={showZoneModal}
         onHide={handleCloseZoneModal}
@@ -595,7 +590,6 @@ function AdminTable() {
         </Form>
       </Modal>
 
-      {/* MODAL MESA */}
       <Modal
         show={showTableModal}
         onHide={handleCloseTableModal}

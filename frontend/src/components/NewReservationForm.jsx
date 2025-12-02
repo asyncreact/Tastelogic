@@ -51,7 +51,6 @@ function NewReservationForm({ onSuccess }) {
   const [loadingTables, setLoadingTables] = useState(false);
   const [loadingZones, setLoadingZones] = useState(true);
 
-  // Cargar zonas públicas (solo activas)
   useEffect(() => {
     const loadZones = async () => {
       try {
@@ -73,7 +72,6 @@ function NewReservationForm({ onSuccess }) {
     loadZones();
   }, []);
 
-  // Cargar mesas solo cuando el formulario base está completo
   useEffect(() => {
     if (
       formData.zone_id &&
@@ -286,7 +284,6 @@ function NewReservationForm({ onSuccess }) {
                 </div>
               </div>
 
-              {/* Zonas disponibles como cards */}
               <div className="mb-4">
                 <h5 className="h6 mb-2">Zonas disponibles</h5>
                 {loadingZones ? (
@@ -355,7 +352,6 @@ function NewReservationForm({ onSuccess }) {
                 )}
               </div>
 
-              {/* Formulario principal, solo con zona seleccionada */}
               {selectedZone && (
                 <Form onSubmit={handleSubmit}>
                   <Row className="g-3">
@@ -520,7 +516,6 @@ function NewReservationForm({ onSuccess }) {
         </Col>
       </Row>
 
-      {/* Modal de detalle de zona (solo lectura, sin estado visible) */}
       <Modal
         show={showZoneModal && !!selectedZone}
         onHide={() => setShowZoneModal(false)}
