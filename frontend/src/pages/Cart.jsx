@@ -271,7 +271,7 @@ function Cart() {
                             )}
                           </div>
                           <div className="fw-semibold">
-                            $
+                            RD$
                             {(
                               parseFloat(item.price) * item.quantity
                             ).toFixed(2)}
@@ -281,7 +281,7 @@ function Cart() {
                         <div className="d-flex justify-content-between align-items-center mt-2">
                           <div className="d-flex align-items-center gap-2">
                             <span className="small">
-                              ${parseFloat(item.price).toFixed(2)} c/u
+                              RD${parseFloat(item.price).toFixed(2)} c/u
                             </span>
                             <div className="d-flex align-items-center gap-1">
                               <Button
@@ -405,7 +405,7 @@ function Cart() {
               >
                 <div className="d-flex justify-content-between mb-1 small">
                   <span>Subtotal</span>
-                  <span>${total.toFixed(2)}</span>
+                  <span>RD${total.toFixed(2)}</span>
                 </div>
                 <div className="d-flex justify-content-between mb-2 small">
                   <span>Envío</span>
@@ -413,7 +413,7 @@ function Cart() {
                 </div>
                 <div className="d-flex justify-content-between mt-2">
                   <span className="fw-semibold">Total</span>
-                  <span className="fw-bold">${total.toFixed(2)}</span>
+                  <span className="fw-bold">RD${total.toFixed(2)}</span>
                 </div>
               </div>
 

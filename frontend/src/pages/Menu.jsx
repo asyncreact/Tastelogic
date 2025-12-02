@@ -32,24 +32,37 @@ function Menu() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const categoryById = useMemo(() => {
+    const map = new Map();
+    categories.forEach((cat) => {
+      map.set(String(cat.id), cat);
+    });
+    return map;
+  }, [categories]);
+
   const filteredItems = useMemo(() => {
+    const searchLower = searchTerm.toLowerCase();
+
     return items.filter((item) => {
       const matchesCategory =
         selectedCategory === "" ||
         String(item.category_id) === String(selectedCategory);
 
-      const searchLower = searchTerm.toLowerCase();
+      const category = categoryById.get(String(item.category_id));
+      const categoryName = category?.name?.toLowerCase() || "";
+
       const matchesSearch =
         searchTerm === "" ||
         item.name.toLowerCase().includes(searchLower) ||
         (item.description &&
           item.description.toLowerCase().includes(searchLower)) ||
         (item.ingredients &&
-          item.ingredients.toLowerCase().includes(searchLower));
+          item.ingredients.toLowerCase().includes(searchLower)) ||
+        categoryName.includes(searchLower);
 
       return matchesCategory && matchesSearch;
     });
-  }, [items, searchTerm, selectedCategory]);
+  }, [items, searchTerm, selectedCategory, categoryById]);
 
   const visibleCategories = useMemo(() => {
     return categories.filter((cat) =>
@@ -100,7 +113,7 @@ function Menu() {
             </InputGroup.Text>
             <Form.Control
               type="search"
-              placeholder="Buscar plato, ingrediente..."
+              placeholder="Buscar plato, ingrediente o categoría..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
