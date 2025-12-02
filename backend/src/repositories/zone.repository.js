@@ -2,8 +2,6 @@
 
 import { pool } from "../config/db.js";
 
-/* UTILIDADES Y VALIDADORES */
-
 /* Valida que un ID sea un número positivo válido */
 const validateId = (id) => {
   const numId = Number(id);
@@ -85,8 +83,6 @@ const ZONE_VALIDATORS = {
   image_url: (value) => (value ? value.trim() : null),
   is_active: (value) => Boolean(value),
 };
-
-/* CRUD BÁSICO - ZONAS */
 
 /* Obtiene todas las zonas con filtro opcional */
 export const getZones = async (filters = {}) => {
@@ -196,7 +192,7 @@ export const updateZone = async (id, data) => {
   }
 };
 
-/* Elimina una zona */
+/* Elimina una zona y mesas asociadas en una transacción */
 export const deleteZone = async (id) => {
   const client = await pool.connect();
   try {
@@ -205,7 +201,6 @@ export const deleteZone = async (id) => {
 
     await client.query("BEGIN");
 
-    /* Eliminar mesas asociadas a la zona */
     await client.query("DELETE FROM tables WHERE zone_id = $1", [zoneId]);
 
     const result = await client.query(

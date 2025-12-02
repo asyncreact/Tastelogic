@@ -1,9 +1,8 @@
-// src/config/multer.js
-
 import multer from "multer";
 import path from "path";
 import fs from "fs";
 
+/* Crea los directorios necesarios para almacenar archivos si no existen */
 const createUploadDirs = () => {
   const dirs = ["./uploads/menu", "./uploads/zones"];
 
@@ -17,11 +16,11 @@ const createUploadDirs = () => {
 
 createUploadDirs();
 
+/* Configuración de almacenamiento en disco para multer */
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     let uploadPath = "./uploads/menu";
 
-    // Para /api/zones... y /api/tables... usar carpeta de zonas
     if (req.originalUrl.includes("/zones") || req.originalUrl.includes("/tables")) {
       uploadPath = "./uploads/zones";
     }
@@ -45,6 +44,7 @@ const storage = multer.diskStorage({
   },
 });
 
+/* Filtra archivos permitiendo solo imágenes de determinados formatos */
 const fileFilter = (req, file, cb) => {
   const allowedTypes = /jpeg|jpg|png|gif|webp/;
   const extname = allowedTypes.test(
@@ -59,6 +59,7 @@ const fileFilter = (req, file, cb) => {
   }
 };
 
+/* Configura multer con opciones de almacenamiento, límites y filtro de archivos */
 export const upload = multer({
   storage: storage,
   limits: {
@@ -68,7 +69,7 @@ export const upload = multer({
   fileFilter: fileFilter,
 });
 
-// Elimina una imagen del sistema de archivos
+/* Elimina una imagen del sistema de archivos */
 export const deleteImage = (imageUrl) => {
   if (!imageUrl) return;
 

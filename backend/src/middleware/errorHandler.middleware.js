@@ -2,15 +2,16 @@
 import { ZodError } from "zod";
 import { errorResponse } from "../utils/response.js";
 
+/* Middleware centralizado para manejar y formatear errores de la API */
 export const errorHandler = (err, req, res, next) => {
-  console.error("🔥 Error capturado por middleware:", {
+  console.error("Error capturado por middleware:", {
     message: err.message,
     status: err.status,
     code: err.code,
     stack: process.env.NODE_ENV === "development" ? err.stack : undefined,
   });
 
-  // Errores de validación Zod
+  /* Errores de validación Zod */
   if (err instanceof ZodError) {
     const details = err.issues.map((issue) => ({
       campo: issue.path.join("."),
@@ -25,7 +26,7 @@ export const errorHandler = (err, req, res, next) => {
     );
   }
 
-  // Errores de autenticación y autorización
+  /* Errores de autenticación y autorización */
   if (err.status === 401) {
     return errorResponse(
       res,
@@ -42,7 +43,7 @@ export const errorHandler = (err, req, res, next) => {
     );
   }
 
-  // Errores de base de datos PostgreSQL
+  /* Errores de base de datos PostgreSQL */
   if (err.code) {
     switch (err.code) {
       case "23505": // Unique constraint violation
@@ -122,12 +123,12 @@ export const errorHandler = (err, req, res, next) => {
         );
 
       default:
-        console.error("❌ Código de error DB no manejado:", err.code);
+        console.error("Código de error DB no manejado:", err.code);
         break;
     }
   }
 
-  // Errores personalizados con status 4xx
+  /* Errores personalizados con status 4xx */
   if (err.status && err.status >= 400 && err.status < 500) {
     return errorResponse(
       res,
@@ -137,7 +138,7 @@ export const errorHandler = (err, req, res, next) => {
     );
   }
 
-  // Errores personalizados con status 5xx
+  /* Errores personalizados con status 5xx */
   if (err.status && err.status >= 500) {
     return errorResponse(
       res,
@@ -147,7 +148,7 @@ export const errorHandler = (err, req, res, next) => {
     );
   }
 
-  // Error genérico 500
+  /* Error genérico 500 */
   return errorResponse(
     res,
     500,

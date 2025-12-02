@@ -22,9 +22,7 @@ import {
 
 const router = express.Router();
 
-/* CRUD DE PEDIDOS */
-
-// Listar pedidos
+/* RUTAS PROTEGIDAS DE PEDIDOS (LISTAR Y CREAR) */
 router.get(
   "/",
   authenticate,
@@ -33,7 +31,6 @@ router.get(
   listOrders
 );
 
-// Crear pedido
 router.post(
   "/",
   authenticate,
@@ -42,9 +39,7 @@ router.post(
   addOrder
 );
 
-/* ACCIONES ESPECIALES CON :order_id (Deben ir ANTES de GET /:order_id) */
-
-// Actualizar estado del pedido
+/* RUTAS ESPECIALES DE PEDIDO POR ID (ESTADO Y PAGO) */
 router.patch(
   "/:order_id/status",
   authenticate,
@@ -53,7 +48,6 @@ router.patch(
   updateStatus
 );
 
-// Actualizar estado de pago
 router.patch(
   "/:order_id/payment",
   authenticate,
@@ -62,7 +56,6 @@ router.patch(
   updatePayment
 );
 
-// Cancelar pedido
 router.patch(
   "/:order_id/cancel",
   authenticate,
@@ -70,9 +63,7 @@ router.patch(
   cancelOrderHandler
 );
 
-/* RUTAS CON PARÁMETRO :order_id (Al final) */
-
-// Obtener pedido por ID
+/* RUTAS CRUD POR ID DE PEDIDO */
 router.get(
   "/:order_id",
   authenticate,
@@ -80,7 +71,6 @@ router.get(
   showOrder
 );
 
-// Actualizar pedido (PUT)
 router.put(
   "/:order_id",
   authenticate,
@@ -89,7 +79,6 @@ router.put(
   editOrder
 );
 
-// Actualizar pedido (PATCH)
 router.patch(
   "/:order_id",
   authenticate,
@@ -98,7 +87,6 @@ router.patch(
   editOrder
 );
 
-// Eliminar pedido
 router.delete(
   "/:order_id",
   authenticate,

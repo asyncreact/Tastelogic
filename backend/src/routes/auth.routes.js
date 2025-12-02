@@ -21,30 +21,42 @@ import { successResponse } from "../utils/response.js";
 
 const router = Router();
 
-/* FLUJO DE AUTENTICACIÓN PÚBLICA */
-
+/* RUTAS PÚBLICAS DE AUTENTICACIÓN */
 router.post("/register", validateRegisterMiddleware, register);
 router.get("/verify/:token", verify);
 router.post("/login", authLimiter, validateLoginMiddleware, login);
 router.post("/forgot-password", emailLimiter, forgotPassword);
 router.post("/reset-password/:token", validateResetPasswordMiddleware, resetPassword);
 
-/* AUTENTICACIÓN PROTEGIDA */
-
+/* RUTAS PROTEGIDAS DE SESIÓN */
 router.post("/logout", authenticate, logout);
 
-/* INFORMACIÓN DEL USUARIO - PROTEGIDA */
-
+/* RUTAS PROTEGIDAS DE PERFIL DE USUARIO */
 router.get("/me", authenticate, (req, res) => {
-  const { password, verification_token, token_version, reset_token, reset_token_expires_at, ...userSafe } = req.user;
+  const {
+    password,
+    verification_token,
+    token_version,
+    reset_token,
+    reset_token_expires_at,
+    ...userSafe
+  } = req.user;
 
   return successResponse(res, "Perfil del usuario autenticado", {
     user: userSafe,
   });
 });
 
+/* RUTA SOLO PARA ADMINISTRADORES */
 router.get("/admin", authenticate, authorizeRoles("admin"), (req, res) => {
-  const { password, verification_token, token_version, reset_token, reset_token_expires_at, ...userSafe } = req.user;
+  const {
+    password,
+    verification_token,
+    token_version,
+    reset_token,
+    reset_token_expires_at,
+    ...userSafe
+  } = req.user;
 
   return successResponse(res, `Bienvenido administrador: ${req.user.name}`, {
     user: userSafe,

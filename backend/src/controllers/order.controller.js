@@ -68,6 +68,7 @@ export const showOrder = async (req, res, next) => {
   try {
     const order_id = Number(req.params.order_id);
 
+    /* Valida que el ID del pedido sea un número positivo */
     if (isNaN(order_id) || order_id <= 0) {
       const error = new Error("No se pudo encontrar el pedido solicitado");
       error.status = 400;
@@ -84,6 +85,7 @@ export const showOrder = async (req, res, next) => {
       throw error;
     }
 
+    /* Restringe acceso al pedido si el usuario es customer y no es el dueño */
     if (req.user.role === "customer" && order.user_id !== req.user.id) {
       const error = new Error("No tienes permiso para ver este pedido");
       error.status = 403;
@@ -110,6 +112,7 @@ export const addOrder = async (req, res, next) => {
       items,
     } = req.body;
 
+    /* Determina el user_id según rol (customer vs admin) */
     let user_id;
     if (req.user.role === "customer") {
       user_id = req.user.id;
@@ -124,6 +127,7 @@ export const addOrder = async (req, res, next) => {
       user_id = req.body.user_id;
     }
 
+    /* Valida tipo de pedido requerido */
     if (!order_type) {
       const error = new Error(
         "Por favor, especifica el tipo de pedido (dine-in, takeout, delivery)"
@@ -132,6 +136,7 @@ export const addOrder = async (req, res, next) => {
       throw error;
     }
 
+    /* Valida que haya al menos un item */
     if (!items || items.length === 0) {
       const error = new Error("Por favor, agrega al menos un item al pedido");
       error.status = 400;
@@ -156,7 +161,7 @@ export const addOrder = async (req, res, next) => {
       throw error;
     }
 
-    // Asignar mesa automáticamente desde reserva si es dine-in
+    /* Asigna mesa automáticamente desde reserva si es dine-in y no se envía mesa */
     let finalTableId = table_id;
     let finalReservationId = reservation_id;
     let autoAssignedTable = false;
@@ -198,7 +203,7 @@ export const addOrder = async (req, res, next) => {
       }
     }
 
-    // Validar items y obtener precio desde el menú
+    /* Valida items contra el menú y calcula total */
     let calculatedTotal = 0;
     const validatedItems = [];
     const rawItemsWithNames = [];
@@ -288,7 +293,7 @@ export const addOrder = async (req, res, next) => {
     );
     const itemsSummaryText = itemsSummaryLines.join("\n");
 
-    // Correo de confirmación de pedido creado
+    /* Envía correo de confirmación de creación de pedido */
     Promise.resolve(
       sendMail({
         to: user.email,
@@ -335,6 +340,7 @@ export const editOrder = async (req, res, next) => {
   try {
     const order_id = Number(req.params.order_id);
 
+    /* Valida ID del pedido antes de modificar */
     if (isNaN(order_id) || order_id <= 0) {
       const error = new Error(
         "No se pudo encontrar el pedido que deseas modificar"
@@ -353,6 +359,7 @@ export const editOrder = async (req, res, next) => {
       throw error;
     }
 
+    /* Restringe modificaciones a pedidos ajenos si es customer */
     if (req.user.role === "customer" && existing.user_id !== req.user.id) {
       const error = new Error(
         "No tienes permiso para modificar este pedido"
@@ -361,7 +368,7 @@ export const editOrder = async (req, res, next) => {
       throw error;
     }
 
-    // Bloquear modificación si ya fue cancelado o completado
+    /* Bloquea cambios si el pedido está cancelado o completado */
     if (existing.status === "cancelled" || existing.status === "completed") {
       const error = new Error(
         existing.status === "cancelled"
@@ -417,6 +424,7 @@ export const editOrder = async (req, res, next) => {
       cancelled: "cancelado",
     };
 
+    /* Valida que el nuevo estado sea uno permitido, si se envía */
     if (req.body.status !== undefined) {
       const validStatuses = [
         "pending",
@@ -446,6 +454,7 @@ export const editOrder = async (req, res, next) => {
       }),
     };
 
+    /* Solo admin puede cambiar estado, pago o usuario */
     if (req.user.role === "admin") {
       if (req.body.status !== undefined) update_data.status = req.body.status;
       if (req.body.payment_status !== undefined)
@@ -477,6 +486,7 @@ export const updateStatus = async (req, res, next) => {
     const order_id = Number(req.params.order_id);
     const { status } = req.body;
 
+    /* Valida ID y que se envíe un estado */
     if (isNaN(order_id) || order_id <= 0) {
       const error = new Error(
         "No se pudo encontrar el pedido que deseas modificar"
@@ -530,7 +540,7 @@ export const updateStatus = async (req, res, next) => {
       throw error;
     }
 
-    // Bloquear cambios si ya está completado
+    /* Bloquea cambios si ya está completado o si se intenta salir de cancelado */
     if (existing.status === "completed") {
       const error = new Error(
         "No puedes cambiar el estado de un pedido que ya fue completado"
@@ -560,6 +570,7 @@ export const updateStatus = async (req, res, next) => {
     const user = await getUserById(existing.user_id);
     const orderNumber = existing.order_number;
 
+    /* Envía correo al cliente cuando se actualiza el estado a ciertos valores */
     if (user) {
       let subject = "";
       let message = "";
@@ -646,6 +657,7 @@ export const updatePayment = async (req, res, next) => {
     const order_id = Number(req.params.order_id);
     const { payment_status } = req.body;
 
+    /* Valida ID y que se envíe estado de pago */
     if (isNaN(order_id) || order_id <= 0) {
       const error = new Error(
         "No se pudo encontrar el pedido que deseas modificar"
@@ -700,6 +712,7 @@ export const updatePayment = async (req, res, next) => {
     const user = await getUserById(existing.user_id);
     const orderNumber = existing.order_number;
 
+    /* Envía correo cuando cambia el estado de pago (pagado/reembolsado) */
     if (user) {
       let subject = "";
       let message = "";
@@ -747,6 +760,7 @@ export const cancelOrderHandler = async (req, res, next) => {
   try {
     const order_id = Number(req.params.order_id);
 
+    /* Valida ID del pedido antes de cancelar */
     if (isNaN(order_id) || order_id <= 0) {
       const error = new Error(
         "No se pudo encontrar el pedido que deseas cancelar"
@@ -765,6 +779,7 @@ export const cancelOrderHandler = async (req, res, next) => {
       throw error;
     }
 
+    /* Restringe cancelación si el pedido no pertenece al usuario customer */
     if (req.user.role === "customer" && existing.user_id !== req.user.id) {
       const error = new Error("No tienes permiso para cancelar este pedido");
       error.status = 403;
@@ -792,6 +807,7 @@ export const cancelOrderHandler = async (req, res, next) => {
     const user = await getUserById(existing.user_id);
     const orderNumber = existing.order_number;
 
+    /* Envía correo de confirmación de cancelación al cliente */
     if (user) {
       Promise.resolve(
         sendMail({
@@ -823,6 +839,7 @@ export const removeOrder = async (req, res, next) => {
   try {
     const order_id = Number(req.params.order_id);
 
+    /* Valida ID antes de eliminar definitivamente el pedido */
     if (isNaN(order_id) || order_id <= 0) {
       const error = new Error(
         "No se pudo encontrar el pedido que deseas eliminar"

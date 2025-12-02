@@ -18,16 +18,12 @@ import {
 
 const router = express.Router();
 
-/* PÚBLICAS */
-
+/* RUTAS PÚBLICAS DE ZONAS */
 router.get("/public", listZone);
 router.get("/public/active", listZone);
 router.get("/public/:zone_id", showZone);
 
-/* PROTEGIDAS - ADMIN ONLY */
-
-/* CRUD BÁSICO */
-
+/* RUTAS PROTEGIDAS SOLO ADMIN (CRUD DE ZONAS) */
 router.post(
   "/",
   authenticate,

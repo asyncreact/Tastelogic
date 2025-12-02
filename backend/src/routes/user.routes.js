@@ -5,7 +5,7 @@ import { listUsers } from "../controllers/user.controller.js";
 
 const router = Router();
 
-// Solo admin puede listar usuarios
+/* RUTA PROTEGIDA DE ADMINISTRACIÓN DE USUARIOS */
 router.get("/", authenticate, authorizeRoles("admin"), listUsers);
 
 export default router;

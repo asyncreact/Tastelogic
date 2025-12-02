@@ -1,24 +1,23 @@
 // src/validators/reservation.validator.js
 import { z } from "zod";
 
-// Esquema para crear una reserva
+/* Esquema para crear una reserva */
 export const reservationCreateSchema = z.object({
-  user_id: z
-    .preprocess(
-      (val) => {
-        if (val === "" || val == null) {
-          return val;
-        }
-        return Number(val);
-      },
-      z
-        .number({
-          invalid_type_error: "El ID de usuario debe ser numérico",
-        })
-        .int("El ID de usuario debe ser un número entero")
-        .positive("El ID de usuario debe ser positivo")
-        .optional()
-    ),
+  user_id: z.preprocess(
+    (val) => {
+      if (val === "" || val == null) {
+        return val;
+      }
+      return Number(val);
+    },
+    z
+      .number({
+        invalid_type_error: "El ID de usuario debe ser numérico",
+      })
+      .int("El ID de usuario debe ser un número entero")
+      .positive("El ID de usuario debe ser positivo")
+      .optional()
+  ),
   zone_id: z.preprocess(
     (val) => {
       if (val === "" || val == null) {
@@ -64,7 +63,6 @@ export const reservationCreateSchema = z.object({
     )
     .refine(
       (val) => {
-        // Normalizar ambas fechas a medianoche para permitir HOY
         const reservationDate = new Date(val + "T00:00:00");
         const today = new Date();
         today.setHours(0, 0, 0, 0);
@@ -116,23 +114,20 @@ export const reservationCreateSchema = z.object({
     .nullable(),
 });
 
-// Esquema para actualizar una reserva (todos los campos opcionales)
+/* Esquema para actualizar una reserva (todos los campos opcionales) */
 export const reservationUpdateSchema = reservationCreateSchema.partial();
 
-// Esquema para actualizar solo el estado de una reserva
+/* Esquema para actualizar solo el estado de una reserva */
 export const reservationStatusSchema = z.object({
-  status: z.enum(
-    ["pending", "confirmed", "completed", "cancelled", "expired"],
-    {
-      errorMap: () => ({
-        message:
-          "El estado debe ser: pending, confirmed, completed, cancelled o expired",
-      }),
-    }
-  ),
+  status: z.enum(["pending", "confirmed", "completed", "cancelled", "expired"], {
+    errorMap: () => ({
+      message:
+        "El estado debe ser: pending, confirmed, completed, cancelled o expired",
+    }),
+  }),
 });
 
-// Esquema para verificar disponibilidad
+/* Esquema para verificar disponibilidad */
 export const checkAvailabilitySchema = z.object({
   table_id: z.preprocess(
     (val) => {
@@ -174,56 +169,53 @@ export const checkAvailabilitySchema = z.object({
     ),
 });
 
-// Esquema para filtrar reservas
+/* Esquema para filtrar reservas */
 export const reservationFiltersSchema = z.object({
-  user_id: z
-    .preprocess(
-      (val) => {
-        if (val === "" || val == null) {
-          return undefined;
-        }
-        return Number(val);
-      },
-      z
-        .number({
-          invalid_type_error: "El ID de usuario debe ser numérico",
-        })
-        .int("El ID de usuario debe ser un número entero")
-        .positive("El ID de usuario debe ser positivo")
-        .optional()
-    ),
-  zone_id: z
-    .preprocess(
-      (val) => {
-        if (val === "" || val == null) {
-          return undefined;
-        }
-        return Number(val);
-      },
-      z
-        .number({
-          invalid_type_error: "El ID de zona debe ser numérico",
-        })
-        .int("El ID de zona debe ser un número entero")
-        .positive("El ID de zona debe ser positivo")
-        .optional()
-    ),
-  table_id: z
-    .preprocess(
-      (val) => {
-        if (val === "" || val == null) {
-          return undefined;
-        }
-        return Number(val);
-      },
-      z
-        .number({
-          invalid_type_error: "El ID de mesa debe ser numérico",
-        })
-        .int("El ID de mesa debe ser un número entero")
-        .positive("El ID de mesa debe ser positivo")
-        .optional()
-    ),
+  user_id: z.preprocess(
+    (val) => {
+      if (val === "" || val == null) {
+        return undefined;
+      }
+      return Number(val);
+    },
+    z
+      .number({
+        invalid_type_error: "El ID de usuario debe ser numérico",
+      })
+      .int("El ID de usuario debe ser un número entero")
+      .positive("El ID de usuario debe ser positivo")
+      .optional()
+  ),
+  zone_id: z.preprocess(
+    (val) => {
+      if (val === "" || val == null) {
+        return undefined;
+      }
+      return Number(val);
+    },
+    z
+      .number({
+        invalid_type_error: "El ID de zona debe ser numérico",
+      })
+      .int("El ID de zona debe ser un número entero")
+      .positive("El ID de zona debe ser positivo")
+      .optional()
+  ),
+  table_id: z.preprocess(
+    (val) => {
+      if (val === "" || val == null) {
+        return undefined;
+      }
+      return Number(val);
+    },
+    z
+      .number({
+        invalid_type_error: "El ID de mesa debe ser numérico",
+      })
+      .int("El ID de mesa debe ser un número entero")
+      .positive("El ID de mesa debe ser positivo")
+      .optional()
+  ),
   status: z
     .enum(["pending", "confirmed", "completed", "cancelled", "expired"], {
       errorMap: () => ({
@@ -247,23 +239,17 @@ export const reservationFiltersSchema = z.object({
     .optional(),
 });
 
-// Función para validar creación de reserva
+/* Funciones de validación puras */
 export const validateCreate = (data) => reservationCreateSchema.parse(data);
-
-// Función para validar actualización de reserva
 export const validateUpdate = (data) => reservationUpdateSchema.parse(data);
-
-// Función para validar actualización de estado
 export const validateStatusUpdate = (data) => reservationStatusSchema.parse(data);
-
-// Función para validar verificación de disponibilidad
 export const validateCheckAvailability = (data) =>
   checkAvailabilitySchema.parse(data);
-
-// Función para validar filtros de reservas
 export const validateFilters = (data) => reservationFiltersSchema.parse(data);
 
-// Middleware para validar creación de reserva
+/* Middlewares de validación */
+
+/* Middleware para validar datos al crear una reserva */
 export const validateReservationCreate = (req, res, next) => {
   try {
     req.body = validateCreate(req.body);
@@ -273,7 +259,7 @@ export const validateReservationCreate = (req, res, next) => {
   }
 };
 
-// Middleware para validar actualización de reserva
+/* Middleware para validar datos al actualizar una reserva */
 export const validateReservationUpdate = (req, res, next) => {
   try {
     req.body = validateUpdate(req.body);
@@ -283,7 +269,7 @@ export const validateReservationUpdate = (req, res, next) => {
   }
 };
 
-// Middleware para validar actualización de estado
+/* Middleware para validar el cambio de estado de una reserva */
 export const validateReservationStatusUpdate = (req, res, next) => {
   try {
     req.body = validateStatusUpdate(req.body);
@@ -293,7 +279,7 @@ export const validateReservationStatusUpdate = (req, res, next) => {
   }
 };
 
-// Middleware para validar verificación de disponibilidad
+/* Middleware para validar el body al verificar disponibilidad de mesa */
 export const validateCheckAvailabilityMiddleware = (req, res, next) => {
   try {
     req.body = validateCheckAvailability(req.body);
@@ -303,7 +289,7 @@ export const validateCheckAvailabilityMiddleware = (req, res, next) => {
   }
 };
 
-// Middleware para validar filtros de reservas
+/* Middleware para validar los filtros usados al listar reservas */
 export const validateReservationFilters = (req, res, next) => {
   try {
     validateFilters(req.query);

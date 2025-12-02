@@ -31,7 +31,7 @@ export const listMenu = async (req, res, next) => {
 /* Obtiene una categoría específica por ID */
 export const showMenu = async (req, res, next) => {
   try {
-    // VALIDAR ID PRIMERO
+    /* Valida que el ID de categoría sea un número positivo */
     const categoryId = Number(req.params.category_id);
     if (isNaN(categoryId) || categoryId <= 0) {
       const error = new Error("El ID de la categoría debe ser un número válido");
@@ -78,7 +78,7 @@ export const addMenu = async (req, res, next) => {
 /* Actualiza una categoría (PUT o PATCH - completo o parcial) */
 export const editMenu = async (req, res, next) => {
   try {
-    // VALIDAR ID PRIMERO
+    /* Valida el ID antes de actualizar */
     const categoryId = Number(req.params.category_id);
     if (isNaN(categoryId) || categoryId <= 0) {
       const error = new Error("El ID de la categoría debe ser un número válido");
@@ -105,7 +105,7 @@ export const editMenu = async (req, res, next) => {
 /* Elimina una categoría */
 export const removeMenu = async (req, res, next) => {
   try {
-    // VALIDAR ID PRIMERO
+    /* Valida el ID antes de eliminar */
     const categoryId = Number(req.params.category_id);
     if (isNaN(categoryId) || categoryId <= 0) {
       const error = new Error("El ID de la categoría debe ser un número válido");
@@ -142,7 +142,7 @@ export const listItem = async (req, res, next) => {
 /* Obtiene un item específico por ID */
 export const showItem = async (req, res, next) => {
   try {
-    // ✅ VALIDAR ID PRIMERO
+    /* Valida que el ID del producto sea un número positivo */
     const itemId = Number(req.params.item_id);
     if (isNaN(itemId) || itemId <= 0) {
       const error = new Error("El ID del producto debe ser un número válido");
@@ -176,7 +176,7 @@ export const addItem = async (req, res, next) => {
       is_available,
     } = req.body;
 
-    // VALIDAR QUE category_id EXISTA SI SE PROPORCIONA
+    /* Valida que la categoría exista si se proporciona category_id */
     if (category_id) {
       const categoryExists = await getCategoryById(category_id);
       if (!categoryExists) {
@@ -186,7 +186,7 @@ export const addItem = async (req, res, next) => {
       }
     }
 
-    // VALIDAR QUE PRICE SEA POSITIVO
+    /* Valida que el precio sea positivo */
     if (price !== undefined && Number(price) < 0) {
       const error = new Error("El precio no puede ser negativo");
       error.status = 400;
@@ -218,7 +218,7 @@ export const addItem = async (req, res, next) => {
 /* Actualiza un item (PUT o PATCH - completo o parcial) */
 export const editItem = async (req, res, next) => {
   try {
-    // VALIDAR ID PRIMERO ANTES DE VALIDAR EL BODY
+    /* Valida el ID del producto antes de procesar el body */
     const itemId = Number(req.params.item_id);
     if (isNaN(itemId) || itemId <= 0) {
       const error = new Error("El ID del producto debe ser un número válido");
@@ -233,7 +233,7 @@ export const editItem = async (req, res, next) => {
       throw error;
     }
 
-    // VALIDAR QUE category_id EXISTA SI SE PROPORCIONA
+    /* Valida que la categoría exista si se actualiza category_id */
     if (req.body.category_id) {
       const categoryExists = await getCategoryById(req.body.category_id);
       if (!categoryExists) {
@@ -243,14 +243,13 @@ export const editItem = async (req, res, next) => {
       }
     }
 
-    // VALIDAR QUE PRICE SEA POSITIVO SI SE PROPORCIONA
+    /* Valida que el precio actualizado no sea negativo */
     if (req.body.price !== undefined && Number(req.body.price) < 0) {
       const error = new Error("El precio no puede ser negativo");
       error.status = 400;
       throw error;
     }
 
-    // PRESERVAR category_id SI NO SE ENVÍA (evitar null)
     let imageUrl = existing.image_url;
     if (req.file) {
       imageUrl = `/uploads/menu/${req.file.filename}`;
@@ -258,8 +257,10 @@ export const editItem = async (req, res, next) => {
 
     const data = {
       ...req.body,
-      // Si no se envía category_id, mantener el existente
-      category_id: req.body.category_id !== undefined ? req.body.category_id : existing.category_id,
+      category_id:
+        req.body.category_id !== undefined
+          ? req.body.category_id
+          : existing.category_id,
       ...(req.file && { image_url: imageUrl }),
     };
 
@@ -275,6 +276,7 @@ export const editItem = async (req, res, next) => {
 /* Elimina un item */
 export const removeItem = async (req, res, next) => {
   try {
+    /* Valida el ID del producto antes de eliminar */
     const itemId = Number(req.params.item_id);
     if (isNaN(itemId) || itemId <= 0) {
       const error = new Error("El ID del producto debe ser un número válido");

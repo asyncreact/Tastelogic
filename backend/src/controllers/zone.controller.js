@@ -13,7 +13,7 @@ import { successResponse } from "../utils/response.js";
 
 /* ZONAS */
 
-/* Obtiene todas las zonas con filtro opcional */
+/* Obtiene todas las zonas con filtro opcional de estado activo */
 export const listZone = async (req, res, next) => {
   try {
     const filters = {};
@@ -34,6 +34,7 @@ export const showZone = async (req, res, next) => {
   try {
     const zone_id = Number(req.params.zone_id);
     
+    /* Valida que el ID de zona sea un número positivo */
     if (isNaN(zone_id) || zone_id <= 0) {
       const error = new Error("El ID de la zona debe ser un número válido");
       error.status = 400;
@@ -73,9 +74,9 @@ export const addZone = async (req, res, next) => {
 
     return successResponse(res, "Zona creada correctamente", { zone: new_zone }, 201);
   } catch (err) {
-    // Limpiar imagen subida si hay error
+    /* Elimina la imagen subida si la creación falla */
     if (req.file) {
-      deleteImage(`uploads/zones/${req.file.filename}`);
+      deleteImage(`/uploads/zones/${req.file.filename}`);
     }
     next(err);
   }
@@ -86,6 +87,7 @@ export const editZone = async (req, res, next) => {
   try {
     const zone_id = Number(req.params.zone_id);
     
+    /* Valida el ID de zona antes de actualizar */
     if (isNaN(zone_id) || zone_id <= 0) {
       const error = new Error("El ID de la zona debe ser un número válido");
       error.status = 400;
@@ -104,7 +106,7 @@ export const editZone = async (req, res, next) => {
 
     if (req.file) {
       image_url = `/uploads/zones/${req.file.filename}`;
-      // Eliminar imagen anterior si existe
+      /* Elimina la imagen anterior si existe */
       if (existing.image_url) {
         deleteImage(existing.image_url);
       }
@@ -126,7 +128,7 @@ export const editZone = async (req, res, next) => {
     const updated = await updateZone(zone_id, update_data);
     
     if (!updated) {
-      // Limpiar nueva imagen si la actualización falló
+      /* Limpia la nueva imagen si la actualización falla */
       if (req.file) {
         deleteImage(image_url);
       }
@@ -139,9 +141,9 @@ export const editZone = async (req, res, next) => {
       zone: updated,
     });
   } catch (err) {
-    // Limpiar imagen subida si hay error
+    /* Limpia imagen subida solo si no es error 404 (zona no existe) */
     if (req.file && err.status !== 404) {
-      deleteImage(`uploads/zones/${req.file.filename}`);
+      deleteImage(`/uploads/zones/${req.file.filename}`);
     }
     next(err);
   }
@@ -152,6 +154,7 @@ export const removeZone = async (req, res, next) => {
   try {
     const zone_id = Number(req.params.zone_id);
     
+    /* Valida el ID de zona antes de eliminar */
     if (isNaN(zone_id) || zone_id <= 0) {
       const error = new Error("El ID de la zona debe ser un número válido");
       error.status = 400;
@@ -166,7 +169,7 @@ export const removeZone = async (req, res, next) => {
       throw error;
     }
 
-    // Eliminar imagen asociada si existe
+    /* Elimina la imagen asociada si existe */
     if (zone.image_url) {
       deleteImage(zone.image_url);
     }

@@ -6,6 +6,7 @@ import { pool } from "../config/db.js";
 
 dotenv.config();
 
+/* Autentica al usuario verificando el JWT y cargando el usuario desde la base de datos */
 export const authenticate = async (req, res, next) => {
   try {
     const auth_header = req.headers.authorization;
@@ -35,7 +36,10 @@ export const authenticate = async (req, res, next) => {
       throw error;
     }
 
-    const result = await pool.query("SELECT * FROM public.users WHERE id = $1", [decoded.id]);
+    const result = await pool.query(
+      "SELECT * FROM public.users WHERE id = $1",
+      [decoded.id]
+    );
     const user = result.rows[0];
 
     if (!user) {
@@ -44,7 +48,7 @@ export const authenticate = async (req, res, next) => {
       throw err;
     }
 
-    // ✅ No necesitas mapear a camelCase, mantén todo en snake_case
+    /* Valida que el token no esté invalidado comparando token_version */
     if (
       decoded.token_version !== undefined &&
       decoded.token_version !== user.token_version
@@ -62,6 +66,7 @@ export const authenticate = async (req, res, next) => {
   }
 };
 
+/* Autoriza el acceso según uno o más roles permitidos */
 export const authorizeRoles = (...roles_permitidos) => {
   return (req, res, next) => {
     try {

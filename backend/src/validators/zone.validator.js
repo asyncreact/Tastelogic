@@ -3,7 +3,6 @@
 import { z } from "zod";
 
 /* ESQUEMAS DE VALIDACIÓN */
-
 export const zoneCreateSchema = z.object({
   name: z
     .string({
@@ -52,12 +51,12 @@ export const zoneCreateSchema = z.object({
 export const zoneUpdateSchema = zoneCreateSchema.partial();
 
 /* FUNCIONES DE VALIDACIÓN */
-
 export const validateCreate = (data) => zoneCreateSchema.parse(data);
 export const validateUpdate = (data) => zoneUpdateSchema.parse(data);
 
 /* MIDDLEWARES DE VALIDACIÓN */
 
+/* Middleware para validar datos al crear una zona */
 export const validateZoneCreate = (req, res, next) => {
   try {
     req.body = validateCreate(req.body);
@@ -67,6 +66,7 @@ export const validateZoneCreate = (req, res, next) => {
   }
 };
 
+/* Middleware para validar datos al actualizar una zona */
 export const validateZoneUpdate = (req, res, next) => {
   try {
     req.body = validateUpdate(req.body);

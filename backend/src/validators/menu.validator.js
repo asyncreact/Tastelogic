@@ -150,14 +150,13 @@ export const validateCategoryMiddleware = (req, res, next) => {
   }
 };
 
-/* ✅ Middleware mejorado para validar item */
+/* Middleware para validar item (PUT multipart tratado como parcial) */
 export const validateItemMiddleware = (req, res, next) => {
   try {
-    // ✅ PATCH y PUT con form-data se tratan como parciales
-    // PUT con JSON sigue siendo completo
-    const isPartial = req.method === "PATCH" || 
-                     (req.method === "PUT" && req.is("multipart/form-data"));
-    
+    const isPartial =
+      req.method === "PATCH" ||
+      (req.method === "PUT" && req.is("multipart/form-data"));
+
     req.body = validateItem(req.body, isPartial);
     next();
   } catch (error) {

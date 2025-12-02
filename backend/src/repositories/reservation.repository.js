@@ -1,11 +1,9 @@
 // src/repositories/reservation.repository.js
 import { pool } from "../config/db.js";
 
-/**
- * OBTENER RESERVAS
- */
+/* OBTENER RESERVAS */
 
-// Obtiene todas las reservas con filtros opcionales
+/* Obtiene todas las reservas con filtros opcionales */
 export const getReservations = async (filters = {}) => {
   try {
     let whereClause = "WHERE 1=1";
@@ -73,7 +71,7 @@ export const getReservations = async (filters = {}) => {
   }
 };
 
-// Obtiene una reserva por ID con información completa
+/* Obtiene una reserva por ID con información completa */
 export const getReservationById = async (id) => {
   try {
     const numId = Number(id);
@@ -113,10 +111,7 @@ export const getReservationById = async (id) => {
   }
 };
 
-/**
- * CREAR RESERVA
- */
-
+/* CREAR RESERVA */
 export const createReservation = async ({
   user_id,
   zone_id,
@@ -132,7 +127,6 @@ export const createReservation = async ({
   try {
     await client.query("BEGIN");
 
-    // Verificar conflictos de mesa
     const conflictQuery = `
       SELECT * FROM public.reservations
       WHERE table_id = $1
@@ -151,7 +145,6 @@ export const createReservation = async ({
       throw new Error("Mesa no disponible en esa fecha y hora");
     }
 
-    // Crear reserva
     const insertQuery = `
       INSERT INTO public.reservations
         (user_id, zone_id, table_id, reservation_date, reservation_time, guest_count, status, special_requirements)
@@ -171,7 +164,7 @@ export const createReservation = async ({
     ]);
 
     await client.query("COMMIT");
-    console.log("✅ Reserva creada exitosamente");
+    console.log("Reserva creada exitosamente");
     return result.rows[0];
   } catch (error) {
     await client.query("ROLLBACK");
@@ -182,10 +175,7 @@ export const createReservation = async ({
   }
 };
 
-/**
- * ACTUALIZAR RESERVA
- */
-
+/* ACTUALIZAR RESERVA */
 export const updateReservation = async (id, updateData) => {
   const client = await pool.connect();
 
@@ -204,7 +194,6 @@ export const updateReservation = async (id, updateData) => {
 
     await client.query("BEGIN");
 
-    // Si se cambia mesa, fecha o hora, verificar conflictos
     if (
       updateData.table_id ||
       updateData.reservation_date ||
@@ -252,7 +241,7 @@ export const updateReservation = async (id, updateData) => {
 
     const result = await client.query(query, values);
     await client.query("COMMIT");
-    console.log("✅ Reserva actualizada");
+    console.log("Reserva actualizada");
     return result.rows[0];
   } catch (error) {
     await client.query("ROLLBACK");
@@ -263,10 +252,7 @@ export const updateReservation = async (id, updateData) => {
   }
 };
 
-/**
- * CAMBIAR ESTADO DE RESERVA
- */
-
+/* CAMBIAR ESTADO DE RESERVA */
 export const updateReservationStatus = async (id, status) => {
   try {
     const numId = Number(id);
@@ -292,7 +278,7 @@ export const updateReservationStatus = async (id, status) => {
       throw new Error("Reserva no encontrada");
     }
 
-    console.log(`✅ Estado actualizado a ${status}`);
+    console.log(`Estado actualizado a ${status}`);
     return result.rows[0];
   } catch (error) {
     console.error("Error en updateReservationStatus:", error);
@@ -300,10 +286,7 @@ export const updateReservationStatus = async (id, status) => {
   }
 };
 
-/**
- * CANCELAR RESERVA
- */
-
+/* CANCELAR RESERVA */
 export const cancelReservation = async (id) => {
   try {
     const numId = Number(id);
@@ -322,7 +305,7 @@ export const cancelReservation = async (id) => {
       throw new Error("Reserva no encontrada");
     }
 
-    console.log(`✅ Reserva cancelada`);
+    console.log("Reserva cancelada");
     return result.rows[0];
   } catch (error) {
     console.error("Error en cancelReservation:", error);
@@ -330,10 +313,7 @@ export const cancelReservation = async (id) => {
   }
 };
 
-/**
- * ELIMINAR RESERVA
- */
-
+/* ELIMINAR RESERVA */
 export const deleteReservation = async (id) => {
   try {
     const numId = Number(id);
@@ -346,7 +326,7 @@ export const deleteReservation = async (id) => {
       throw new Error("Reserva no encontrada");
     }
 
-    console.log(`✅ Reserva eliminada`);
+    console.log("Reserva eliminada");
     return { message: "Reserva eliminada correctamente" };
   } catch (error) {
     console.error("Error en deleteReservation:", error);
@@ -354,10 +334,7 @@ export const deleteReservation = async (id) => {
   }
 };
 
-/**
- * VERIFICAR DISPONIBILIDAD
- */
-
+/* VERIFICAR DISPONIBILIDAD */
 export const checkTableAvailability = async (
   table_id,
   reservation_date,
@@ -365,7 +342,6 @@ export const checkTableAvailability = async (
   excludeReservationId = null
 ) => {
   try {
-    // Obtener tabla
     const tableQuery = `
       SELECT t.*, z.name as zone_name
       FROM public.tables t
@@ -379,7 +355,6 @@ export const checkTableAvailability = async (
       throw new Error("Mesa no encontrada");
     }
 
-    // Verificar conflictos
     let conflictQuery = `
       SELECT id, user_id, guest_count
       FROM public.reservations
@@ -409,7 +384,7 @@ export const checkTableAvailability = async (
   }
 };
 
-// Reserva activa “del día”
+/* Reserva activa del día para un usuario */
 export const getActiveReservationByUserId = async (user_id) => {
   const query = `
     SELECT
@@ -436,10 +411,7 @@ export const getActiveReservationByUserId = async (user_id) => {
   return result.rows[0] || null;
 };
 
-/**
- * NUEVA: reserva futura activa por usuario
- * pending o confirmed con fecha/hora futura
- */
+/* Reserva futura activa por usuario (pending o confirmed) */
 export const getActiveFutureReservationByUserId = async (user_id) => {
   const query = `
     SELECT r.*
@@ -457,10 +429,7 @@ export const getActiveFutureReservationByUserId = async (user_id) => {
   return result.rows[0] || null;
 };
 
-/**
- * OBTENER MESAS DISPONIBLES POR ZONA
- */
-
+/* OBTENER MESAS DISPONIBLES POR ZONA */
 export const getAvailableTablesByZone = async (zone_id, guest_count) => {
   try {
     const query = `

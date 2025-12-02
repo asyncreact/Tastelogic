@@ -1,10 +1,9 @@
-// src/config/mailer.js
 import nodemailer from "nodemailer";
 import dotenv from "dotenv";
 
 dotenv.config();
 
-// Transporter básico
+/** Configura el transporter SMTP básico para enviar correos */
 export const transporter = nodemailer.createTransport({
   host: process.env.EMAIL_HOST || "smtp.gmail.com",
   port: Number(process.env.EMAIL_PORT) || 587,
@@ -18,7 +17,7 @@ export const transporter = nodemailer.createTransport({
   },
 });
 
-// Función para escapar HTML básico
+/** Escapa caracteres especiales en HTML para prevenir inyecciones */
 const escapeHtml = (unsafe = "") => {
   return String(unsafe)
     .replace(/&/g, "&amp;")
@@ -28,7 +27,7 @@ const escapeHtml = (unsafe = "") => {
     .replace(/'/g, "&#039;");
 };
 
-// Genera un color naranja aleatorio en HSL
+/** Genera un color naranja aleatorio en formato HSL */
 const randomOrange = () => {
   const hue = 20 + Math.random() * 20;      // 20–40 (naranjas)
   const sat = 80 + Math.random() * 10;      // 80–90%
@@ -36,7 +35,7 @@ const randomOrange = () => {
   return `hsl(${hue.toFixed(0)}, ${sat.toFixed(0)}%, ${light.toFixed(0)}%)`;
 };
 
-// Genera un gradiente tipo "lava" con varios stops aleatorios y ángulo aleatorio
+/** Crea un gradiente linear tipo "lava" con stops aleatorios */
 const lavaGradient = () => {
   const c1 = randomOrange();
   const c2 = randomOrange();
@@ -56,12 +55,12 @@ const lavaGradient = () => {
     .map(s => `${s.color} ${s.pos.toFixed(0)}%`)
     .join(", ");
 
-  const angle = Math.random() * 360; // 0–360 grados, cualquier dirección
+  const angle = Math.random() * 360; // Ángulo aleatorio 0-360°
 
   return `linear-gradient(${angle.toFixed(0)}deg, ${stopsCss})`;
 };
 
-// Template de correo minimalista con gradiente "lava" aleatorio
+/** Genera una plantilla HTML de correo con diseño y gradiente dinámico */
 const simpleTemplate = ({
   title,
   subtitle,
@@ -77,7 +76,7 @@ const simpleTemplate = ({
   const safeButtonText = buttonText ? escapeHtml(buttonText) : "";
   const safeButtonUrl = buttonUrl ? escapeHtml(buttonUrl) : "";
 
-  // Gradiente "lava" para header y botón (uno diferente para cada uno)
+  // Gradientes para encabezado y botón
   const headerGradient = lavaGradient();
   const buttonGradient = lavaGradient();
 
@@ -175,7 +174,7 @@ const simpleTemplate = ({
   `;
 };
 
-// Función genérica de envío
+/** Envía un correo usando los datos y plantilla proporcionados */
 export const sendMail = async ({
   to,
   subject,
@@ -203,5 +202,5 @@ export const sendMail = async ({
     html,
   };
 
-  return transporter.sendMail(mailOptions);
+  return transporter.sendMail(mailOptions); // Envia el correo electrónico
 };

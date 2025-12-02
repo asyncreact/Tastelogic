@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 
-// ⭐ Esquema para items del pedido (ACTUALIZADO - unit_price y subtotal opcionales)
+/* Esquema para items del pedido (unit_price y subtotal se calculan en backend) */
 const orderItemSchema = z.object({
   menu_item_id: z.preprocess(
     (val) => {
@@ -35,8 +35,6 @@ const orderItemSchema = z.object({
       .min(1, "La cantidad mínima es 1")
       .max(100, "La cantidad máxima es 100")
   ),
-  // ⭐ REMOVIDO: unit_price ya NO es requerido (se obtiene del menú)
-  // ⭐ REMOVIDO: subtotal ya NO es requerido (se calcula automáticamente)
   special_notes: z
     .string({
       invalid_type_error: "Las notas especiales deben ser texto",
@@ -47,69 +45,70 @@ const orderItemSchema = z.object({
     .nullable(),
 });
 
-// Esquema para crear un pedido
+/* Esquema para crear un pedido */
 export const orderCreateSchema = z.object({
-  user_id: z
-    .preprocess(
-      (val) => {
-        if (val === "" || val == null) {
-          return val;
-        }
-        return Number(val);
-      },
-      z
-        .number({
-          invalid_type_error: "El ID de usuario debe ser numérico",
-        })
-        .int("El ID de usuario debe ser un número entero")
-        .positive("El ID de usuario debe ser positivo")
-        .optional()
-    ),
-  reservation_id: z
-    .preprocess(
-      (val) => {
-        if (val === "" || val == null) {
-          return null;
-        }
-        return Number(val);
-      },
-      z
-        .number({
-          invalid_type_error: "El ID de reserva debe ser numérico",
-        })
-        .int("El ID de reserva debe ser un número entero")
-        .positive("El ID de reserva debe ser positivo")
-        .optional()
-        .nullable()
-    ),
-  table_id: z // ⭐ ACTUALIZADO: Ahora completamente opcional para dine-in con reserva
-    .preprocess(
-      (val) => {
-        if (val === "" || val == null) {
-          return null;
-        }
-        return Number(val);
-      },
-      z
-        .number({
-          invalid_type_error: "El ID de mesa debe ser numérico",
-        })
-        .int("El ID de mesa debe ser un número entero")
-        .positive("El ID de mesa debe ser positivo")
-        .optional()
-        .nullable()
-    ),
+  user_id: z.preprocess(
+    (val) => {
+      if (val === "" || val == null) {
+        return val;
+      }
+      return Number(val);
+    },
+    z
+      .number({
+        invalid_type_error: "El ID de usuario debe ser numérico",
+      })
+      .int("El ID de usuario debe ser un número entero")
+      .positive("El ID de usuario debe ser positivo")
+      .optional()
+  ),
+  reservation_id: z.preprocess(
+    (val) => {
+      if (val === "" || val == null) {
+        return null;
+      }
+      return Number(val);
+    },
+    z
+      .number({
+        invalid_type_error: "El ID de reserva debe ser numérico",
+      })
+      .int("El ID de reserva debe ser un número entero")
+      .positive("El ID de reserva debe ser positivo")
+      .optional()
+      .nullable()
+  ),
+  table_id: z.preprocess(
+    (val) => {
+      if (val === "" || val == null) {
+        return null;
+      }
+      return Number(val);
+    },
+    z
+      .number({
+        invalid_type_error: "El ID de mesa debe ser numérico",
+      })
+      .int("El ID de mesa debe ser un número entero")
+      .positive("El ID de mesa debe ser positivo")
+      .optional()
+      .nullable()
+  ),
   order_type: z.enum(["dine-in", "takeout", "delivery"], {
     errorMap: () => ({
       message: "El tipo de pedido debe ser: dine-in, takeout o delivery",
     }),
   }),
   status: z
-    .enum(["pending", "confirmed", "preparing", "ready", "completed", "cancelled"], {
-      errorMap: () => ({
-        message: "El estado debe ser: pending, confirmed, preparing, ready, completed o cancelled",
-      }),
-    })
+    .enum(
+      ["pending", "confirmed", "preparing", "ready", "completed", "cancelled"],
+      {
+        errorMap: () => ({
+          message:
+            "El estado debe ser: pending, confirmed, preparing, ready, completed o cancelled",
+        }),
+      }
+    )
     .optional(),
   payment_method: z
     .enum(["cash", "card", "transfer", "mobile"], {
@@ -143,40 +142,38 @@ export const orderCreateSchema = z.object({
     .max(50, "No puedes agregar más de 50 items en un pedido"),
 });
 
-// Esquema para actualizar un pedido (todos los campos opcionales excepto items)
+/* Esquema para actualizar un pedido */
 export const orderUpdateSchema = z.object({
-  user_id: z
-    .preprocess(
-      (val) => {
-        if (val === "" || val == null) {
-          return undefined;
-        }
-        return Number(val);
-      },
-      z
-        .number({
-          invalid_type_error: "El ID de usuario debe ser numérico",
-        })
-        .int("El ID de usuario debe ser un número entero")
-        .positive("El ID de usuario debe ser positivo")
-        .optional()
-    ),
-  table_id: z
-    .preprocess(
-      (val) => {
-        if (val === "" || val == null) {
-          return undefined;
-        }
-        return Number(val);
-      },
-      z
-        .number({
-          invalid_type_error: "El ID de mesa debe ser numérico",
-        })
-        .int("El ID de mesa debe ser un número entero")
-        .positive("El ID de mesa debe ser positivo")
-        .optional()
-    ),
+  user_id: z.preprocess(
+    (val) => {
+      if (val === "" || val == null) {
+        return undefined;
+      }
+      return Number(val);
+    },
+    z
+      .number({
+        invalid_type_error: "El ID de usuario debe ser numérico",
+      })
+      .int("El ID de usuario debe ser un número entero")
+      .positive("El ID de usuario debe ser positivo")
+      .optional()
+  ),
+  table_id: z.preprocess(
+    (val) => {
+      if (val === "" || val == null) {
+        return undefined;
+      }
+      return Number(val);
+    },
+    z
+      .number({
+        invalid_type_error: "El ID de mesa debe ser numérico",
+      })
+      .int("El ID de mesa debe ser un número entero")
+      .positive("El ID de mesa debe ser positivo")
+      .optional()
+  ),
   order_type: z
     .enum(["dine-in", "takeout", "delivery"], {
       errorMap: () => ({
@@ -185,11 +182,15 @@ export const orderUpdateSchema = z.object({
     })
     .optional(),
   status: z
-    .enum(["pending", "confirmed", "preparing", "ready", "completed", "cancelled"], {
-      errorMap: () => ({
-        message: "El estado debe ser: pending, confirmed, preparing, ready, completed o cancelled",
-      }),
-    })
+    .enum(
+      ["pending", "confirmed", "preparing", "ready", "completed", "cancelled"],
+      {
+        errorMap: () => ({
+          message:
+            "El estado debe ser: pending, confirmed, preparing, ready, completed o cancelled",
+        }),
+      }
+    )
     .optional(),
   payment_method: z
     .enum(["cash", "card", "transfer", "mobile"], {
@@ -216,16 +217,20 @@ export const orderUpdateSchema = z.object({
     .nullable(),
 });
 
-// Esquema para actualizar solo el estado de un pedido
+/* Esquema para actualizar solo el estado de un pedido */
 export const orderStatusSchema = z.object({
-  status: z.enum(["pending", "confirmed", "preparing", "ready", "completed", "cancelled"], {
-    errorMap: () => ({
-      message: "El estado debe ser: pending, confirmed, preparing, ready, completed o cancelled",
-    }),
-  }),
+  status: z.enum(
+    ["pending", "confirmed", "preparing", "ready", "completed", "cancelled"],
+    {
+      errorMap: () => ({
+        message:
+          "El estado debe ser: pending, confirmed, preparing, ready, completed o cancelled",
+      }),
+    }
+  ),
 });
 
-// Esquema para actualizar solo el estado de pago
+/* Esquema para actualizar solo el estado de pago */
 export const orderPaymentStatusSchema = z.object({
   payment_status: z.enum(["pending", "paid", "refunded"], {
     errorMap: () => ({
@@ -234,40 +239,38 @@ export const orderPaymentStatusSchema = z.object({
   }),
 });
 
-// Esquema para filtrar pedidos
+/* Esquema para filtros de pedidos */
 export const orderFiltersSchema = z.object({
-  user_id: z
-    .preprocess(
-      (val) => {
-        if (val === "" || val == null) {
-          return undefined;
-        }
-        return Number(val);
-      },
-      z
-        .number({
-          invalid_type_error: "El ID de usuario debe ser numérico",
-        })
-        .int("El ID de usuario debe ser un número entero")
-        .positive("El ID de usuario debe ser positivo")
-        .optional()
-    ),
-  table_id: z
-    .preprocess(
-      (val) => {
-        if (val === "" || val == null) {
-          return undefined;
-        }
-        return Number(val);
-      },
-      z
-        .number({
-          invalid_type_error: "El ID de mesa debe ser numérico",
-        })
-        .int("El ID de mesa debe ser un número entero")
-        .positive("El ID de mesa debe ser positivo")
-        .optional()
-    ),
+  user_id: z.preprocess(
+    (val) => {
+      if (val === "" || val == null) {
+        return undefined;
+      }
+      return Number(val);
+    },
+    z
+      .number({
+        invalid_type_error: "El ID de usuario debe ser numérico",
+      })
+      .int("El ID de usuario debe ser un número entero")
+      .positive("El ID de usuario debe ser positivo")
+      .optional()
+  ),
+  table_id: z.preprocess(
+    (val) => {
+      if (val === "" || val == null) {
+        return undefined;
+      }
+      return Number(val);
+    },
+    z
+      .number({
+        invalid_type_error: "El ID de mesa debe ser numérico",
+      })
+      .int("El ID de mesa debe ser un número entero")
+      .positive("El ID de mesa debe ser positivo")
+      .optional()
+  ),
   order_type: z
     .enum(["dine-in", "takeout", "delivery"], {
       errorMap: () => ({
@@ -276,11 +279,15 @@ export const orderFiltersSchema = z.object({
     })
     .optional(),
   status: z
-    .enum(["pending", "confirmed", "preparing", "ready", "completed", "cancelled"], {
-      errorMap: () => ({
-        message: "El estado debe ser: pending, confirmed, preparing, ready, completed o cancelled",
-      }),
-    })
+    .enum(
+      ["pending", "confirmed", "preparing", "ready", "completed", "cancelled"],
+      {
+        errorMap: () => ({
+          message:
+            "El estado debe ser: pending, confirmed, preparing, ready, completed o cancelled",
+        }),
+      }
+    )
     .optional(),
   payment_status: z
     .enum(["pending", "paid", "refunded"], {
@@ -304,14 +311,17 @@ export const orderFiltersSchema = z.object({
     .optional(),
 });
 
-// Funciones de validación puras
+/* Funciones de validación puras */
 export const validateCreate = (data) => orderCreateSchema.parse(data);
 export const validateUpdate = (data) => orderUpdateSchema.parse(data);
 export const validateStatusUpdate = (data) => orderStatusSchema.parse(data);
-export const validatePaymentStatusUpdate = (data) => orderPaymentStatusSchema.parse(data);
+export const validatePaymentStatusUpdate = (data) =>
+  orderPaymentStatusSchema.parse(data);
 export const validateFilters = (data) => orderFiltersSchema.parse(data);
 
-// Middleware para validar creación de pedido
+/* Middlewares de validación */
+
+/* Middleware para validar datos al crear un pedido */
 export const validateOrderCreate = (req, res, next) => {
   try {
     req.body = validateCreate(req.body);
@@ -321,7 +331,7 @@ export const validateOrderCreate = (req, res, next) => {
   }
 };
 
-// Middleware para validar actualización de pedido
+/* Middleware para validar datos al actualizar un pedido */
 export const validateOrderUpdate = (req, res, next) => {
   try {
     req.body = validateUpdate(req.body);
@@ -331,7 +341,7 @@ export const validateOrderUpdate = (req, res, next) => {
   }
 };
 
-// Middleware para validar actualización de estado
+/* Middleware para validar el cambio de estado de un pedido */
 export const validateOrderStatusUpdate = (req, res, next) => {
   try {
     req.body = validateStatusUpdate(req.body);
@@ -341,7 +351,7 @@ export const validateOrderStatusUpdate = (req, res, next) => {
   }
 };
 
-// Middleware para validar actualización de estado de pago
+/* Middleware para validar el cambio de estado de pago de un pedido */
 export const validateOrderPaymentStatusUpdate = (req, res, next) => {
   try {
     req.body = validatePaymentStatusUpdate(req.body);
@@ -351,7 +361,7 @@ export const validateOrderPaymentStatusUpdate = (req, res, next) => {
   }
 };
 
-// Middleware para validar filtros de pedidos
+/* Middleware para validar los filtros usados al listar pedidos */
 export const validateOrderFilters = (req, res, next) => {
   try {
     validateFilters(req.query);

@@ -19,8 +19,7 @@ import { getUserById } from "../repositories/user.repository.js";
 import { successResponse } from "../utils/response.js";
 import { sendMail } from "../config/mailer.js";
 
-/* ===== Helper de fechas en ES (local, sin problema de zona horaria) ===== */
-
+/* Helper de fechas en español (local, sin zona horaria) */
 const WEEKDAYS_ES = [
   "domingo",
   "lunes",
@@ -46,29 +45,28 @@ const MONTHS_ES = [
   "diciembre",
 ];
 
-  const formatLocalDateEs = (isoDate) => {
-    if (!isoDate) return "";
+const formatLocalDateEs = (isoDate) => {
+  if (!isoDate) return "";
 
-    // Si viene como Date, conviértelo a YYYY-MM-DD
-    if (isoDate instanceof Date) {
-      const year = isoDate.getFullYear();
-      const month = String(isoDate.getMonth() + 1).padStart(2, "0");
-      const day = String(isoDate.getDate()).padStart(2, "0");
-      isoDate = `${year}-${month}-${day}`;
-    }
+  if (isoDate instanceof Date) {
+    const year = isoDate.getFullYear();
+    const month = String(isoDate.getMonth() + 1).padStart(2, "0");
+    const day = String(isoDate.getDate()).padStart(2, "0");
+    isoDate = `${year}-${month}-${day}`;
+  }
 
-    if (typeof isoDate !== "string") return "";
+  if (typeof isoDate !== "string") return "";
 
-    const [year, month, day] = isoDate.split("-").map(Number);
-    const d = new Date(year, month - 1, day); // fecha local sin offset UTC
-    const weekday = WEEKDAYS_ES[d.getDay()];
-    const monthName = MONTHS_ES[d.getMonth()];
-    return `${weekday}, ${day} de ${monthName}${year ? ` de ${year}` : ""}`;
-  };
+  const [year, month, day] = isoDate.split("-").map(Number);
+  const d = new Date(year, month - 1, day);
+  const weekday = WEEKDAYS_ES[d.getDay()];
+  const monthName = MONTHS_ES[d.getMonth()];
+  return `${weekday}, ${day} de ${monthName}${year ? ` de ${year}` : ""}`;
+};
 
 /* RESERVAS */
 
-/* ✅ NUEVO: Obtiene la reserva activa de hoy del usuario logueado */
+/* Obtiene la reserva activa de hoy del usuario logueado */
 export const getMyActiveReservation = async (req, res, next) => {
   try {
     if (req.user.role !== "customer") {
@@ -110,7 +108,7 @@ export const listReservations = async (req, res, next) => {
   try {
     const filters = {};
 
-    // Customer solo ve sus propias reservas, admin puede filtrar por user_id
+    /* Customer solo ve sus reservas; admin puede filtrar por user_id */
     if (req.user.role === "customer") {
       filters.user_id = req.user.id;
     } else {
@@ -147,6 +145,7 @@ export const showReservation = async (req, res, next) => {
   try {
     const reservation_id = Number(req.params.reservation_id);
 
+    /* Valida que el ID de reserva sea un número positivo */
     if (isNaN(reservation_id) || reservation_id <= 0) {
       const error = new Error("No se pudo encontrar la reserva solicitada");
       error.status = 400;
@@ -163,7 +162,7 @@ export const showReservation = async (req, res, next) => {
       throw error;
     }
 
-    // Customer solo puede ver sus propias reservas
+    /* Customer solo puede ver sus propias reservas */
     if (req.user.role === "customer" && reservation.user_id !== req.user.id) {
       const error = new Error("No tienes permiso para ver esta reserva");
       error.status = 403;
@@ -260,7 +259,7 @@ export const checkAvailability = async (req, res, next) => {
       throw error;
     }
 
-    // VALIDAR QUE LA MESA ESTÉ ACTIVA
+    /* Valida que la mesa esté activa */
     if (!table.is_active) {
       const error = new Error(
         "La mesa seleccionada no está disponible en este momento"
@@ -305,7 +304,7 @@ export const addReservation = async (req, res, next) => {
       special_requirements,
     } = req.body;
 
-    // Customer crea reservas para sí mismo, admin DEBE especificar user_id
+    /* Customer reserva para sí mismo; admin debe especificar user_id */
     let user_id;
     if (req.user.role === "customer") {
       user_id = req.user.id;
@@ -320,7 +319,7 @@ export const addReservation = async (req, res, next) => {
       user_id = req.body.user_id;
     }
 
-    // Validar que el usuario no tenga ya una reserva futura activa
+    /* Evita que el usuario tenga más de una reserva futura activa */
     const activeReservation = await getActiveFutureReservationByUserId(
       Number(user_id)
     );
@@ -332,7 +331,6 @@ export const addReservation = async (req, res, next) => {
       throw error;
     }
 
-    // Validación de campos requeridos
     const missingFields = [];
     if (!zone_id) missingFields.push("zona");
     if (!table_id) missingFields.push("mesa");
@@ -371,7 +369,7 @@ export const addReservation = async (req, res, next) => {
       throw error;
     }
 
-    // VALIDAR QUE LA MESA ESTÉ ACTIVA
+    /* Valida que la mesa esté activa */
     if (!table.is_active) {
       const error = new Error(
         "La mesa seleccionada no está disponible en este momento"
@@ -380,6 +378,7 @@ export const addReservation = async (req, res, next) => {
       throw error;
     }
 
+    /* Valida capacidad de la mesa vs número de personas */
     if (guest_count > table.capacity) {
       const error = new Error(
         `Lo sentimos, la mesa ${
@@ -394,6 +393,7 @@ export const addReservation = async (req, res, next) => {
       throw error;
     }
 
+    /* Verifica disponibilidad de la mesa en fecha/hora */
     const availability = await checkTableAvailability(
       Number(table_id),
       reservation_date,
@@ -427,7 +427,7 @@ export const addReservation = async (req, res, next) => {
 
     const formattedDate = formatLocalDateEs(reservation_date);
 
-    // 🔔 Enviar correo de creación de reserva (sin botón)
+    /* Envia correo de confirmación de creación de reserva */
     Promise.resolve(
       sendMail({
         to: user.email,
@@ -470,6 +470,7 @@ export const editReservation = async (req, res, next) => {
   try {
     const reservation_id = Number(req.params.reservation_id);
 
+    /* Valida ID de reserva antes de modificar */
     if (isNaN(reservation_id) || reservation_id <= 0) {
       const error = new Error(
         "No se pudo encontrar la reserva que deseas modificar"
@@ -487,14 +488,14 @@ export const editReservation = async (req, res, next) => {
       throw error;
     }
 
-    // Customer solo puede editar sus propias reservas
+    /* Customer solo puede modificar sus propias reservas */
     if (req.user.role === "customer" && existing.user_id !== req.user.id) {
       const error = new Error("No tienes permiso para modificar esta reserva");
       error.status = 403;
       throw error;
     }
 
-    // Validar cambio de usuario (solo admin)
+    /* Solo admin puede cambiar user_id */
     if (req.body.user_id && req.user.role !== "admin") {
       const error = new Error(
         "No tienes permiso para cambiar el usuario de la reserva"
@@ -532,7 +533,7 @@ export const editReservation = async (req, res, next) => {
         throw error;
       }
 
-      // VALIDAR QUE LA NUEVA MESA ESTÉ ACTIVA
+      /* Valida que la nueva mesa esté activa */
       if (!newTable.is_active) {
         const error = new Error(
           "La mesa seleccionada no está disponible en este momento"
@@ -547,6 +548,7 @@ export const editReservation = async (req, res, next) => {
       tableToValidate = table;
     }
 
+    /* Valida capacidad contra nuevo número de personas si aplica */
     if (tableToValidate) {
       const guestCount = req.body.guest_count || existing.guest_count;
       if (guestCount > tableToValidate.capacity) {
@@ -589,6 +591,7 @@ export const editReservation = async (req, res, next) => {
       expired: "expirada",
     };
 
+    /* Valida estado si se envía un nuevo status */
     if (req.body.status !== undefined) {
       const validStatuses = [
         "pending",
@@ -623,7 +626,7 @@ export const editReservation = async (req, res, next) => {
       }),
     };
 
-    // Solo admin puede cambiar status y user_id
+    /* Solo admin puede cambiar status y user_id en la actualización */
     if (req.user.role === "admin") {
       if (req.body.status !== undefined) update_data.status = req.body.status;
       if (req.body.user_id) update_data.user_id = req.body.user_id;
@@ -639,7 +642,7 @@ export const editReservation = async (req, res, next) => {
 
     const updated = await updateReservation(reservation_id, update_data);
 
-    // ACTUALIZAR ESTADO DE MESA SI SE CAMBIÓ EL STATUS
+    /* Ajusta el estado de la mesa si cambia el estado de la reserva */
     if (req.body.status && req.body.status !== existing.status) {
       if (req.body.status === "confirmed") {
         await updateTableStatus(updated.table_id, "reserved");
@@ -673,6 +676,7 @@ export const updateStatus = async (req, res, next) => {
     const reservation_id = Number(req.params.reservation_id);
     const { status } = req.body;
 
+    /* Valida ID y que se envíe un estado */
     if (isNaN(reservation_id) || reservation_id <= 0) {
       const error = new Error(
         "No se pudo encontrar la reserva que deseas modificar"
@@ -723,7 +727,7 @@ export const updateStatus = async (req, res, next) => {
       throw error;
     }
 
-    // 🔒 Bloquear cambios si ya fue cancelada o expirada
+    /* Bloquea cambios si la reserva ya está cancelada o expirada */
     if (existing.status === "cancelled" || existing.status === "expired") {
       const error = new Error(
         "No puedes modificar el estado de una reserva cancelada o expirada"
@@ -742,7 +746,7 @@ export const updateStatus = async (req, res, next) => {
 
     const updated = await updateReservationStatus(reservation_id, status);
 
-    // ACTUALIZAR ESTADO DE LA MESA SEGÚN EL ESTADO DE LA RESERVA
+    /* Actualiza el estado de la mesa según el estado de la reserva */
     if (status === "confirmed") {
       await updateTableStatus(existing.table_id, "reserved");
     } else if (
@@ -753,7 +757,7 @@ export const updateStatus = async (req, res, next) => {
       await updateTableStatus(existing.table_id, "available");
     }
 
-    // 🔔 Enviar correo según el nuevo estado (sin botón)
+    /* Envía correo al usuario según el nuevo estado */
     const user = await getUserById(existing.user_id);
     const formattedDate = formatLocalDateEs(existing.reservation_date);
 
@@ -825,6 +829,7 @@ export const cancelReservationHandler = async (req, res, next) => {
   try {
     const reservation_id = Number(req.params.reservation_id);
 
+    /* Valida ID antes de cancelar la reserva */
     if (isNaN(reservation_id) || reservation_id <= 0) {
       const error = new Error(
         "No se pudo encontrar la reserva que deseas cancelar"
@@ -842,7 +847,7 @@ export const cancelReservationHandler = async (req, res, next) => {
       throw error;
     }
 
-    // Customer solo puede cancelar sus propias reservas
+    /* Customer solo puede cancelar sus propias reservas */
     if (req.user.role === "customer" && existing.user_id !== req.user.id) {
       const error = new Error("No tienes permiso para cancelar esta reserva");
       error.status = 403;
@@ -865,10 +870,10 @@ export const cancelReservationHandler = async (req, res, next) => {
 
     const cancelled = await cancelReservation(reservation_id);
 
-    // LIBERAR LA MESA
+    /* Libera la mesa asociada a la reserva */
     await updateTableStatus(existing.table_id, "available");
 
-    // 🔔 Correo de cancelación (sin botón)
+    /* Envía correo de cancelación al usuario */
     const user = await getUserById(existing.user_id);
     Promise.resolve(
       sendMail({
@@ -902,6 +907,7 @@ export const removeReservation = async (req, res, next) => {
   try {
     const reservation_id = Number(req.params.reservation_id);
 
+    /* Valida ID antes de eliminar permanentemente la reserva */
     if (isNaN(reservation_id) || reservation_id <= 0) {
       const error = new Error(
         "No se pudo encontrar la reserva que deseas eliminar"
@@ -919,7 +925,7 @@ export const removeReservation = async (req, res, next) => {
       throw error;
     }
 
-    // SI LA RESERVA ESTABA CONFIRMADA, LIBERAR LA MESA
+    /* Si estaba confirmada, libera la mesa al eliminarla */
     if (reservation.status === "confirmed") {
       await updateTableStatus(reservation.table_id, "available");
     }

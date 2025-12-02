@@ -24,17 +24,14 @@ import {
 const router = express.Router();
 
 /* PÚBLICAS - CATEGORÍAS */
-
 router.get("/categories", listMenu);
 router.get("/categories/:category_id", showMenu);
 
 /* PÚBLICAS - ITEMS */
-
 router.get("/items", listItem);
 router.get("/items/:item_id", showItem);
 
 /* PROTEGIDAS - CATEGORÍAS */
-
 router.post(
   "/categories",
   authenticate,
@@ -67,7 +64,6 @@ router.delete(
 );
 
 /* PROTEGIDAS - ITEMS */
-
 router.post(
   "/items",
   authenticate,

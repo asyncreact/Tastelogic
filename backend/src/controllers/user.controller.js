@@ -2,7 +2,7 @@
 import { getUsers } from "../repositories/user.repository.js";
 import { successResponse } from "../utils/response.js";
 
-/* Lista usuarios (solo admin) */
+/* Lista usuarios (solo admin, con filtro opcional por rol) */
 export const listUsers = async (req, res, next) => {
   try {
     const { role } = req.query;

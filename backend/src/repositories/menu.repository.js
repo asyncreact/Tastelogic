@@ -2,8 +2,6 @@
 
 import { pool } from "../config/db.js";
 
-/* UTILIDADES Y VALIDADORES */
-
 /* Valida que un ID sea un número positivo válido */
 const validateId = (id) => {
   const numId = Number(id);
@@ -18,7 +16,7 @@ const validateString = (value, fieldName) => {
   return value.trim();
 };
 
-/* Valida que un número sea válido y no negativo */
+/* Valida que un número sea válido y no negativo (salvo que se permita) */
 const validateNumber = (value, fieldName, allowNegative = false) => {
   const num = Number(value);
   if (isNaN(num) || (!allowNegative && num < 0)) {
@@ -40,7 +38,7 @@ const filterAllowedFields = (data, allowedFields) => {
   return filtered;
 };
 
-/* Valida campos específicos según su tipo */
+/* Aplica validadores específicos a los campos presentes */
 const validateFields = (data, fieldValidators) => {
   const validated = { ...data };
   Object.entries(fieldValidators).forEach(([field, validator]) => {
@@ -51,7 +49,7 @@ const validateFields = (data, fieldValidators) => {
   return validated;
 };
 
-/* Construye una query UPDATE dinámica con validación de campos */
+/* Construye una query UPDATE dinámica con los campos permitidos */
 const buildUpdateQuery = (data, allowedFields, tableName, whereId) => {
   const filteredData = filterAllowedFields(data, allowedFields);
   const keys = Object.keys(filteredData);
@@ -73,7 +71,7 @@ const buildUpdateQuery = (data, allowedFields, tableName, whereId) => {
   return { query, values: [...values, whereId] };
 };
 
-/* Maneja errores comunes de PostgreSQL */
+/* Normaliza y traduce errores comunes de PostgreSQL */
 const handleDatabaseError = (error) => {
   if (error.code === "23505") {
     throw new Error("Este registro ya existe (violación de unicidad)");
@@ -173,7 +171,7 @@ export const createCategory = async ({
   }
 };
 
-/* Actualiza una categoría. Puede ser completa o parcial según los campos enviados */
+/* Actualiza una categoría (completa o parcial según los campos enviados) */
 export const updateCategory = async (id, data) => {
   try {
     const categoryId = validateId(id);
@@ -198,7 +196,7 @@ export const updateCategory = async (id, data) => {
   }
 };
 
-/* Elimina una categoría y todos sus items en una transacción */
+/* Elimina una categoría y todos sus items asociados en una transacción */
 export const deleteCategory = async (id) => {
   const client = await pool.connect();
   try {
@@ -207,12 +205,10 @@ export const deleteCategory = async (id) => {
 
     await client.query("BEGIN");
 
-    /* Eliminar items asociados */
     await client.query("DELETE FROM menu_items WHERE category_id = $1", [
       categoryId,
     ]);
 
-    /* Eliminar categoría */
     const result = await client.query(
       "DELETE FROM menu_categories WHERE id = $1 RETURNING id",
       [categoryId]
@@ -314,7 +310,7 @@ export const createItem = async ({
   }
 };
 
-/* Actualiza un item. Puede ser completa o parcial según los campos enviados */
+/* Actualiza un item (completo o parcial según los campos enviados) */
 export const updateItem = async (id, data) => {
   try {
     const itemId = validateId(id);

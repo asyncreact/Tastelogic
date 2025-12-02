@@ -25,21 +25,16 @@ import {
 
 const router = express.Router();
 
-/* RUTAS PÚBLICAS */
-
-// Mesas disponibles (pública)
+/* RUTAS PÚBLICAS DE DISPONIBILIDAD */
 router.get("/public/available-tables", getAvailableTables);
 
-// Verificar disponibilidad (pública)
 router.post(
   "/public/check-availability",
   validateCheckAvailabilityMiddleware,
   checkAvailability
 );
 
-/* RUTAS AUTENTICADAS CON NOMBRES ESPECÍFICOS (Antes de /:reservation_id) */
-
-// Reserva activa de hoy del usuario logueado
+/* RUTAS AUTENTICADAS ESPECÍFICAS (ANTES DE /:reservation_id) */
 router.get(
   "/me/active",
   authenticate,
@@ -47,7 +42,6 @@ router.get(
   getMyActiveReservation
 );
 
-// Mesas disponibles (autenticada) - alternativa
 router.get(
   "/available-tables",
   authenticate,
@@ -55,7 +49,6 @@ router.get(
   getAvailableTables
 );
 
-// Verificar disponibilidad (autenticada) - alternativa
 router.post(
   "/check-availability",
   authenticate,
@@ -64,9 +57,7 @@ router.post(
   checkAvailability
 );
 
-/* CRUD DE RESERVAS */
-
-// Listar reservas
+/* RUTAS PROTEGIDAS CRUD DE RESERVAS */
 router.get(
   "/",
   authenticate,
@@ -75,7 +66,6 @@ router.get(
   listReservations
 );
 
-// Crear reserva
 router.post(
   "/",
   authenticate,
@@ -84,9 +74,7 @@ router.post(
   addReservation
 );
 
-/* ACCIONES ESPECIALES CON :reservation_id (Deben ir ANTES de GET /:reservation_id) */
-
-// Actualizar estado
+/* RUTAS ESPECIALES POR ID DE RESERVA (ESTADO Y CANCELACIÓN) */
 router.patch(
   "/:reservation_id/status",
   authenticate,
@@ -95,7 +83,6 @@ router.patch(
   updateStatus
 );
 
-// Cancelar reserva
 router.patch(
   "/:reservation_id/cancel",
   authenticate,
@@ -103,9 +90,7 @@ router.patch(
   cancelReservationHandler
 );
 
-/* RUTAS CON PARÁMETRO :reservation_id (Al final) */
-
-// Obtener reserva por ID
+/* RUTAS CRUD POR ID DE RESERVA */
 router.get(
   "/:reservation_id",
   authenticate,
@@ -113,7 +98,6 @@ router.get(
   showReservation
 );
 
-// Actualizar reserva (PUT)
 router.put(
   "/:reservation_id",
   authenticate,
@@ -122,7 +106,6 @@ router.put(
   editReservation
 );
 
-// Actualizar reserva (PATCH)
 router.patch(
   "/:reservation_id",
   authenticate,
@@ -131,7 +114,6 @@ router.patch(
   editReservation
 );
 
-// Eliminar reserva
 router.delete(
   "/:reservation_id",
   authenticate,

@@ -2,23 +2,22 @@
 
 import { z } from "zod";
 
-// Esquema para crear una mesa
+/* Esquema para crear una mesa */
 export const tableCreateSchema = z.object({
-  zone_id: z
-    .preprocess(
-      (val) => {
-        if (val === "" || val == null) {
-          return val;
-        }
-        return Number(val);
-      },
-      z
-        .number({
-          invalid_type_error: "El ID de la zona debe ser numérico",
-        })
-        .int("El ID de la zona debe ser un número entero")
-        .positive("El ID de la zona debe ser positivo")
-    ),
+  zone_id: z.preprocess(
+    (val) => {
+      if (val === "" || val == null) {
+        return val;
+      }
+      return Number(val);
+    },
+    z
+      .number({
+        invalid_type_error: "El ID de la zona debe ser numérico",
+      })
+      .int("El ID de la zona debe ser un número entero")
+      .positive("El ID de la zona debe ser positivo")
+  ),
   table_number: z
     .string({
       invalid_type_error: "El número de mesa debe ser texto",
@@ -63,16 +62,16 @@ export const tableCreateSchema = z.object({
   ).optional(),
 });
 
-// Esquema para actualizar una mesa (todos los campos opcionales)
+/* Esquema para actualizar una mesa (todos los campos opcionales) */
 export const tableUpdateSchema = tableCreateSchema.partial();
 
-// Función para validar creación
+/* Función para validar creación */
 export const validateCreate = (data) => tableCreateSchema.parse(data);
 
-// Función para validar actualización
+/* Función para validar actualización */
 export const validateUpdate = (data) => tableUpdateSchema.parse(data);
 
-// Middleware para validar creación de mesa
+/* Middleware para validar creación de mesa */
 export const validateTableCreate = (req, res, next) => {
   try {
     req.body = validateCreate(req.body);
@@ -82,7 +81,7 @@ export const validateTableCreate = (req, res, next) => {
   }
 };
 
-// Middleware para validar actualización de mesa
+/* Middleware para validar actualización de mesa */
 export const validateTableUpdate = (req, res, next) => {
   try {
     req.body = validateUpdate(req.body);

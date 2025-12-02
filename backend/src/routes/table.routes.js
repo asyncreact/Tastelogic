@@ -17,13 +17,12 @@ import {
 
 const router = express.Router();
 
-// Rutas públicas sin autenticación
+/* RUTAS PÚBLICAS DE MESAS (SIN AUTENTICACIÓN) */
 router.get("/public/all", listTable);
 router.get("/public/available", listTable);
 
-// Rutas protegidas con autenticación
+/* RUTAS PROTEGIDAS DE MESAS (PANEL) */
 
-// Crear mesa
 router.post(
   "/",
   authenticate,
@@ -32,7 +31,6 @@ router.post(
   addTable
 );
 
-// Listar mesas (panel)
 router.get(
   "/",
   authenticate,
@@ -40,7 +38,6 @@ router.get(
   listTable
 );
 
-// Obtener mesa por ID
 router.get(
   "/:table_id",
   authenticate,
@@ -48,7 +45,6 @@ router.get(
   showTable
 );
 
-// Actualizar mesa (PUT)
 router.put(
   "/:table_id",
   authenticate,
@@ -57,7 +53,6 @@ router.put(
   editTable
 );
 
-// Actualizar mesa (PATCH)
 router.patch(
   "/:table_id",
   authenticate,
@@ -66,7 +61,6 @@ router.patch(
   editTable
 );
 
-// Eliminar mesa
 router.delete(
   "/:table_id",
   authenticate,

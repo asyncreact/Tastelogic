@@ -10,7 +10,7 @@ import {
 import { getZoneById } from "../repositories/zone.repository.js";
 import { successResponse } from "../utils/response.js";
 
-// Obtiene todas las mesas con filtros opcionales
+/* Obtiene todas las mesas con filtros opcionales */
 export const listTable = async (req, res, next) => {
   try {
     const filters = {};
@@ -27,8 +27,12 @@ export const listTable = async (req, res, next) => {
       filters.is_active = req.query.is_active === "true";
     }
 
-    // Admin puede ver inactivas con el filtro include_inactive
-    if (req.user && req.user.role === "admin" && req.query.include_inactive === "true") {
+    /* Admin puede incluir mesas inactivas con include_inactive=true */
+    if (
+      req.user &&
+      req.user.role === "admin" &&
+      req.query.include_inactive === "true"
+    ) {
       filters.include_inactive = true;
     }
 
@@ -43,11 +47,12 @@ export const listTable = async (req, res, next) => {
   }
 };
 
-// Obtiene una mesa específica por ID
+/* Obtiene una mesa específica por ID */
 export const showTable = async (req, res, next) => {
   try {
     const table_id = Number(req.params.table_id);
 
+    /* Valida que el ID de mesa sea un número positivo */
     if (isNaN(table_id) || table_id <= 0) {
       const error = new Error("El ID de la mesa debe ser un número válido");
       error.status = 400;
@@ -62,7 +67,7 @@ export const showTable = async (req, res, next) => {
       throw error;
     }
 
-    // Si no es admin y la mesa está inactiva, no mostrar
+    /* Usuarios no admin no pueden ver mesas inactivas */
     if ((!req.user || req.user.role !== "admin") && !table.is_active) {
       const error = new Error("No encontramos la mesa que buscas");
       error.status = 404;
@@ -75,7 +80,7 @@ export const showTable = async (req, res, next) => {
   }
 };
 
-// Crea una nueva mesa
+/* Crea una nueva mesa */
 export const addTable = async (req, res, next) => {
   try {
     const { zone_id, table_number, capacity, status, is_active } = req.body;
@@ -103,11 +108,12 @@ export const addTable = async (req, res, next) => {
   }
 };
 
-// Actualiza una mesa
+/* Actualiza una mesa */
 export const editTable = async (req, res, next) => {
   try {
     const table_id = Number(req.params.table_id);
 
+    /* Valida el ID de la mesa antes de actualizar */
     if (isNaN(table_id) || table_id <= 0) {
       const error = new Error("El ID de la mesa debe ser un número válido");
       error.status = 400;
@@ -121,6 +127,7 @@ export const editTable = async (req, res, next) => {
       throw error;
     }
 
+    /* Si cambia de zona, valida que la nueva zona exista */
     if (req.body.zone_id && req.body.zone_id !== existing.zone_id) {
       const zone = await getZoneById(Number(req.body.zone_id));
       if (!zone) {
@@ -150,11 +157,12 @@ export const editTable = async (req, res, next) => {
   }
 };
 
-// Elimina una mesa
+/* Elimina una mesa */
 export const removeTable = async (req, res, next) => {
   try {
     const table_id = Number(req.params.table_id);
 
+    /* Valida el ID de la mesa antes de eliminar */
     if (isNaN(table_id) || table_id <= 0) {
       const error = new Error("El ID de la mesa debe ser un número válido");
       error.status = 400;

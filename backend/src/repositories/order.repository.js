@@ -2,11 +2,9 @@
 
 import { pool } from "../config/db.js";
 
-/**
- * OBTENER PEDIDOS
- */
+/* OBTENER PEDIDOS */
 
-// Obtiene todos los pedidos con filtros opcionales
+/* Obtiene todos los pedidos con filtros opcionales */
 export const getOrders = async (filters = {}) => {
   try {
     let query = "SELECT * FROM public.orders WHERE 1=1";
@@ -59,7 +57,7 @@ export const getOrders = async (filters = {}) => {
   }
 };
 
-// Obtiene un pedido por ID con información completa incluyendo items
+/* Obtiene un pedido por ID con sus items y datos relacionados */
 export const getOrderById = async (id) => {
   try {
     const numId = Number(id);
@@ -127,10 +125,7 @@ export const getOrderById = async (id) => {
   }
 };
 
-/**
- * CREAR PEDIDO
- */
-
+/* CREAR PEDIDO */
 export const createOrder = async ({
   user_id,
   reservation_id = null,
@@ -192,7 +187,7 @@ export const createOrder = async ({
     }
 
     await client.query("COMMIT");
-    console.log("✅ Pedido creado exitosamente");
+    console.log("Pedido creado exitosamente");
     return order;
   } catch (error) {
     await client.query("ROLLBACK");
@@ -203,10 +198,7 @@ export const createOrder = async ({
   }
 };
 
-/**
- * ACTUALIZAR PEDIDO
- */
-
+/* ACTUALIZAR PEDIDO */
 export const updateOrder = async (id, updateData) => {
   const client = await pool.connect();
   try {
@@ -240,7 +232,7 @@ export const updateOrder = async (id, updateData) => {
     const result = await client.query(query, values);
 
     await client.query("COMMIT");
-    console.log("✅ Pedido actualizado");
+    console.log("Pedido actualizado");
     return result.rows[0];
   } catch (error) {
     await client.query("ROLLBACK");
@@ -251,10 +243,7 @@ export const updateOrder = async (id, updateData) => {
   }
 };
 
-/**
- * CAMBIAR ESTADO DE PEDIDO
- */
-
+/* CAMBIAR ESTADO DE PEDIDO */
 export const updateOrderStatus = async (id, status) => {
   try {
     const numId = Number(id);
@@ -287,7 +276,7 @@ export const updateOrderStatus = async (id, status) => {
       throw new Error("Pedido no encontrado");
     }
 
-    console.log(`✅ Estado actualizado a ${status}`);
+    console.log(`Estado actualizado a ${status}`);
     return result.rows[0];
   } catch (error) {
     console.error("Error en updateOrderStatus:", error);
@@ -295,10 +284,7 @@ export const updateOrderStatus = async (id, status) => {
   }
 };
 
-/**
- * ACTUALIZAR ESTADO DE PAGO
- */
-
+/* ACTUALIZAR ESTADO DE PAGO */
 export const updatePaymentStatus = async (id, payment_status) => {
   try {
     const numId = Number(id);
@@ -324,7 +310,7 @@ export const updatePaymentStatus = async (id, payment_status) => {
       throw new Error("Pedido no encontrado");
     }
 
-    console.log(`✅ Estado de pago actualizado a ${payment_status}`);
+    console.log(`Estado de pago actualizado a ${payment_status}`);
     return result.rows[0];
   } catch (error) {
     console.error("Error en updatePaymentStatus:", error);
@@ -332,10 +318,7 @@ export const updatePaymentStatus = async (id, payment_status) => {
   }
 };
 
-/**
- * CANCELAR PEDIDO
- */
-
+/* CANCELAR PEDIDO */
 export const cancelOrder = async (id) => {
   try {
     const numId = Number(id);
@@ -354,7 +337,7 @@ export const cancelOrder = async (id) => {
       throw new Error("Pedido no encontrado");
     }
 
-    console.log(`✅ Pedido cancelado`);
+    console.log("Pedido cancelado");
     return result.rows[0];
   } catch (error) {
     console.error("Error en cancelOrder:", error);
@@ -362,10 +345,7 @@ export const cancelOrder = async (id) => {
   }
 };
 
-/**
- * ELIMINAR PEDIDO
- */
-
+/* ELIMINAR PEDIDO */
 export const deleteOrder = async (id) => {
   try {
     const numId = Number(id);
@@ -378,7 +358,7 @@ export const deleteOrder = async (id) => {
       throw new Error("Pedido no encontrado");
     }
 
-    console.log(`✅ Pedido eliminado`);
+    console.log("Pedido eliminado");
     return { message: "Pedido eliminado correctamente" };
   } catch (error) {
     console.error("Error en deleteOrder:", error);

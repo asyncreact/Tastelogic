@@ -1,5 +1,3 @@
-// src/controllers/auth.controller.js
-
 import bcrypt from "bcrypt";
 import crypto from "crypto";
 import {
@@ -22,14 +20,14 @@ import {
 } from "../validators/auth.validator.js";
 import { successResponse } from "../utils/response.js";
 
-/* AUTENTICACIÓN - REGISTRO */
-
 /* Registra un nuevo usuario */
 export const register = async (req, res, next) => {
   try {
+    // Valida los datos de registro
     const { name, email, password } = registerSchema.parse(req.body);
     const existing = await getUserByEmail(email);
 
+    // Verifica si el usuario ya existe
     if (existing) {
       const error = new Error(
         "Este correo electrónico ya está registrado. Por favor, usa otro o inicia sesión."
@@ -38,9 +36,12 @@ export const register = async (req, res, next) => {
       throw error;
     }
 
+    // Hashea la contraseña del usuario
     const hashed_password = await bcrypt.hash(password, 10);
+    // Genera un token para verificación
     const verification_token = crypto.randomBytes(40).toString("hex");
 
+    // Crea el usuario en la base de datos
     await createUser({
       name,
       email,
@@ -50,6 +51,7 @@ export const register = async (req, res, next) => {
 
     const verify_url = `${process.env.FRONTEND_URL}/verify/${verification_token}`;
 
+    // Envía correo de verificación
     Promise.resolve(
       sendMail({
         to: email,
@@ -64,6 +66,7 @@ export const register = async (req, res, next) => {
       console.error("Error al enviar correo de verificación:", err)
     );
 
+    // Devuelve respuesta exitosa
     return successResponse(
       res,
       "¡Registro exitoso! Revisa tu correo para verificar tu cuenta.",
@@ -78,6 +81,7 @@ export const register = async (req, res, next) => {
 /* Verifica la cuenta de un usuario */
 export const verify = async (req, res, next) => {
   try {
+    // Obtiene el token de la URL y verifica el usuario
     const { token } = req.params;
     const user = await verifyUserAccount(token);
 
@@ -89,6 +93,7 @@ export const verify = async (req, res, next) => {
       throw error;
     }
 
+    // Respuesta exitosa de verificación
     return successResponse(
       res,
       "¡Tu cuenta ha sido verificada exitosamente! Ya puedes iniciar sesión.",
@@ -100,14 +105,14 @@ export const verify = async (req, res, next) => {
   }
 };
 
-/* AUTENTICACIÓN - LOGIN Y LOGOUT */
-
 /* Inicia sesión de un usuario */
 export const login = async (req, res, next) => {
   try {
+    // Valida los datos de login
     const { email, password } = loginSchema.parse(req.body);
     const user = await getUserByEmail(email);
 
+    // Verifica si el usuario existe
     if (!user) {
       const error = new Error(
         "No encontramos una cuenta con este correo electrónico."
@@ -116,6 +121,7 @@ export const login = async (req, res, next) => {
       throw error;
     }
 
+    // Verifica si la cuenta ha sido confirmada
     if (!user.is_verified) {
       const error = new Error(
         "Tu cuenta aún no está verificada. Por favor, revisa tu correo."
@@ -124,6 +130,7 @@ export const login = async (req, res, next) => {
       throw error;
     }
 
+    // Verifica la contraseña proporcionada
     const valid = await bcrypt.compare(password, user.password);
 
     if (!valid) {
@@ -134,6 +141,7 @@ export const login = async (req, res, next) => {
       throw error;
     }
 
+    // Genera y envía el token JWT de sesión
     const token = generateToken({
       id: user.id,
       role: user.role,
@@ -157,6 +165,7 @@ export const login = async (req, res, next) => {
 /* Cierra la sesión de un usuario */
 export const logout = async (req, res, next) => {
   try {
+    // Invalida el token actual incrementando el token_version
     const user_id = req.user.id;
     await incrementTokenVersion(user_id);
 
@@ -171,14 +180,13 @@ export const logout = async (req, res, next) => {
   }
 };
 
-/* AUTENTICACIÓN - RESET DE CONTRASEÑA */
-
 /* Inicia el proceso de reseteo de contraseña */
 export const forgotPassword = async (req, res, next) => {
   try {
     const { email } = req.body;
     const user = await getUserByEmail(email);
 
+    // Verifica si el usuario existe para reset
     if (!user) {
       const error = new Error(
         "No encontramos una cuenta asociada a este correo electrónico."
@@ -187,11 +195,13 @@ export const forgotPassword = async (req, res, next) => {
       throw error;
     }
 
+    // Genera un token de reseteo y lo asocia al usuario
     const reset_token = crypto.randomBytes(40).toString("hex");
     await setResetToken(user.id, reset_token);
 
     const reset_url = `${process.env.FRONTEND_URL}/reset-password/${reset_token}`;
 
+    // Envía correo para restablecer contraseña
     Promise.resolve(
       sendMail({
         to: email,
@@ -220,6 +230,7 @@ export const forgotPassword = async (req, res, next) => {
 /* Restablece la contraseña de un usuario */
 export const resetPassword = async (req, res, next) => {
   try {
+    // Valida el token y la nueva contraseña
     const { token } = req.params;
     const { password } = resetPasswordSchema.parse(req.body);
     const user = await getUserByResetToken(token);
@@ -232,6 +243,7 @@ export const resetPassword = async (req, res, next) => {
       throw error;
     }
 
+    // Hashea la nueva contraseña y actualiza el usuario
     const hashed = await bcrypt.hash(password, 10);
     await updateUserPassword(user.id, hashed);
     await clearResetToken(user.id);
