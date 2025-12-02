@@ -495,6 +495,19 @@ export const editReservation = async (req, res, next) => {
       throw error;
     }
 
+    /* Bloquea edición si la reserva ya está completada, cancelada o expirada */
+    if (
+      existing.status === "completed" ||
+      existing.status === "cancelled" ||
+      existing.status === "expired"
+    ) {
+      const error = new Error(
+        "No puedes modificar una reserva que ya fue completada, cancelada o expirada"
+      );
+      error.status = 400;
+      throw error;
+    }
+
     /* Solo admin puede cambiar user_id */
     if (req.body.user_id && req.user.role !== "admin") {
       const error = new Error(
@@ -727,10 +740,14 @@ export const updateStatus = async (req, res, next) => {
       throw error;
     }
 
-    /* Bloquea cambios si la reserva ya está cancelada o expirada */
-    if (existing.status === "cancelled" || existing.status === "expired") {
+    /* Bloquea cambios si la reserva ya está cancelada, expirada o completada */
+    if (
+      existing.status === "cancelled" ||
+      existing.status === "expired" ||
+      existing.status === "completed"
+    ) {
       const error = new Error(
-        "No puedes modificar el estado de una reserva cancelada o expirada"
+        "No puedes modificar el estado de una reserva cancelada, expirada o completada"
       );
       error.status = 400;
       throw error;
