@@ -19,13 +19,13 @@ export const TableContext = createContext(null);
 export const TableProvider = ({ children }) => {
   const { user } = useAuth();
 
-  // Estado
+  /* Estados globales de zonas y mesas */
   const [zones, setZones] = useState([]);
   const [tables, setTables] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Cargar zonas y mesas solo cuando haya usuario autenticado y NO sea customer
+  /* Cargar datos iniciales solo si el usuario no es customer */
   useEffect(() => {
     if (!user) {
       setZones([]);
@@ -47,6 +47,7 @@ export const TableProvider = ({ children }) => {
           getTables(),
         ]);
 
+        /* Compatibilidad con distintas estructuras de respuesta */
         const zonesData =
           zonesRes.data?.data?.zones || zonesRes.data?.zones || [];
         const tablesData =
@@ -65,10 +66,7 @@ export const TableProvider = ({ children }) => {
     loadInitialData();
   }, [user]);
 
-  // ============================================================
-  // 🏢 ZONAS
-  // ============================================================
-
+  /* Obtener todas las zonas */
   const fetchZones = async () => {
     try {
       if (!user || user.role === "customer") {
@@ -92,6 +90,7 @@ export const TableProvider = ({ children }) => {
     }
   };
 
+  /* Obtener una zona específica */
   const fetchZone = async (zoneId) => {
     try {
       if (!user || user.role === "customer") {
@@ -110,6 +109,7 @@ export const TableProvider = ({ children }) => {
     }
   };
 
+  /* Crear una zona nueva */
   const addZone = async (data) => {
     try {
       if (!user || user.role === "customer") {
@@ -145,6 +145,7 @@ export const TableProvider = ({ children }) => {
     }
   };
 
+  /* Actualizar una zona existente */
   const editZone = async (zoneId, data) => {
     try {
       if (!user || user.role === "customer") {
@@ -183,6 +184,7 @@ export const TableProvider = ({ children }) => {
     }
   };
 
+  /* Eliminar una zona */
   const removeZone = async (zoneId) => {
     try {
       if (!user || user.role === "customer") {
@@ -205,10 +207,7 @@ export const TableProvider = ({ children }) => {
     }
   };
 
-  // ============================================================
-  // 🪑 MESAS
-  // ============================================================
-
+  /* Obtener todas las mesas */
   const fetchTables = async () => {
     try {
       if (!user || user.role === "customer") {
@@ -232,6 +231,7 @@ export const TableProvider = ({ children }) => {
     }
   };
 
+  /* Obtener una mesa específica */
   const fetchTable = async (tableId) => {
     try {
       if (!user || user.role === "customer") {
@@ -250,6 +250,7 @@ export const TableProvider = ({ children }) => {
     }
   };
 
+  /* Crear una mesa nueva */
   const addTable = async (tableDataInput) => {
     try {
       if (!user || user.role === "customer") {
@@ -285,6 +286,7 @@ export const TableProvider = ({ children }) => {
     }
   };
 
+  /* Actualizar una mesa existente */
   const editTable = async (tableId, data) => {
     try {
       if (!user || user.role === "customer") {
@@ -323,6 +325,7 @@ export const TableProvider = ({ children }) => {
     }
   };
 
+  /* Eliminar una mesa */
   const removeTable = async (tableId) => {
     try {
       if (!user || user.role === "customer") {
@@ -345,34 +348,25 @@ export const TableProvider = ({ children }) => {
     }
   };
 
-  // ============================================================
-  // 🔧 Utilidades
-  // ============================================================
-
+  /* Limpiar errores */
   const clearError = () => setError(null);
 
+  /* Valores expuestos por el contexto */
   const value = {
-    // Estado
     zones,
     tables,
     loading,
     error,
-
-    // Zonas
     fetchZones,
     fetchZone,
     addZone,
     editZone,
     removeZone,
-
-    // Mesas
     fetchTables,
     fetchTable,
     addTable,
     editTable,
     removeTable,
-
-    // Utilidades
     clearError,
   };
 

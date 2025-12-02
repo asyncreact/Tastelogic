@@ -17,13 +17,13 @@ import {
 export const OrderContext = createContext();
 
 export function OrderProvider({ children }) {
-  const { user } = useAuth(); // Usuario actual
+  const { user } = useAuth();
   const userId = user?.id;
 
   const [orders, setOrders] = useState([]);
   const [currentOrder, setCurrentOrder] = useState(null);
 
-  // Carrito por usuario
+  /* Carrito por usuario */
   const [cart, setCart] = useState(() => {
     try {
       if (!userId) return [];
@@ -38,7 +38,7 @@ export function OrderProvider({ children }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Helper: parsear error del backend (similar a AuthContext)
+  /* Parseo de errores enviados por el backend */
   const parseApiError = (err, fallback) => {
     const errorData = err?.response?.data || {};
 
@@ -51,7 +51,7 @@ export function OrderProvider({ children }) {
     return { message };
   };
 
-  // Guardar carrito en localStorage
+  /* Guardar carrito cuando cambia */
   useEffect(() => {
     try {
       if (userId) {
@@ -62,7 +62,7 @@ export function OrderProvider({ children }) {
     }
   }, [cart, userId]);
 
-  // Cargar carrito cuando cambia el usuario
+  /* Cargar carrito cuando cambia el usuario */
   useEffect(() => {
     if (!userId) {
       setCart([]);
@@ -77,10 +77,8 @@ export function OrderProvider({ children }) {
     }
   }, [userId]);
 
-  // ================= ÓRDENES =================
-
+  /* Obtener todas las órdenes */
   const fetchOrders = async (params = {}) => {
-    // No llamar al backend si no hay usuario
     if (!user) {
       setOrders([]);
       return;
@@ -100,6 +98,7 @@ export function OrderProvider({ children }) {
     }
   };
 
+  /* Obtener una orden específica */
   const fetchOrder = async (orderId) => {
     if (!user) {
       throw { message: "Debes iniciar sesión para ver los detalles de la orden." };
@@ -111,6 +110,7 @@ export function OrderProvider({ children }) {
       const response = await getOrder(orderId);
       const orderData =
         response.data?.order || response.data?.data || response.data;
+
       setCurrentOrder(orderData);
       return orderData;
     } catch (err) {
@@ -123,6 +123,7 @@ export function OrderProvider({ children }) {
     }
   };
 
+  /* Crear una nueva orden */
   const addOrder = async (orderData) => {
     if (!user) {
       throw { message: "Debes iniciar sesión para confirmar tu pedido." };
@@ -133,11 +134,10 @@ export function OrderProvider({ children }) {
       setError(null);
       const response = await createOrder(orderData);
       const newOrder = response.data?.order || response.data?.data;
+
       setOrders((prev) => [newOrder, ...prev]);
       setCart([]);
-      if (userId) {
-        localStorage.removeItem(`cart_${userId}`);
-      }
+      if (userId) localStorage.removeItem(`cart_${userId}`);
 
       return {
         success: true,
@@ -154,6 +154,7 @@ export function OrderProvider({ children }) {
     }
   };
 
+  /* Editar una orden */
   const editOrder = async (orderId, orderData) => {
     try {
       setLoading(true);
@@ -165,9 +166,7 @@ export function OrderProvider({ children }) {
         prev.map((o) => (o.id === orderId ? updatedOrder : o))
       );
 
-      if (currentOrder?.id === orderId) {
-        setCurrentOrder(updatedOrder);
-      }
+      if (currentOrder?.id === orderId) setCurrentOrder(updatedOrder);
 
       return {
         success: true,
@@ -184,6 +183,7 @@ export function OrderProvider({ children }) {
     }
   };
 
+  /* Cambiar estado de la orden */
   const changeOrderStatus = async (orderId, status) => {
     try {
       setLoading(true);
@@ -195,18 +195,15 @@ export function OrderProvider({ children }) {
         prev.map((o) => (o.id === orderId ? updatedOrder : o))
       );
 
-      if (currentOrder?.id === orderId) {
-        setCurrentOrder(updatedOrder);
-      }
+      if (currentOrder?.id === orderId) setCurrentOrder(updatedOrder);
 
       return {
         success: true,
-        message:
-          response.data?.message || "Estado de la orden actualizado",
+        message: response.data?.message || "Estado de la orden actualizado",
         order: updatedOrder,
       };
     } catch (err) {
-      const parsed = parseApiError(err, "Error al actualizar estado");
+      const parsed = parseApiError(err, "Error al actualizar estado de orden");
       setError(parsed.message);
       console.error("Error changeOrderStatus:", err);
       throw parsed;
@@ -215,6 +212,7 @@ export function OrderProvider({ children }) {
     }
   };
 
+  /* Cambiar estado de pago */
   const changePaymentStatus = async (orderId, paymentStatus) => {
     try {
       setLoading(true);
@@ -226,14 +224,11 @@ export function OrderProvider({ children }) {
         prev.map((o) => (o.id === orderId ? updatedOrder : o))
       );
 
-      if (currentOrder?.id === orderId) {
-        setCurrentOrder(updatedOrder);
-      }
+      if (currentOrder?.id === orderId) setCurrentOrder(updatedOrder);
 
       return {
         success: true,
-        message:
-          response.data?.message || "Estado de pago actualizado",
+        message: response.data?.message || "Estado de pago actualizado",
         order: updatedOrder,
       };
     } catch (err) {
@@ -246,6 +241,7 @@ export function OrderProvider({ children }) {
     }
   };
 
+  /* Cancelar una orden */
   const cancelOrderById = async (orderId) => {
     try {
       setLoading(true);
@@ -257,14 +253,11 @@ export function OrderProvider({ children }) {
         prev.map((o) => (o.id === orderId ? updatedOrder : o))
       );
 
-      if (currentOrder?.id === orderId) {
-        setCurrentOrder(updatedOrder);
-      }
+      if (currentOrder?.id === orderId) setCurrentOrder(updatedOrder);
 
       return {
         success: true,
-        message:
-          response.data?.message || "Orden cancelada correctamente",
+        message: response.data?.message || "Orden cancelada correctamente",
         order: updatedOrder,
       };
     } catch (err) {
@@ -277,6 +270,7 @@ export function OrderProvider({ children }) {
     }
   };
 
+  /* Eliminar una orden */
   const removeOrder = async (orderId) => {
     try {
       setLoading(true);
@@ -285,14 +279,11 @@ export function OrderProvider({ children }) {
 
       setOrders((prev) => prev.filter((o) => o.id !== orderId));
 
-      if (currentOrder?.id === orderId) {
-        setCurrentOrder(null);
-      }
+      if (currentOrder?.id === orderId) setCurrentOrder(null);
 
       return {
         success: true,
-        message:
-          response.data?.message || "Orden eliminada correctamente",
+        message: response.data?.message || "Orden eliminada correctamente",
       };
     } catch (err) {
       const parsed = parseApiError(err, "Error al eliminar orden");
@@ -304,8 +295,7 @@ export function OrderProvider({ children }) {
     }
   };
 
-  // ================= CARRITO =================
-
+  /* Agregar al carrito */
   const addToCart = (item, quantity = 1) => {
     setCart((prev) => {
       const existing = prev.find((i) => i.id === item.id);
@@ -318,10 +308,12 @@ export function OrderProvider({ children }) {
     });
   };
 
+  /* Remover del carrito */
   const removeFromCart = (itemId) => {
     setCart((prev) => prev.filter((i) => i.id !== itemId));
   };
 
+  /* Actualizar cantidad en carrito */
   const updateCartQuantity = (itemId, quantity) => {
     if (quantity <= 0) {
       removeFromCart(itemId);
@@ -333,13 +325,13 @@ export function OrderProvider({ children }) {
     );
   };
 
+  /* Vaciar carrito */
   const clearCart = () => {
     setCart([]);
-    if (userId) {
-      localStorage.removeItem(`cart_${userId}`);
-    }
+    if (userId) localStorage.removeItem(`cart_${userId}`);
   };
 
+  /* Calcular total del carrito */
   const getCartTotal = () => {
     return cart.reduce(
       (total, item) => total + Number(item.price) * item.quantity,
@@ -350,14 +342,11 @@ export function OrderProvider({ children }) {
   const clearError = () => setError(null);
 
   const value = {
-    // Estado
     orders,
     currentOrder,
     cart,
     loading,
     error,
-
-    // Órdenes
     fetchOrders,
     fetchOrder,
     addOrder,
@@ -366,15 +355,11 @@ export function OrderProvider({ children }) {
     changePaymentStatus,
     cancelOrderById,
     removeOrder,
-
-    // Carrito
     addToCart,
     removeFromCart,
     updateCartQuantity,
     clearCart,
     getCartTotal,
-
-    // Utilidades
     clearError,
   };
 

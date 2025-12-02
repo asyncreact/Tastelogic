@@ -2,27 +2,22 @@
 
 import axios from "axios";
 
-// ✅ Remover la barra final si existe
+/* Normaliza la URL base eliminando barra final */
 const API_URL = (import.meta.env.VITE_API_URL || "http://localhost:4000").replace(/\/$/, "");
 
-// ✅ Crear instancia con configuración
+/* Instancia de Axios con configuración base */
 const api = axios.create({
-  baseURL: `${API_URL}/api`, // Ahora no habrá doble barra
+  baseURL: `${API_URL}/api`,
 });
 
-// ✅ Interceptor para agregar token automáticamente
+/* Interceptor para agregar token en cada solicitud */
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
-
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-
-  // Siempre devolver config, haya token o no
+  if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
 
-// ✅ Interceptor de respuesta para manejar errores de autenticación
+/* Interceptor para manejar errores de autenticación */
 api.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -31,7 +26,6 @@ api.interceptors.response.use(
     const token = localStorage.getItem("token");
 
     if (status === 401 && !silentAuth) {
-      // Solo redirigir si HABÍA sesión (token presente)
       if (token) {
         localStorage.removeItem("token");
         localStorage.removeItem("user");
@@ -39,64 +33,46 @@ api.interceptors.response.use(
       }
     }
 
-    // Si no hay token (invitado) o es silentAuth, solo rechazamos el error
     return Promise.reject(error);
   }
 );
 
-// ============================================================
-// 🔐 AUTENTICACIÓN
-// ============================================================
+/* Registro de usuario */
+export const registerUser = (data) => api.post("/auth/register", data);
 
-export const registerUser = (data) =>
-  api.post("/auth/register", data);
+/* Inicio de sesión */
+export const loginUser = (data) => api.post("/auth/login", data);
 
-export const loginUser = (data) =>
-  api.post("/auth/login", data);
+/* Verificación de cuenta */
+export const verifyAccount = (token) => api.get(`/auth/verify/${token}`);
 
-export const verifyAccount = (token) =>
-  api.get(`/auth/verify/${token}`);
+/* Solicitud de recuperación */
+export const forgotPassword = (data) => api.post("/auth/forgot-password", data);
 
-export const forgotPassword = (data) =>
-  api.post("/auth/forgot-password", data);
+/* Restablecimiento de contraseña */
+export const resetPassword = (token, data) => api.post(`/auth/reset-password/${token}`, data);
 
-export const resetPassword = (token, data) =>
-  api.post(`/auth/reset-password/${token}`, data);
-
+/* Obtener perfil del usuario */
 export const getProfile = (silentAuth = false) =>
-  api.get("/auth/me", {
-    silentAuth, // propiedad custom que usa el interceptor
-  });
+  api.get("/auth/me", { silentAuth });
 
-export const logoutUser = () =>
-  api.post("/auth/logout");
+/* Cierre de sesión */
+export const logoutUser = () => api.post("/auth/logout");
 
-// ============================================================
-// 🛠️ UTILIDADES
-// ============================================================
-
-/**
- * Obtiene el token actual del localStorage
- */
+/* Obtener token */
 export const getToken = () => localStorage.getItem("token");
 
-/**
- * Guarda el token en localStorage
- */
+/* Guardar token */
 export const setToken = (token) => {
   localStorage.setItem("token", token);
 };
 
-/**
- * Elimina el token del localStorage
- */
+/* Eliminar token */
 export const removeToken = () => {
   localStorage.removeItem("token");
 };
 
-/**
- * Verifica si el usuario está autenticado
- */
+/* Verificar si existe token */
 export const isAuthenticated = () => {
   const token = getToken();
   return !!token;

@@ -5,16 +5,16 @@ import { loginUser, registerUser, logoutUser, getProfile } from "../api/auth";
 export const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-  // Inicializar desde localStorage
+  /* Cargar usuario desde localStorage */
   const [user, setUser] = useState(() => {
     const savedUser = localStorage.getItem("user");
     return savedUser ? JSON.parse(savedUser) : null;
   });
 
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(true); /* Estado de carga */
+  const [error, setError] = useState(null);     /* Errores de autenticación */
 
-  // Verificar sesión al cargar (si hay token en localStorage)
+  /* Verificar token al iniciar la aplicación */
   useEffect(() => {
     const checkAuth = async () => {
       const token = localStorage.getItem("token");
@@ -31,8 +31,8 @@ export const AuthProvider = ({ children }) => {
 
         setUser(userData);
         localStorage.setItem("user", JSON.stringify(userData));
-      } catch (err) {
-        // Token inválido o expirado
+      } catch {
+        /* Token inválido → limpiar sesión */
         localStorage.removeItem("token");
         localStorage.removeItem("user");
         setUser(null);
@@ -44,38 +44,33 @@ export const AuthProvider = ({ children }) => {
     checkAuth();
   }, []);
 
-  // Registro
+  /* Registrar usuario */
   const register = async (data) => {
     try {
       setError(null);
       const response = await registerUser(data);
-      const message = response.data?.message || "Registro exitoso";
 
       return {
         success: true,
-        message,
+        message: response.data?.message || "Registro exitoso",
         data: response.data,
       };
     } catch (err) {
       const errorData = err.response?.data || {};
 
-      if (errorData.details && Array.isArray(errorData.details)) {
+      if (errorData.details) {
         const errorMessage = errorData.message || "Errores de validación";
         setError(errorMessage);
-        throw {
-          message: errorMessage,
-          details: errorData.details,
-        };
+        throw { message: errorMessage, details: errorData.details };
       }
 
-      const message =
-        errorData.message || err.message || "Error al registrar";
+      const message = errorData.message || err.message || "Error al registrar";
       setError(message);
       throw { message };
     }
   };
 
-  // Login
+  /* Iniciar sesión */
   const login = async (credentials) => {
     try {
       setError(null);
@@ -85,9 +80,7 @@ export const AuthProvider = ({ children }) => {
       const token = responseData?.token;
       const userData = responseData?.user;
 
-      if (!token || !userData) {
-        throw { message: "Respuesta del servidor inválida" };
-      }
+      if (!token || !userData) throw { message: "Respuesta inválida" };
 
       localStorage.setItem("token", token);
       localStorage.setItem("user", JSON.stringify(userData));
@@ -101,13 +94,10 @@ export const AuthProvider = ({ children }) => {
     } catch (err) {
       const errorData = err.response?.data || {};
 
-      if (errorData.details && Array.isArray(errorData.details)) {
+      if (errorData.details) {
         const errorMessage = errorData.message || "Errores de validación";
         setError(errorMessage);
-        throw {
-          message: errorMessage,
-          details: errorData.details,
-        };
+        throw { message: errorMessage, details: errorData.details };
       }
 
       const message =
@@ -117,13 +107,12 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Logout
+  /* Cerrar sesión */
   const logout = async () => {
     try {
       await logoutUser();
-    } catch (err) {
-      console.error("Error al cerrar sesión:", err);
-    } finally {
+    } catch {}
+    finally {
       localStorage.removeItem("token");
       localStorage.removeItem("user");
       setUser(null);
@@ -131,20 +120,19 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Verificar si está autenticado
+  /* Verificar si está autenticado */
   const isAuthenticated = () => {
     return !!user && !!localStorage.getItem("token");
   };
 
-  // Verificar roles
+  /* Verificar rol del usuario */
   const hasRole = (role) => {
     if (!user) return false;
     if (user.role === role) return true;
-    if (Array.isArray(user.roles) && user.roles.includes(role)) return true;
-    return false;
+    return Array.isArray(user.roles) && user.roles.includes(role);
   };
 
-  // Refrescar perfil manualmente
+  /* Actualizar datos del usuario */
   const refreshUser = async () => {
     try {
       const response = await getProfile();
@@ -153,13 +141,14 @@ export const AuthProvider = ({ children }) => {
 
       setUser(userData);
       localStorage.setItem("user", JSON.stringify(userData));
-    } catch (err) {
+    } catch {
       localStorage.removeItem("token");
       localStorage.removeItem("user");
       setUser(null);
     }
   };
 
+  /* Valores expuestos por el contexto */
   const value = {
     user,
     loading,

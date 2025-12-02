@@ -13,7 +13,7 @@ export const UserProvider = ({ children }) => {
   const [usersError, setUsersError] = useState(null);
 
   useEffect(() => {
-    // Si no hay usuario o no es admin, no pedimos la lista
+    /* Si el usuario no existe o no es admin, no cargar usuarios */
     if (!user || user.role !== "admin") {
       setUsers([]);
       setLoadingUsers(false);
@@ -25,7 +25,7 @@ export const UserProvider = ({ children }) => {
         setLoadingUsers(true);
         setUsersError(null);
         const res = await api.get("/users?role=customer");
-        const data = res.data?.users || res.data?.data || [];
+        const data = res.data?.users || res.data?.data || []; 
         setUsers(data);
       } catch (err) {
         console.error("Error al cargar usuarios:", err);
@@ -72,14 +72,14 @@ export const UserProvider = ({ children }) => {
   const value = {
     users,
     loadingUsers,
-    usersError,
-    getUserById,
+    usersError, 
+    getUserById, 
     refreshUsers,
   };
 
   return (
-  <UserContext.Provider value={value}>
-    {children}
-  </UserContext.Provider>) 
-  
+    <UserContext.Provider value={value}>
+      {children}
+    </UserContext.Provider>
+  );
 };

@@ -21,7 +21,7 @@ export const MenuProvider = ({ children }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // ✅ Cargar categorías e items al iniciar
+  /* Cargar categorías e items al iniciar */
   useEffect(() => {
     const loadInitialData = async () => {
       setLoading(true);
@@ -51,11 +51,7 @@ export const MenuProvider = ({ children }) => {
     loadInitialData();
   }, []);
 
-  // ============================================================
-  // 📁 CATEGORÍAS
-  // ============================================================
-
-  // ✅ Obtener todas las categorías
+  /* Obtener todas las categorías */
   const fetchCategories = async () => {
     try {
       setError(null);
@@ -78,7 +74,7 @@ export const MenuProvider = ({ children }) => {
     }
   };
 
-  // ✅ Obtener una categoría por ID
+  /* Obtener una categoría por ID */
   const fetchCategory = async (categoryId) => {
     try {
       setError(null);
@@ -95,7 +91,7 @@ export const MenuProvider = ({ children }) => {
     }
   };
 
-  // ✅ Crear categoría - Mejorado para manejar errores de Zod
+  /* Crear categoría */
   const addCategory = async (data) => {
     try {
       setError(null);
@@ -105,7 +101,6 @@ export const MenuProvider = ({ children }) => {
         response.data?.data?.category || response.data?.category;
       const message = response.data?.message || "Categoría creada exitosamente";
 
-      // Actualizar estado local
       setCategories((prev) => [...prev, categoryData]);
 
       return {
@@ -116,7 +111,7 @@ export const MenuProvider = ({ children }) => {
     } catch (err) {
       const errorData = err.response?.data || {};
 
-      // Si tiene detalles de validación (errores de Zod)
+      /* Manejo de errores de validación */
       if (errorData.details && Array.isArray(errorData.details)) {
         const errorMessage = errorData.message || "Errores de validación";
         setError(errorMessage);
@@ -126,7 +121,6 @@ export const MenuProvider = ({ children }) => {
         };
       }
 
-      // Error simple
       const message =
         errorData.message || err.message || "Error al crear categoría";
       setError(message);
@@ -134,7 +128,7 @@ export const MenuProvider = ({ children }) => {
     }
   };
 
-  // ✅ Actualizar categoría
+  /* Actualizar categoría */
   const editCategory = async (categoryId, data) => {
     try {
       setError(null);
@@ -145,7 +139,6 @@ export const MenuProvider = ({ children }) => {
       const message =
         response.data?.message || "Categoría actualizada exitosamente";
 
-      // Actualizar estado local
       setCategories((prev) =>
         prev.map((cat) => (cat.id === categoryId ? categoryData : cat))
       );
@@ -158,6 +151,7 @@ export const MenuProvider = ({ children }) => {
     } catch (err) {
       const errorData = err.response?.data || {};
 
+      /* Manejo de errores de validación */
       if (errorData.details && Array.isArray(errorData.details)) {
         const errorMessage = errorData.message || "Errores de validación";
         setError(errorMessage);
@@ -174,7 +168,7 @@ export const MenuProvider = ({ children }) => {
     }
   };
 
-  // ✅ Eliminar categoría
+  /* Eliminar categoría */
   const removeCategory = async (categoryId) => {
     try {
       setError(null);
@@ -182,7 +176,6 @@ export const MenuProvider = ({ children }) => {
       const message =
         response.data?.message || "Categoría eliminada exitosamente";
 
-      // Actualizar estado local
       setCategories((prev) => prev.filter((cat) => cat.id !== categoryId));
 
       return { success: true, message };
@@ -195,11 +188,7 @@ export const MenuProvider = ({ children }) => {
     }
   };
 
-  // ============================================================
-  // 🍽️ ITEMS (Platos)
-  // ============================================================
-
-  // ✅ Obtener todos los items
+  /* Obtener todos los items */
   const fetchItems = async () => {
     try {
       setError(null);
@@ -220,7 +209,7 @@ export const MenuProvider = ({ children }) => {
     }
   };
 
-  // ✅ Obtener un item por ID
+  /* Obtener item por ID */
   const fetchItem = async (itemId) => {
     try {
       setError(null);
@@ -236,7 +225,7 @@ export const MenuProvider = ({ children }) => {
     }
   };
 
-  // ✅ Crear item (con soporte para imágenes)
+  /* Crear item */
   const addItem = async (data) => {
     try {
       setError(null);
@@ -245,7 +234,6 @@ export const MenuProvider = ({ children }) => {
       const itemData = response.data?.data?.item || response.data?.item;
       const message = response.data?.message || "Item creado exitosamente";
 
-      // Actualizar estado local
       setItems((prev) => [...prev, itemData]);
 
       return {
@@ -256,6 +244,7 @@ export const MenuProvider = ({ children }) => {
     } catch (err) {
       const errorData = err.response?.data || {};
 
+      /* Manejo de errores de validación */
       if (errorData.details && Array.isArray(errorData.details)) {
         const errorMessage = errorData.message || "Errores de validación";
         setError(errorMessage);
@@ -265,13 +254,14 @@ export const MenuProvider = ({ children }) => {
         };
       }
 
-      const message = errorData.message || err.message || "Error al crear item";
+      const message =
+        errorData.message || err.message || "Error al crear item";
       setError(message);
       throw { message };
     }
   };
 
-  // ✅ Actualizar item (con soporte para imágenes)
+  /* Actualizar item */
   const editItem = async (itemId, data) => {
     try {
       setError(null);
@@ -281,7 +271,6 @@ export const MenuProvider = ({ children }) => {
       const message =
         response.data?.message || "Item actualizado exitosamente";
 
-      // Actualizar estado local
       setItems((prev) =>
         prev.map((item) => (item.id === itemId ? itemData : item))
       );
@@ -294,6 +283,7 @@ export const MenuProvider = ({ children }) => {
     } catch (err) {
       const errorData = err.response?.data || {};
 
+      /* Manejo de errores de validación */
       if (errorData.details && Array.isArray(errorData.details)) {
         const errorMessage = errorData.message || "Errores de validación";
         setError(errorMessage);
@@ -310,14 +300,13 @@ export const MenuProvider = ({ children }) => {
     }
   };
 
-  // ✅ Eliminar item
+  /* Eliminar item */
   const removeItem = async (itemId) => {
     try {
       setError(null);
       const response = await deleteMenuItem(itemId);
       const message = response.data?.message || "Item eliminado exitosamente";
 
-      // Actualizar estado local
       setItems((prev) => prev.filter((item) => item.id !== itemId));
 
       return { success: true, message };
@@ -330,33 +319,26 @@ export const MenuProvider = ({ children }) => {
     }
   };
 
-  // ✅ Limpiar errores
+  /* Limpiar error almacenado */
   const clearError = () => {
     setError(null);
   };
 
   const value = {
-    // Estado
     categories,
     items,
     loading,
     error,
-
-    // Funciones de categorías
     fetchCategories,
     fetchCategory,
     addCategory,
     editCategory,
     removeCategory,
-
-    // Funciones de items
     fetchItems,
     fetchItem,
     addItem,
     editItem,
     removeItem,
-
-    // Utilidades
     clearError,
   };
 

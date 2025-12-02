@@ -1,54 +1,42 @@
 // src/api/reservations.js
 import api from './auth';
 
-// ============================================================
-// 📅 RESERVAS
-// ============================================================
-
-// Listar todas las reservas (Admin ve todas, Customer solo las suyas)
+/* Listar reservas */
 export const getReservations = (params = {}) =>
   api.get('/reservations', { params });
 
-// Obtener una reserva específica
+/* Obtener una reserva por ID */
 export const getReservation = (reservationId) =>
   api.get(`/reservations/${reservationId}`);
 
-// Crear nueva reserva
+/* Crear reserva */
 export const createReservation = (data) =>
   api.post('/reservations', data);
 
-// Actualizar reserva
+/* Actualizar reserva */
 export const updateReservation = (reservationId, data) =>
   api.put(`/reservations/${reservationId}`, data);
 
-// Actualizar estado de la reserva (solo admin)
+/* Actualizar estado de reserva */
 export const updateReservationStatus = (reservationId, status) =>
   api.patch(`/reservations/${reservationId}/status`, { status });
 
-// Cancelar reserva
+/* Cancelar reserva */
 export const cancelReservation = (reservationId) =>
   api.patch(`/reservations/${reservationId}/cancel`);
 
-// Eliminar reserva (solo admin)
+/* Eliminar reserva */
 export const deleteReservation = (reservationId) =>
   api.delete(`/reservations/${reservationId}`);
 
-// ============================================================
-// 🔍 DISPONIBILIDAD
-// ============================================================
-
-// Verificar disponibilidad (pública)
+/* Verificar disponibilidad */
 export const checkAvailability = (data) =>
   api.post('/reservations/public/check-availability', data);
 
-// Obtener mesas disponibles (pública)
+/* Obtener mesas disponibles */
 export const getAvailableTables = (params = {}) =>
   api.get('/reservations/public/available-tables', { params });
 
-// ============================================================
-// 📅 RESERVA ACTIVA (Customer)
-// ============================================================
-
-// Obtener la reserva activa de hoy del usuario logueado
+/* Obtener reserva activa del usuario */
 export const getMyActiveReservation = () =>
   api.get('/reservations/me/active');
