@@ -21,9 +21,12 @@ export function ReservationProvider({ children }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  /* Procesa errores enviados por el backend */
   const parseApiError = (err, fallback) => {
+    const status = err?.response?.status;
     const errorData = err?.response?.data || {};
+    if (status === 401) {
+      return { message: "Debes iniciar sesión para crear tu reserva." };
+    }
     if (errorData.details && Array.isArray(errorData.details)) {
       const message = errorData.message || fallback;
       return { message, details: errorData.details };
@@ -32,7 +35,6 @@ export function ReservationProvider({ children }) {
     return { message };
   };
 
-  /* Obtener todas las reservas */
   const fetchReservations = async (params = {}) => {
     try {
       setLoading(true);
@@ -50,7 +52,6 @@ export function ReservationProvider({ children }) {
     }
   };
 
-  /* Obtener una reserva específica */
   const fetchReservation = async (reservationId) => {
     try {
       setLoading(true);
@@ -70,7 +71,6 @@ export function ReservationProvider({ children }) {
     }
   };
 
-  /* Obtener la reserva activa del usuario */
   const fetchMyActiveReservation = async () => {
     try {
       const response = await getMyActiveReservation();
@@ -87,7 +87,6 @@ export function ReservationProvider({ children }) {
     }
   };
 
-  /* Crear reserva */
   const addReservation = async (reservationData) => {
     try {
       setLoading(true);
@@ -111,7 +110,6 @@ export function ReservationProvider({ children }) {
     }
   };
 
-  /* Actualizar reserva */
   const editReservation = async (reservationId, reservationData) => {
     try {
       setLoading(true);
@@ -141,7 +139,6 @@ export function ReservationProvider({ children }) {
     }
   };
 
-  /* Cambiar estado de reserva */
   const changeReservationStatus = async (reservationId, status) => {
     try {
       setLoading(true);
@@ -172,7 +169,6 @@ export function ReservationProvider({ children }) {
     }
   };
 
-  /* Cancelar reserva */
   const removeReservation = async (reservationId) => {
     try {
       setLoading(true);
@@ -195,7 +191,6 @@ export function ReservationProvider({ children }) {
     }
   };
 
-  /* Eliminar reserva definitivamente */
   const deleteReservationById = async (reservationId) => {
     try {
       setLoading(true);
@@ -223,7 +218,6 @@ export function ReservationProvider({ children }) {
     }
   };
 
-  /* Verificar disponibilidad de mesas */
   const verifyAvailability = async (data) => {
     try {
       const response = await checkAvailability(data);
@@ -235,7 +229,6 @@ export function ReservationProvider({ children }) {
     }
   };
 
-  /* Obtener mesas disponibles */
   const fetchAvailableTables = async (params) => {
     try {
       const response = await getAvailableTables(params);

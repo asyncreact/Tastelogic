@@ -13,11 +13,7 @@ import {
 import { useReservation } from "../hooks/useReservation";
 import api from "../api/auth";
 import Swal from "sweetalert2";
-import {
-  MdEventAvailable,
-  MdPeople,
-  MdOutlineTableBar,
-} from "react-icons/md";
+import { MdEventAvailable, MdPeople, MdOutlineTableBar } from "react-icons/md";
 
 const API_URL = (import.meta.env.VITE_API_URL || "http://localhost:4000").replace(
   /\/$/,
@@ -46,7 +42,6 @@ function NewReservationForm({ onSuccess }) {
   const [zones, setZones] = useState([]);
   const [selectedZone, setSelectedZone] = useState(null);
   const [showZoneModal, setShowZoneModal] = useState(false);
-
   const [availableTables, setAvailableTables] = useState([]);
   const [loadingTables, setLoadingTables] = useState(false);
   const [loadingZones, setLoadingZones] = useState(true);
@@ -57,7 +52,7 @@ function NewReservationForm({ onSuccess }) {
         setLoadingZones(true);
         const response = await api.get("/zones/public");
         const data = response.data?.zones || response.data?.data || [];
-        setZones(data.filter((z) => z.is_active !== false));
+        setZones(data);
       } catch {
         Swal.fire({
           icon: "error",
@@ -87,7 +82,6 @@ function NewReservationForm({ onSuccess }) {
         table_id: "",
       }));
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     formData.zone_id,
     formData.reservation_date,
@@ -98,6 +92,7 @@ function NewReservationForm({ onSuccess }) {
   const loadAvailableTables = async () => {
     try {
       setLoadingTables(true);
+
       const tables = await fetchAvailableTables({
         zone_id: formData.zone_id,
         reservation_date: formData.reservation_date,
@@ -106,12 +101,14 @@ function NewReservationForm({ onSuccess }) {
       });
 
       const guestCount = parseInt(formData.guest_count, 10) || 0;
+
       const allTables = (tables || []).map((t) => ({
         ...t,
         capacity: Number(t.capacity),
       }));
 
       let minSuitableCapacity = null;
+
       allTables.forEach((t) => {
         if (t.capacity >= guestCount) {
           if (minSuitableCapacity === null || t.capacity < minSuitableCapacity) {
@@ -143,13 +140,9 @@ function NewReservationForm({ onSuccess }) {
     setFormData((prev) => ({
       ...prev,
       [name]: value,
-      ...(
-        ["reservation_date", "reservation_time", "guest_count"].includes(
-          name
-        ) && {
-          table_id: "",
-        }
-      ),
+      ...(["reservation_date", "reservation_time", "guest_count"].includes(name) && {
+        table_id: "",
+      }),
     }));
   };
 
@@ -222,12 +215,13 @@ function NewReservationForm({ onSuccess }) {
     } catch (error) {
       if (error.details && Array.isArray(error.details)) {
         const htmlList = error.details
-          .map((d) => `<li>${d.message || d}</li>`)
+          .map((d) => `<li>${d.message}</li>`)
           .join("");
+
         Swal.fire({
           icon: "error",
           title: error.message || "Errores de validación",
-          html: `<ul style="text-align:left;margin:0;padding-left:20px">${htmlList}</ul>`,
+          html: `<ul style="text-align:left;margin:0;padding-left:20px;">${htmlList}</ul>`,
         });
       } else {
         Swal.fire({
@@ -253,7 +247,7 @@ function NewReservationForm({ onSuccess }) {
         now.getMinutes()
       ).padStart(2, "0")}`;
 
-      return current < OPEN_TIME ? OPEN_TIME : current;
+      return current > OPEN_TIME ? current : OPEN_TIME;
     }
 
     return OPEN_TIME;
@@ -286,6 +280,7 @@ function NewReservationForm({ onSuccess }) {
 
               <div className="mb-4">
                 <h5 className="h6 mb-2">Zonas disponibles</h5>
+
                 {loadingZones ? (
                   <div className="d-flex align-items-center gap-2">
                     <Spinner animation="border" size="sm" />
@@ -300,19 +295,34 @@ function NewReservationForm({ onSuccess }) {
                     {zones.map((zone) => {
                       const img = getZoneImageUrl(zone.image_url);
                       const isSelected = selectedZone?.id === zone.id;
+                      const isUnavailable =
+                        zone.is_active === false || zone.is_disabled === true;
 
                       return (
                         <Col key={zone.id} xs={12} md={4}>
                           <Card
                             className={`h-100 position-relative ${
-                              isSelected
-                                ? "border-2 border-secondary bg-light"
-                                : "border"
+                              isSelected ? "border-2 border-secondary bg-light" : ""
                             }`}
-                            style={{ cursor: "pointer" }}
+                            style={{
+                              cursor: isUnavailable ? "not-allowed" : "pointer",
+                              opacity: isUnavailable ? 0.6 : 1,
+                              transition: "box-shadow 0.15s ease, transform 0.15s ease",
+                            }}
                             onClick={() => {
+                              if (isUnavailable) return;
                               setSelectedZone(zone);
                               setShowZoneModal(true);
+                            }}
+                            onMouseEnter={(e) => {
+                              if (isUnavailable) return;
+                              e.currentTarget.style.boxShadow =
+                                "0 8px 16px rgba(0,0,0,0.12)";
+                              e.currentTarget.style.transform = "translateY(-2px)";
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.boxShadow = "";
+                              e.currentTarget.style.transform = "";
                             }}
                           >
                             {isSelected && (
@@ -324,7 +334,7 @@ function NewReservationForm({ onSuccess }) {
                               </span>
                             )}
                             <Card.Body className="d-flex align-items-center">
-                              {img && (
+                              {img ? (
                                 <img
                                   src={img}
                                   alt={zone.name}
@@ -336,12 +346,29 @@ function NewReservationForm({ onSuccess }) {
                                     marginRight: 12,
                                   }}
                                 />
+                              ) : (
+                                <div
+                                  className="d-flex align-items-center justify-content-center bg-light"
+                                  style={{
+                                    width: 56,
+                                    height: 56,
+                                    borderRadius: 8,
+                                    marginRight: 12,
+                                  }}
+                                >
+                                  <MdOutlineTableBar size={24} />
+                                </div>
                               )}
                               <div>
                                 <div className="fw-semibold">{zone.name}</div>
                                 <div className="small text-muted">
                                   {zone.description || "Sin descripción"}
                                 </div>
+                                {isUnavailable && (
+                                  <div className="small text-muted mt-1">
+                                    Zona no disponible por el momento
+                                  </div>
+                                )}
                               </div>
                             </Card.Body>
                           </Card>
@@ -428,15 +455,14 @@ function NewReservationForm({ onSuccess }) {
                           formData.reservation_time &&
                           formData.guest_count ? (
                           <Alert variant="light" className="border">
-                            No hay mesas para estos datos. Prueba otra hora o
-                            zona.
+                            No hay mesas para estos datos. Prueba otra hora o zona.
                           </Alert>
                         ) : (
                           <div className="d-flex flex-wrap gap-2">
                             {availableTables.map((table) => {
                               const isActive =
-                                String(formData.table_id) ===
-                                String(table.id);
+                                String(formData.table_id) === String(table.id);
+
                               return (
                                 <button
                                   key={table.id}
@@ -458,8 +484,7 @@ function NewReservationForm({ onSuccess }) {
                                       Mesa {table.table_number}
                                     </div>
                                     <div className="small">
-                                      {table.capacity} max ·{" "}
-                                      {table.zone_name || "Zona"}
+                                      {table.capacity} max · {table.zone_name} zona
                                     </div>
                                   </div>
                                 </button>
@@ -485,30 +510,37 @@ function NewReservationForm({ onSuccess }) {
                     </Col>
                   </Row>
 
-                  <div className="d-flex justify-content-end mt-3">
-                    <Button
-                      type="submit"
-                      variant="secondary"
-                      disabled={
-                        loading || loadingTables || loadingZones || !selectedZone
-                      }
-                    >
-                      {loading ? (
-                        <>
-                          <Spinner
-                            as="span"
-                            animation="border"
-                            size="sm"
-                            role="status"
-                            className="me-2"
-                          />
-                          Guardando...
-                        </>
-                      ) : (
-                        "Confirmar reserva"
-                      )}
-                    </Button>
-                  </div>
+                  <Row>
+                    <Col>
+                      <div className="d-flex justify-content-end mt-3">
+                        <Button
+                          type="submit"
+                          variant="secondary"
+                          disabled={
+                            loading ||
+                            loadingTables ||
+                            loadingZones ||
+                            !selectedZone
+                          }
+                        >
+                          {loading ? (
+                            <>
+                              <Spinner
+                                as="span"
+                                animation="border"
+                                size="sm"
+                                role="status"
+                                className="me-2"
+                              />
+                              Guardando...
+                            </>
+                          ) : (
+                            "Confirmar reserva"
+                          )}
+                        </Button>
+                      </div>
+                    </Col>
+                  </Row>
                 </Form>
               )}
             </Card.Body>
@@ -542,25 +574,17 @@ function NewReservationForm({ onSuccess }) {
                   }}
                 />
               )}
-
               <p className="mb-2">
                 <strong>Descripción: </strong>
                 {selectedZone.description || "Sin descripción"}
               </p>
-
-              {selectedZone.capacity && (
-                <p className="mb-0">
-                  <strong>Capacidad aproximada: </strong>
-                  {selectedZone.capacity}
-                </p>
-              )}
             </>
           )}
         </Modal.Body>
         <Modal.Footer>
           <Button
             variant="secondary"
-            onClick={() => handleSelectZone(selectedZone)}
+            onClick={() => selectedZone && handleSelectZone(selectedZone)}
           >
             Reservar en esta zona
           </Button>
