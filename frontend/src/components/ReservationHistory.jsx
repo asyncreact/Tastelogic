@@ -5,14 +5,71 @@ import {
   Alert,
   Button,
   Modal,
+  Row,
+  Col,
   Card,
   ListGroup,
 } from "react-bootstrap";
-import { MdVisibility, MdCancel } from "react-icons/md";
+import { BiCommentDetail } from "react-icons/bi";
+import { MdOutlineCancel } from "react-icons/md";
 import Swal from "sweetalert2";
 
 import { useAuth } from "../hooks/useAuth";
 import { useReservation } from "../hooks/useReservation";
+
+function getStatusText(status) {
+  const map = {
+    pending: "Pendiente",
+    confirmed: "Confirmada",
+    completed: "Completada",
+    cancelled: "Cancelada",
+    expired: "Expirada",
+  };
+  return map[status] || status || "N/A";
+}
+
+const canCancelReservation = (reservation) =>
+  reservation?.status === "pending";
+
+const formatDate = (dateString) => {
+  if (!dateString) return "N/A";
+  try {
+    const d = new Date(dateString);
+    return d.toLocaleDateString("es-ES", {
+      year: "numeric",
+      month: "short",
+      day: "2-digit",
+    });
+  } catch {
+    return "Fecha inválida";
+  }
+};
+
+const formatTime = (timeString) => {
+  if (!timeString) return "N/A";
+  try {
+    const [hours, minutes, seconds = "00"] = timeString.split(":");
+    const date = new Date();
+    date.setHours(Number(hours), Number(minutes), Number(seconds || 0), 0);
+    return date.toLocaleTimeString("es-ES", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    });
+  } catch {
+    return timeString.slice(0, 5);
+  }
+};
+
+const getZoneName = (zoneId) => {
+  const zones = {
+    1: "Terraza",
+    2: "Interior",
+    3: "VIP",
+    4: "Bar",
+  };
+  return zones[zoneId] || "N/A";
+};
 
 function ReservationHistory() {
   const { user } = useAuth();
@@ -58,7 +115,12 @@ function ReservationHistory() {
 
     try {
       const reservationData = await fetchReservation(reservationId);
-      setSelectedReservation(reservationData);
+      const data =
+        reservationData?.reservation ||
+        reservationData?.data?.reservation ||
+        reservationData?.data ||
+        reservationData;
+      setSelectedReservation(data);
       setShowModal(true);
     } catch (error) {
       Swal.fire({
@@ -86,6 +148,7 @@ function ReservationHistory() {
         setLoadingAction(true);
         const resp = await removeReservation(reservationId);
         setShowModal(false);
+        await fetchReservations({ user_id: user.id });
         Swal.fire({
           icon: "success",
           title: "Reserva cancelada",
@@ -105,65 +168,20 @@ function ReservationHistory() {
     }
   };
 
-  const getStatusText = (status) => {
-    const map = {
-      pending: "Pendiente",
-      confirmed: "Confirmada",
-      completed: "Completada",
-      cancelled: "Cancelada",
-      expired: "Expirada",
-    };
-    return map[status] || status || "N/A";
-  };
-
-  const canCancelReservation = (reservation) =>
-    reservation?.status === "pending";
-
-  const formatDate = (dateString) => {
-    if (!dateString) return "N/A";
-    try {
-      return new Date(dateString).toLocaleDateString("es-ES", {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      });
-    } catch {
-      return "Fecha inválida";
-    }
-  };
-
-  const formatTime = (timeString) => {
-    if (!timeString) return "N/A";
-    try {
-      const [hours, minutes, seconds = "00"] = timeString.split(":");
-      const date = new Date();
-      date.setHours(Number(hours), Number(minutes), Number(seconds || 0), 0);
-      return date.toLocaleTimeString("es-ES", {
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: true,
-      });
-    } catch {
-      return timeString.slice(0, 5);
-    }
-  };
-
-  const getZoneName = (zoneId) => {
-    const zones = {
-      1: "Terraza",
-      2: "Interior",
-      3: "VIP",
-      4: "Bar",
-    };
-    return zones[zoneId];
-  };
-
   if (loadingReservations || loading) {
     return (
-      <div className="d-flex flex-column align-items-center py-4">
+      <div className="text-center py-5">
         <Spinner animation="border" />
-        <p className="mt-2">Cargando reservas...</p>
+        <p className="mt-3">Cargando reservas...</p>
       </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <Alert variant="light" className="text-center border">
+        Error: {error}
+      </Alert>
     );
   }
 
@@ -191,173 +209,196 @@ function ReservationHistory() {
 
   return (
     <>
-      <Card className="border-0 shadow-sm">
-        <Card.Body>
-          <div className="mb-3">
-            <h2 className="h5 mb-1">Mis reservas</h2>
-            <p className="small mb-0">
-              Consulta, revisa y cancela tus reservas activas.
-            </p>
-          </div>
+      <div className="d-flex flex-column gap-3">
+        {reservations.map((reservation) => (
+          <div
+            key={reservation.id}
+            className="d-flex flex-column flex-md-row align-items-md-center justify-content-between border rounded px-3 py-2"
+          >
+            <div className="mb-2 mb-md-0">
+              <div className="d-flex align-items-center gap-2">
+                <span className="fw-semibold">
+                  {reservation.reservation_number
+                    ? `Reserva ${reservation.reservation_number}`
+                    : `Reserva #${reservation.id}`}
+                </span>
+                <span
+                  className={`badge text-uppercase badge-status-${
+                    reservation.status || "pending"
+                  }`}
+                >
+                  {getStatusText(reservation.status)}
+                </span>
+              </div>
 
-          <div className="d-flex flex-column gap-3">
-            {reservations.map((reservation) => (
-              <Card
-                key={reservation.id}
-                className="border-0 border-top pt-3"
-                style={{ borderColor: "#ddd" }}
+              <div className="small text-muted">
+                {formatDate(reservation.reservation_date)} ·{" "}
+                {formatTime(reservation.reservation_time)}
+              </div>
+              <div className="small text-muted">
+                Mesa: {reservation.table_number} · Zona:{" "}
+                {reservation.zone_name || getZoneName(reservation.zone_id)}
+              </div>
+              <div className="small text-muted">
+                Personas: {reservation.guest_count}
+              </div>
+              {reservation.user_name && (
+                <div className="small mt-1 text-muted">
+                  Cliente: {reservation.user_name} ({reservation.user_email})
+                </div>
+              )}
+            </div>
+
+            <div className="d-flex flex-wrap gap-2 justify-content-md-end">
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => handleViewDetails(reservation.id)}
               >
-                <Card.Body className="p-0 d-flex flex-column flex-md-row justify-content-between gap-3">
-                  <div>
-                    <div className="fw-semibold mb-1">
-                      {reservation.reservation_number
-                        ? `Reserva ${reservation.reservation_number}`
-                        : `Reserva #${reservation.id}`}
-                    </div>
-                    <div className="small">
-                      Fecha: {formatDate(reservation.reservation_date)} · Hora{" "}
-                      {formatTime(reservation.reservation_time)}
-                    </div>
-                    <div className="small">
-                      Estado: {getStatusText(reservation.status)}
-                    </div>
-                    {reservation.user_name && (
-                      <div className="small mt-1 text-muted">
-                        Cliente: {reservation.user_name} (
-                        {reservation.user_email})
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="d-flex flex-column flex-sm-row gap-2 ms-md-3">
-                    <Button
-                      size="sm"
-                      variant="outline-secondary"
-                      onClick={() => handleViewDetails(reservation.id)}
-                    >
-                      <MdVisibility className="me-1" />
-                      Ver detalles
-                    </Button>
-                    {canCancelReservation(reservation) && (
-                      <Button
-                        size="sm"
-                        variant="outline-secondary"
-                        onClick={() =>
-                          handleCancelReservation(reservation.id)
-                        }
-                        disabled={loadingAction}
-                      >
-                        <MdCancel className="me-1" />
-                        {loadingAction ? "Cancelando..." : "Cancelar"}
-                      </Button>
-                    )}
-                  </div>
-                </Card.Body>
-              </Card>
-            ))}
+                <BiCommentDetail className="me-1" />
+                Ver detalles
+              </Button>
+              {canCancelReservation(reservation) && (
+                <Button
+                  variant="danger"
+                  size="sm"
+                  onClick={() => handleCancelReservation(reservation.id)}
+                  disabled={loadingAction}
+                >
+                  <MdOutlineCancel className="me-1" />
+                  {loadingAction ? "Cancelando..." : "Cancelar"}
+                </Button>
+              )}
+            </div>
           </div>
-        </Card.Body>
-      </Card>
+        ))}
+      </div>
 
       <Modal
         show={showModal}
         onHide={() => setShowModal(false)}
-        size="lg"
+        size="md"
         centered
       >
-        <Modal.Header closeButton>
-          <Modal.Title>
-            {selectedReservation?.reservation_number
-              ? `Detalles de la reserva ${selectedReservation.reservation_number}`
-              : `Detalles de la reserva #${selectedReservation?.id}`}
+        <Modal.Header closeButton className="py-2">
+          <Modal.Title className="fs-6">
+            Detalles de la reserva{" "}
+            {selectedReservation?.reservation_number ||
+              `#${selectedReservation?.id || ""}`}
           </Modal.Title>
         </Modal.Header>
-        <Modal.Body>
+        <Modal.Body
+          className="py-3"
+          style={{ maxHeight: "70vh", overflowY: "auto" }}
+        >
           {selectedReservation && (
-            <Card className="border-0 shadow-sm">
-              <ListGroup variant="flush">
-                <ListGroup.Item className="d-flex justify-content-between">
-                  <span>Código</span>
-                  <span>
-                    {selectedReservation.reservation_number ||
-                      `#${selectedReservation.id}`}
-                  </span>
-                </ListGroup.Item>
+            <Row>
+              <Col md={12}>
+                <Card className="border-0 shadow-sm h-100">
+                  <Card.Header className="bg-light border-0 py-2">
+                    <strong className="small">Información de la reserva</strong>
+                  </Card.Header>
+                  <ListGroup variant="flush">
+                    <ListGroup.Item className="d-flex justify-content-between py-2">
+                      <span className="small text-muted">Código</span>
+                      <span className="small">
+                        {selectedReservation.reservation_number ||
+                          `#${selectedReservation.id}`}
+                      </span>
+                    </ListGroup.Item>
 
-                {selectedReservation.user_name && (
-                  <ListGroup.Item className="d-flex justify-content-between">
-                    <span>Cliente</span>
-                    <span className="text-end">
-                      <div>{selectedReservation.user_name}</div>
-                      <div className="text-muted small">
-                        ({selectedReservation.user_email})
-                      </div>
-                    </span>
-                  </ListGroup.Item>
-                )}
+                    {selectedReservation.user_name && (
+                      <ListGroup.Item className="d-flex justify-content-between py-2">
+                        <span className="small text-muted">Cliente</span>
+                        <span className="text-end small">
+                          <div>{selectedReservation.user_name}</div>
+                          <div className="text-muted">
+                            ({selectedReservation.user_email})
+                          </div>
+                        </span>
+                      </ListGroup.Item>
+                    )}
 
-                <ListGroup.Item className="d-flex justify-content-between">
-                  <span>Fecha</span>
-                  <span>
-                    {formatDate(selectedReservation.reservation_date)}
-                  </span>
-                </ListGroup.Item>
-                <ListGroup.Item className="d-flex justify-content-between">
-                  <span>Hora</span>
-                  <span>
-                    {formatTime(selectedReservation.reservation_time)}
-                  </span>
-                </ListGroup.Item>
-                <ListGroup.Item className="d-flex justify-content-between">
-                  <span>Mesa</span>
-                  <span>{selectedReservation.table_number}</span>
-                </ListGroup.Item>
-                <ListGroup.Item className="d-flex justify-content-between">
-                  <span>Zona</span>
-                  <span>
-                    {selectedReservation.zone_name ||
-                      getZoneName(selectedReservation.zone_id)}
-                  </span>
-                </ListGroup.Item>
-                <ListGroup.Item className="d-flex justify-content-between">
-                  <span>Personas</span>
-                  <span>{selectedReservation.guest_count}</span>
-                </ListGroup.Item>
-                <ListGroup.Item className="d-flex justify-content-between">
-                  <span>Estado</span>
-                  <span>{getStatusText(selectedReservation.status)}</span>
-                </ListGroup.Item>
-                {selectedReservation.special_requirements && (
-                  <ListGroup.Item>
-                    <span className="d-block mb-1">Notas</span>
-                    <p className="mb-0">
-                      {selectedReservation.special_requirements}
-                    </p>
-                  </ListGroup.Item>
-                )}
-                <ListGroup.Item className="d-flex justify-content-between">
-                  <span>Creada</span>
-                  <span>{formatDate(selectedReservation.created_at)}</span>
-                </ListGroup.Item>
-              </ListGroup>
-            </Card>
+                    <ListGroup.Item className="d-flex justify-content-between py-2">
+                      <span className="small text-muted">Fecha</span>
+                      <span className="small">
+                        {formatDate(selectedReservation.reservation_date)}
+                      </span>
+                    </ListGroup.Item>
+                    <ListGroup.Item className="d-flex justify-content-between py-2">
+                      <span className="small text-muted">Hora</span>
+                      <span className="small">
+                        {formatTime(selectedReservation.reservation_time)}
+                      </span>
+                    </ListGroup.Item>
+                    <ListGroup.Item className="d-flex justify-content-between py-2">
+                      <span className="small text-muted">Mesa</span>
+                      <span className="small">
+                        {selectedReservation.table_number}
+                      </span>
+                    </ListGroup.Item>
+                    <ListGroup.Item className="d-flex justify-content-between py-2">
+                      <span className="small text-muted">Zona</span>
+                      <span className="small">
+                        {selectedReservation.zone_name ||
+                          getZoneName(selectedReservation.zone_id)}
+                      </span>
+                    </ListGroup.Item>
+                    <ListGroup.Item className="d-flex justify-content-between py-2">
+                      <span className="small text-muted">Personas</span>
+                      <span className="small">
+                        {selectedReservation.guest_count}
+                      </span>
+                    </ListGroup.Item>
+                    <ListGroup.Item className="d-flex justify-content-between py-2">
+                      <span className="small text-muted">Estado</span>
+                      <span className="small fw-semibold">
+                        {getStatusText(selectedReservation.status)}
+                      </span>
+                    </ListGroup.Item>
+                    {selectedReservation.special_requirements && (
+                      <ListGroup.Item className="py-2">
+                        <span className="small text-muted d-block mb-1">
+                          Notas
+                        </span>
+                        <p className="mb-0 small">
+                          {selectedReservation.special_requirements}
+                        </p>
+                      </ListGroup.Item>
+                    )}
+                    <ListGroup.Item className="d-flex justify-content-between py-2">
+                      <span className="small text-muted">Creada</span>
+                      <span className="small">
+                        {formatDate(selectedReservation.created_at)}
+                      </span>
+                    </ListGroup.Item>
+                  </ListGroup>
+                </Card>
+              </Col>
+            </Row>
           )}
         </Modal.Body>
-        <Modal.Footer>
+        <Modal.Footer className="py-2 d-flex justify-content-between">
           {selectedReservation &&
             canCancelReservation(selectedReservation) && (
               <Button
-                variant="outline-secondary"
+                variant="danger"
+                size="sm"
                 onClick={() =>
                   handleCancelReservation(selectedReservation.id)
                 }
                 disabled={loadingAction}
               >
-                <MdCancel className="me-2" />
+                <MdOutlineCancel className="me-2" />
                 {loadingAction ? "Cancelando..." : "Cancelar reserva"}
               </Button>
             )}
-          <Button variant="secondary" onClick={() => setShowModal(false)}>
+
+          <Button
+            variant="danger"
+            size="sm"
+            onClick={() => setShowModal(false)}
+          >
             Cerrar
           </Button>
         </Modal.Footer>

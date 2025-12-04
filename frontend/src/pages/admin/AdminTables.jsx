@@ -377,7 +377,7 @@ function AdminTable() {
               <BiMap />
               Zonas
             </h4>
-            <Button size="sm" onClick={handleOpenCreateZone}>
+            <Button size="sm" variant="primary" onClick={handleOpenCreateZone}>
               + Nueva zona
             </Button>
           </div>
@@ -425,14 +425,14 @@ function AdminTable() {
 
                     <div className="d-flex gap-2">
                       <Button
-                        variant="outline-secondary"
+                        variant="secondary"
                         size="sm"
                         onClick={() => handleOpenEditZone(zone)}
                       >
                         Editar
                       </Button>
                       <Button
-                        variant="outline-danger"
+                        variant="danger"
                         size="sm"
                         onClick={() => handleDeleteZone(zone)}
                       >
@@ -452,7 +452,7 @@ function AdminTable() {
               <MdOutlineTableBar />
               Mesas
             </h4>
-            <Button size="sm" onClick={handleOpenCreateTable}>
+            <Button size="sm" variant="primary" onClick={handleOpenCreateTable}>
               + Nueva mesa
             </Button>
           </div>
@@ -488,14 +488,14 @@ function AdminTable() {
                   </div>
                   <div className="d-flex gap-2">
                     <Button
-                      variant="outline-secondary"
+                      variant="secondary"
                       size="sm"
                       onClick={() => handleOpenEditTable(table)}
                     >
                       Editar
                     </Button>
                     <Button
-                      variant="outline-danger"
+                      variant="danger"
                       size="sm"
                       onClick={() => handleDeleteTable(table)}
                     >

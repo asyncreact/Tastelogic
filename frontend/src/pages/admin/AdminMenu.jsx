@@ -111,7 +111,9 @@ function AdminMenu() {
     MySwal.fire({
       title: "ERROR",
       text: !errorDetailsHtml ? baseMessage : undefined,
-      html: errorDetailsHtml ? `<div>${baseMessage}${errorDetailsHtml}</div>` : undefined,
+      html: errorDetailsHtml
+        ? `<div>${baseMessage}${errorDetailsHtml}</div>`
+        : undefined,
       icon: "error",
       confirmButtonText: "CERRAR",
     });
@@ -380,7 +382,11 @@ function AdminMenu() {
               <BiCategory />
               Categorías
             </h2>
-            <Button size="sm" onClick={() => handleOpenCategoryModal()}>
+            <Button
+              size="sm"
+              variant="primary"
+              onClick={() => handleOpenCategoryModal()}
+            >
               + Nueva categoría
             </Button>
           </div>
@@ -412,14 +418,14 @@ function AdminMenu() {
                   <div className="d-flex align-items-center gap-2">
                     <Button
                       size="sm"
-                      variant="outline-secondary"
+                      variant="secondary"
                       onClick={() => handleOpenCategoryModal(cat)}
                     >
                       Editar
                     </Button>
                     <Button
                       size="sm"
-                      variant="outline-danger"
+                      variant="danger"
                       onClick={() => handleDeleteCategory(cat.id)}
                     >
                       Eliminar
@@ -437,7 +443,11 @@ function AdminMenu() {
               <MdOutlineFastfood />
               Items del menú
             </h2>
-            <Button size="sm" onClick={() => handleOpenItemModal()}>
+            <Button
+              size="sm"
+              variant="primary"
+              onClick={() => handleOpenItemModal()}
+            >
               + Nuevo item
             </Button>
           </div>
@@ -475,8 +485,8 @@ function AdminMenu() {
                       <div>
                         <div className="fw-semibold">{item.name}</div>
                         <div className="small text-muted">
-                          {cat ? cat.name : "Sin categoría"} ·{" "}
-                          RD$ {Number(item.price).toFixed(2)}
+                          {cat ? cat.name : "Sin categoría"} · RD${" "}
+                          {Number(item.price).toFixed(2)}
                         </div>
                         <div className="small">
                           {item.is_available ? "Disponible" : "No disponible"}
@@ -487,14 +497,14 @@ function AdminMenu() {
                     <div className="d-flex align-items-center gap-2">
                       <Button
                         size="sm"
-                        variant="outline-secondary"
+                        variant="secondary"
                         onClick={() => handleOpenItemModal(item)}
                       >
                         Editar
                       </Button>
                       <Button
                         size="sm"
-                        variant="outline-danger"
+                        variant="danger"
                         onClick={() => handleDeleteItem(item.id)}
                       >
                         Eliminar
@@ -560,10 +570,10 @@ function AdminMenu() {
             </Form.Group>
           </Modal.Body>
           <Modal.Footer>
-            <Button variant="outline-secondary" onClick={handleCloseCategoryModal}>
+            <Button variant="secondary" onClick={handleCloseCategoryModal}>
               Cancelar
             </Button>
-            <Button type="submit">
+            <Button type="submit" variant="primary">
               {editingCategory ? "Guardar cambios" : "Crear"}
             </Button>
           </Modal.Footer>
@@ -651,7 +661,9 @@ function AdminMenu() {
             </Form.Group>
 
             <Form.Group className="mb-3" controlId="itemPrepTime">
-              <Form.Label>Tiempo estimado de preparación (minutos)</Form.Label>
+              <Form.Label>
+                Tiempo estimado de preparación (minutos)
+              </Form.Label>
               <Form.Control
                 type="number"
                 min="1"
@@ -710,10 +722,10 @@ function AdminMenu() {
             </Form.Group>
           </Modal.Body>
           <Modal.Footer>
-            <Button variant="outline-secondary" onClick={handleCloseItemModal}>
+            <Button variant="secondary" onClick={handleCloseItemModal}>
               Cancelar
             </Button>
-            <Button type="submit">
+            <Button type="submit" variant="primary">
               {editingItem ? "Guardar cambios" : "Crear"}
             </Button>
           </Modal.Footer>

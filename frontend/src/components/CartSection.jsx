@@ -233,7 +233,7 @@ function CartSection() {
         <p className="mb-3">
           Agrega productos desde el menú para comenzar tu orden.
         </p>
-        <Button as={Link} to="/menu" variant="secondary">
+        <Button as={Link} to="/menu" variant="primary">
           Ir al menú
         </Button>
       </Alert>
@@ -308,10 +308,11 @@ function CartSection() {
                         <span className="small">
                           RD${parseFloat(item.price).toFixed(2)} c/u
                         </span>
-                        <div className="d-flex align-items-center gap-1">
+                        <div className="d-flex align-items-center">
                           <Button
-                            variant="outline-secondary"
+                            variant="primary"
                             size="sm"
+                            className="px-2 py-1"
                             onClick={() =>
                               updateCartQuantity(
                                 item.id,
@@ -320,12 +321,13 @@ function CartSection() {
                             }
                             disabled={item.quantity <= 1}
                           >
-                            <MdRemove size={16} />
+                            <MdRemove size={14} />
                           </Button>
-                          <span>{item.quantity}</span>
+                          <span className="mx-2">{item.quantity}</span>
                           <Button
-                            variant="outline-secondary"
+                            variant="primary"
                             size="sm"
+                            className="px-2 py-1"
                             onClick={() =>
                               updateCartQuantity(
                                 item.id,
@@ -333,19 +335,20 @@ function CartSection() {
                               )
                             }
                           >
-                            <MdAdd size={16} />
+                            <MdAdd size={14} />
                           </Button>
                         </div>
                       </div>
 
                       <Button
-                        variant="link"
-                        className="p-0 small"
+                        variant="danger"
+                        size="sm"
+                        className="d-inline-flex align-items-center px-2 py-1"
                         onClick={() =>
                           handleRemoveItem(item.id, item.name)
                         }
                       >
-                        <MdDelete className="me-1" />
+                        <MdDelete className="me-1" size={14} />
                         Eliminar
                       </Button>
                     </div>
@@ -358,13 +361,14 @@ function CartSection() {
 
         <div className="d-flex justify-content-between align-items-center mt-3">
           <Button
-            variant="link"
-            className="p-0 small"
+            variant="danger"
+            size="sm"
+            className="px-3"
             onClick={handleClearCart}
           >
             Vaciar bolsa
           </Button>
-          <small>
+          <small className="text-muted ms-2">
             Los precios pueden variar según promociones y disponibilidad.
           </small>
         </div>
@@ -494,7 +498,7 @@ function CartSection() {
           </div>
 
           <Button
-            variant="secondary"
+            variant="primary"
             className="w-100 d-flex align-items-center justify-content-center"
             onClick={handleCheckout}
             disabled={loading}

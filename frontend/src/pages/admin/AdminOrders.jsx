@@ -393,7 +393,7 @@ function AdminOrders() {
 
                       <Button
                         size="sm"
-                        variant="outline-secondary"
+                        variant="primary"
                         onClick={() => handleOpenDetail(o.id)}
                       >
                         Ver detalle
@@ -401,7 +401,7 @@ function AdminOrders() {
 
                       <Button
                         size="sm"
-                        variant="outline-warning"
+                        variant="danger"
                         onClick={() => handleCancelOrder(o)}
                         disabled={o.status === "cancelled" || o.status === "completed"}
                       >
@@ -410,7 +410,7 @@ function AdminOrders() {
 
                       <Button
                         size="sm"
-                        variant="outline-danger"
+                        variant="danger"
                         onClick={() => handleDelete(o.id)}
                       >
                         Eliminar
@@ -493,7 +493,7 @@ function AdminOrders() {
           )}
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="outline-secondary" onClick={handleCloseDetail}>
+          <Button variant="danger" onClick={handleCloseDetail}>
             Cerrar
           </Button>
         </Modal.Footer>

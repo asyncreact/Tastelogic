@@ -365,18 +365,20 @@ function AdminReservation() {
     }
   };
 
-  const getStatusVariant = (status) => {
+  const getStatusClass = (status) => {
     switch (status) {
+      case "pending":
+        return "badge-status-pending";
       case "confirmed":
-        return "success";
-      case "cancelled":
-        return "danger";
+        return "badge-status-confirmed";
       case "completed":
-        return "secondary";
+        return "badge-status-completed";
+      case "cancelled":
+        return "badge-status-cancelled";
       case "expired":
-        return "dark";
+        return "badge-status-expired";
       default:
-        return "warning";
+        return "badge-status-pending";
     }
   };
 
@@ -443,7 +445,9 @@ function AdminReservation() {
           </Form.Select>
         </Col>
         <Col md={3} className="text-md-end">
-          <Button onClick={() => openModal()}>Nueva reserva</Button>
+          <Button variant="primary" onClick={() => openModal()}>
+            Nueva reserva
+          </Button>
         </Col>
       </Row>
 
@@ -483,7 +487,7 @@ function AdminReservation() {
                         <span className="fw-semibold">
                           {r.reservation_number || `Reserva #${r.id}`}
                         </span>
-                        <Badge bg={getStatusVariant(r.status)}>
+                        <Badge className={getStatusClass(r.status)}>
                           {r.status}
                         </Badge>
                       </div>
@@ -524,14 +528,14 @@ function AdminReservation() {
 
                       <Button
                         size="sm"
-                        variant="outline-secondary"
+                        variant="secondary"
                         onClick={() => openModal(r)}
                       >
                         Editar
                       </Button>
                       <Button
                         size="sm"
-                        variant="outline-danger"
+                        variant="danger"
                         onClick={() => handleDelete(r.id)}
                       >
                         Eliminar
@@ -673,8 +677,8 @@ function AdminReservation() {
                       <button
                         key={table.id}
                         type="button"
-                        className={`btn btn-outline-secondary d-flex align-items-center p-2 rounded-3 ${
-                          isActive ? "btn-secondary text-white" : ""
+                        className={`btn d-flex align-items-center p-2 rounded-3 ${
+                          isActive ? "btn-secondary text-white" : "btn-outline-secondary"
                         }`}
                         style={{ minWidth: "200px" }}
                         onClick={() =>
@@ -733,10 +737,10 @@ function AdminReservation() {
             </Form.Group>
           </Modal.Body>
           <Modal.Footer>
-            <Button variant="outline-secondary" onClick={closeModal}>
+            <Button variant="secondary" onClick={closeModal}>
               Cancelar
             </Button>
-            <Button type="submit">
+            <Button type="submit" variant="primary">
               {editingReservation ? "Guardar cambios" : "Crear reserva"}
             </Button>
           </Modal.Footer>

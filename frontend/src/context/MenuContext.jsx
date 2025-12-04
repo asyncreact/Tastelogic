@@ -21,7 +21,7 @@ export const MenuProvider = ({ children }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  /* Cargar categorías e items al iniciar */
+  // Cargar categorías e items al iniciar
   useEffect(() => {
     const loadInitialData = async () => {
       setLoading(true);
@@ -35,6 +35,7 @@ export const MenuProvider = ({ children }) => {
           categoriesRes.data?.data?.categories ||
           categoriesRes.data?.categories ||
           [];
+
         const itemsData =
           itemsRes.data?.data?.items || itemsRes.data?.items || [];
 
@@ -51,16 +52,18 @@ export const MenuProvider = ({ children }) => {
     loadInitialData();
   }, []);
 
-  /* Obtener todas las categorías */
+  // Obtener todas las categorías
   const fetchCategories = async () => {
     try {
       setError(null);
       setLoading(true);
+
       const response = await getCategories();
       const categoriesData =
         response.data?.data?.categories ||
         response.data?.categories ||
         [];
+
       setCategories(categoriesData);
       return { success: true, data: categoriesData };
     } catch (err) {
@@ -74,7 +77,7 @@ export const MenuProvider = ({ children }) => {
     }
   };
 
-  /* Obtener una categoría por ID */
+  // Obtener una categoría por ID
   const fetchCategory = async (categoryId) => {
     try {
       setError(null);
@@ -91,15 +94,15 @@ export const MenuProvider = ({ children }) => {
     }
   };
 
-  /* Crear categoría */
+  // Crear categoría
   const addCategory = async (data) => {
     try {
       setError(null);
       const response = await createCategory(data);
-
       const categoryData =
         response.data?.data?.category || response.data?.category;
-      const message = response.data?.message || "Categoría creada exitosamente";
+      const message =
+        response.data?.message || "Categoría creada exitosamente";
 
       setCategories((prev) => [...prev, categoryData]);
 
@@ -110,8 +113,6 @@ export const MenuProvider = ({ children }) => {
       };
     } catch (err) {
       const errorData = err.response?.data || {};
-
-      /* Manejo de errores de validación */
       if (errorData.details && Array.isArray(errorData.details)) {
         const errorMessage = errorData.message || "Errores de validación";
         setError(errorMessage);
@@ -128,12 +129,11 @@ export const MenuProvider = ({ children }) => {
     }
   };
 
-  /* Actualizar categoría */
+  // Actualizar categoría
   const editCategory = async (categoryId, data) => {
     try {
       setError(null);
       const response = await updateCategory(categoryId, data);
-
       const categoryData =
         response.data?.data?.category || response.data?.category;
       const message =
@@ -150,8 +150,6 @@ export const MenuProvider = ({ children }) => {
       };
     } catch (err) {
       const errorData = err.response?.data || {};
-
-      /* Manejo de errores de validación */
       if (errorData.details && Array.isArray(errorData.details)) {
         const errorMessage = errorData.message || "Errores de validación";
         setError(errorMessage);
@@ -168,7 +166,7 @@ export const MenuProvider = ({ children }) => {
     }
   };
 
-  /* Eliminar categoría */
+  // Eliminar categoría
   const removeCategory = async (categoryId) => {
     try {
       setError(null);
@@ -188,14 +186,16 @@ export const MenuProvider = ({ children }) => {
     }
   };
 
-  /* Obtener todos los items */
+  // Obtener todos los items
   const fetchItems = async () => {
     try {
       setError(null);
       setLoading(true);
+
       const response = await getMenuItems();
       const itemsData =
         response.data?.data?.items || response.data?.items || [];
+
       setItems(itemsData);
       return { success: true, data: itemsData };
     } catch (err) {
@@ -209,7 +209,7 @@ export const MenuProvider = ({ children }) => {
     }
   };
 
-  /* Obtener item por ID */
+  // Obtener item por ID
   const fetchItem = async (itemId) => {
     try {
       setError(null);
@@ -225,14 +225,14 @@ export const MenuProvider = ({ children }) => {
     }
   };
 
-  /* Crear item */
+  // Crear item
   const addItem = async (data) => {
     try {
       setError(null);
       const response = await createMenuItem(data);
-
       const itemData = response.data?.data?.item || response.data?.item;
-      const message = response.data?.message || "Item creado exitosamente";
+      const message =
+        response.data?.message || "Item creado exitosamente";
 
       setItems((prev) => [...prev, itemData]);
 
@@ -243,8 +243,6 @@ export const MenuProvider = ({ children }) => {
       };
     } catch (err) {
       const errorData = err.response?.data || {};
-
-      /* Manejo de errores de validación */
       if (errorData.details && Array.isArray(errorData.details)) {
         const errorMessage = errorData.message || "Errores de validación";
         setError(errorMessage);
@@ -261,12 +259,11 @@ export const MenuProvider = ({ children }) => {
     }
   };
 
-  /* Actualizar item */
+  // Actualizar item
   const editItem = async (itemId, data) => {
     try {
       setError(null);
       const response = await updateMenuItem(itemId, data);
-
       const itemData = response.data?.data?.item || response.data?.item;
       const message =
         response.data?.message || "Item actualizado exitosamente";
@@ -282,8 +279,6 @@ export const MenuProvider = ({ children }) => {
       };
     } catch (err) {
       const errorData = err.response?.data || {};
-
-      /* Manejo de errores de validación */
       if (errorData.details && Array.isArray(errorData.details)) {
         const errorMessage = errorData.message || "Errores de validación";
         setError(errorMessage);
@@ -300,12 +295,13 @@ export const MenuProvider = ({ children }) => {
     }
   };
 
-  /* Eliminar item */
+  // Eliminar item
   const removeItem = async (itemId) => {
     try {
       setError(null);
       const response = await deleteMenuItem(itemId);
-      const message = response.data?.message || "Item eliminado exitosamente";
+      const message =
+        response.data?.message || "Item eliminado exitosamente";
 
       setItems((prev) => prev.filter((item) => item.id !== itemId));
 
@@ -319,7 +315,7 @@ export const MenuProvider = ({ children }) => {
     }
   };
 
-  /* Limpiar error almacenado */
+  // Limpiar error almacenado
   const clearError = () => {
     setError(null);
   };
@@ -342,5 +338,9 @@ export const MenuProvider = ({ children }) => {
     clearError,
   };
 
-  return <MenuContext.Provider value={value}>{children}</MenuContext.Provider>;
+  return (
+    <MenuContext.Provider value={value}>
+      {children}
+    </MenuContext.Provider>
+  );
 };

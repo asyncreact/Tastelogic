@@ -10,11 +10,74 @@ import {
   Card,
   ListGroup,
 } from "react-bootstrap";
-import { MdVisibility, MdCancel } from "react-icons/md";
+import { BiCommentDetail } from "react-icons/bi";
+import { MdOutlineCancel } from "react-icons/md";
 import Swal from "sweetalert2";
 
 import { useAuth } from "../hooks/useAuth";
 import { useOrder } from "../hooks/useOrder";
+
+function mapOrderType(type) {
+  switch (type) {
+    case "dine-in":
+      return "En el local";
+    case "takeaway":
+    case "pickup":
+      return "Para llevar";
+    case "delivery":
+      return "Entrega a domicilio";
+    default:
+      return type || "N/A";
+  }
+}
+
+function mapPaymentMethod(method) {
+  switch (method) {
+    case "cash":
+      return "Efectivo";
+    case "card":
+    case "credit_card":
+    case "debit_card":
+      return "Tarjeta";
+    case "online":
+    case "online_payment":
+      return "Pago en línea";
+    default:
+      return method || "No especificado";
+  }
+}
+
+function mapOrderStatus(status) {
+  switch (status) {
+    case "pending":
+      return "Pendiente";
+    case "confirmed":
+      return "Confirmado";
+    case "preparing":
+      return "En preparación";
+    case "ready":
+      return "Listo";
+    case "completed":
+      return "Completado";
+    case "cancelled":
+      return "Cancelado";
+    default:
+      return status || "N/A";
+  }
+}
+
+function mapPaymentStatus(status) {
+  switch (status) {
+    case "pending":
+      return "Pendiente";
+    case "paid":
+      return "Pagado";
+    case "refunded":
+      return "Reembolsado";
+    default:
+      return "Pendiente";
+  }
+}
 
 function OrderHistory() {
   const { user } = useAuth();
@@ -42,8 +105,7 @@ function OrderHistory() {
       setLoadingOrders(false);
     };
     loadOrders();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
+  }, [user, fetchOrders]);
 
   const handleViewDetails = async (orderId) => {
     if (!user) {
@@ -62,7 +124,7 @@ function OrderHistory() {
 
       setSelectedOrder(orderData);
       setShowModal(true);
-    } catch (error) {
+    } catch {
       Swal.fire({
         icon: "error",
         title: "Error",
@@ -188,220 +250,247 @@ function OrderHistory() {
     <>
       <div className="d-flex flex-column gap-3">
         {orders.map((order) => (
-          <Card
+          <div
             key={order.id}
-            className="border-0 border-top pt-3"
-            style={{ borderColor: "#ddd" }}
+            className="d-flex flex-column flex-md-row align-items-md-center justify-content-between border rounded px-3 py-2"
           >
-            <Card.Body className="p-0 d-flex flex-column flex-md-row justify-content-between gap-3">
-              <div>
-                <div className="fw-semibold mb-1">
+            <div className="mb-2 mb-md-0">
+              <div className="d-flex align-items-center gap-2">
+                <span className="fw-semibold">
                   Orden {order.order_number || `#${order.id}`}
-                </div>
-
-                <div className="small">
-                  Hora: {formatTime(order.order_time || order.created_at)}
-                </div>
-                <div className="small">
-                  Tipo: {order.order_type || "N/A"}
-                </div>
-                <div className="small">
-                  Estado: {order.status || "N/A"}
-                </div>
-
-                {order.user_name && (
-                  <div className="small mt-1 text-muted">
-                    Cliente: {order.user_name} ({order.user_email})
-                  </div>
-                )}
-              </div>
-
-              <div className="d-flex flex-column flex-sm-row align-items-start align-items-sm-center gap-2 ms-md-3">
-                <Button
-                  variant="outline-secondary"
-                  size="sm"
-                  onClick={() => handleViewDetails(order.id)}
+                </span>
+                <span
+                  className={`badge text-uppercase badge-status-${
+                    order.status || "pending"
+                  }`}
                 >
-                  <MdVisibility className="me-1" />
-                  Ver detalles
-                </Button>
-                {canCancelOrder(order.status) && (
-                  <Button
-                    variant="outline-secondary"
-                    size="sm"
-                    onClick={() => handleCancelOrder(order.id)}
-                    disabled={loadingAction}
-                  >
-                    <MdCancel className="me-1" />
-                    {loadingAction ? "Cancelando..." : "Cancelar"}
-                  </Button>
-                )}
+                  {mapOrderStatus(order.status)}
+                </span>
               </div>
-            </Card.Body>
-          </Card>
+
+              <div className="small text-muted">
+                {formatDate(order.order_date || order.created_at)} ·{" "}
+                {formatTime(order.order_time || order.created_at)}
+              </div>
+              {order.order_type && (
+                <div className="small text-muted">
+                  Tipo: {mapOrderType(order.order_type)}
+                </div>
+              )}
+              {order.user_name && (
+                <div className="small mt-1 text-muted">
+                  Cliente: {order.user_name} ({order.user_email})
+                </div>
+              )}
+            </div>
+
+            <div className="d-flex flex-wrap gap-2 justify-content-md-end">
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => handleViewDetails(order.id)}
+              >
+                <BiCommentDetail className="me-1" />
+                Ver detalles
+              </Button>
+              {canCancelOrder(order.status) && (
+                <Button
+                  variant="danger"
+                  size="sm"
+                  onClick={() => handleCancelOrder(order.id)}
+                  disabled={loadingAction}
+                >
+                  <MdOutlineCancel className="me-1" />
+                  {loadingAction ? "Cancelando..." : "Cancelar"}
+                </Button>
+              )}
+            </div>
+          </div>
         ))}
       </div>
 
       <Modal
         show={showModal}
         onHide={() => setShowModal(false)}
-        size="lg"
+        size="md"
         centered
       >
-        <Modal.Header closeButton>
-          <Modal.Title>
+        <Modal.Header closeButton className="py-2">
+          <Modal.Title className="fs-6">
             Detalles de la orden{" "}
             {selectedOrder?.order_number || `#${selectedOrder?.id || ""}`}
           </Modal.Title>
         </Modal.Header>
-        <Modal.Body>
+        <Modal.Body
+          className="py-3"
+          style={{ maxHeight: "70vh", overflowY: "auto" }}
+        >
           {selectedOrder && (
-            <>
-              <Row className="mb-4">
-                <Col md={6}>
-                  <Card className="border-0 shadow-sm h-100">
-                    <Card.Header className="bg-light border-0">
-                      <strong>Información general</strong>
-                    </Card.Header>
-                    <ListGroup variant="flush">
-                      {selectedOrder.user_name && (
-                        <ListGroup.Item className="d-flex justify-content-between">
-                          <span>Cliente</span>
-                          <span className="text-end">
-                            <div>{selectedOrder.user_name}</div>
-                            <div className="text-muted small">
-                              ({selectedOrder.user_email})
-                            </div>
-                          </span>
-                        </ListGroup.Item>
-                      )}
+            <div className="d-flex flex-column gap-3">
+              <Card className="border-0 shadow-sm">
+                <Card.Header className="bg-light border-0 py-2">
+                  <strong className="small">Información general</strong>
+                </Card.Header>
+                <ListGroup variant="flush">
+                  {selectedOrder.user_name && (
+                    <ListGroup.Item className="d-flex justify-content-between py-2">
+                      <span className="small text-muted">Cliente</span>
+                      <span className="text-end small">
+                        <div>{selectedOrder.user_name}</div>
+                        <div className="text-muted">
+                          ({selectedOrder.user_email})
+                        </div>
+                      </span>
+                    </ListGroup.Item>
+                  )}
 
-                      <ListGroup.Item>
-                        <strong>Fecha:</strong>{" "}
-                        {formatDate(
-                          selectedOrder.order_date ||
-                            selectedOrder.created_at
-                        )}
-                      </ListGroup.Item>
-                      <ListGroup.Item>
-                        <strong>Hora:</strong>{" "}
-                        {formatTime(
-                          selectedOrder.order_time ||
-                            selectedOrder.created_at
-                        )}
-                      </ListGroup.Item>
-                      <ListGroup.Item>
-                        <strong>Tipo:</strong>{" "}
-                        {selectedOrder.order_type || "N/A"}
-                      </ListGroup.Item>
-                      <ListGroup.Item>
-                        <strong>Estado:</strong>{" "}
-                        {selectedOrder.status || "N/A"}
-                      </ListGroup.Item>
-                      {selectedOrder.table_number && (
-                        <ListGroup.Item>
-                          <strong>Mesa:</strong>{" "}
-                          {selectedOrder.table_number}
-                        </ListGroup.Item>
+                  <ListGroup.Item className="d-flex justify-content-between py-2">
+                    <span className="small text-muted">Fecha</span>
+                    <span className="small">
+                      {formatDate(
+                        selectedOrder.order_date || selectedOrder.created_at
                       )}
-                      {selectedOrder.delivery_address && (
-                        <ListGroup.Item>
-                          <strong>Dirección:</strong>{" "}
-                          {selectedOrder.delivery_address}
-                        </ListGroup.Item>
+                    </span>
+                  </ListGroup.Item>
+                  <ListGroup.Item className="d-flex justify-content-between py-2">
+                    <span className="small text-muted">Hora</span>
+                    <span className="small">
+                      {formatTime(
+                        selectedOrder.order_time || selectedOrder.created_at
                       )}
-                    </ListGroup>
-                  </Card>
-                </Col>
-                <Col md={6}>
-                  <Card className="border-0 shadow-sm h-100">
-                    <Card.Header className="bg-light border-0">
-                      <strong>Información de pago</strong>
-                    </Card.Header>
-                    <ListGroup variant="flush">
-                      <ListGroup.Item>
-                        <strong>Método:</strong>{" "}
-                        {selectedOrder.payment_method || "No especificado"}
-                      </ListGroup.Item>
-                      <ListGroup.Item>
-                        <strong>Estado de pago:</strong>{" "}
-                        {selectedOrder.payment_status || "Pendiente"}
-                      </ListGroup.Item>
-                      <ListGroup.Item>
-                        <strong>Total:</strong>{" "}
-                        <span className="fw-bold">
-                          ${formatPrice(selectedOrder.total_amount)}
-                        </span>
-                      </ListGroup.Item>
-                    </ListGroup>
-                  </Card>
-                </Col>
-              </Row>
+                    </span>
+                  </ListGroup.Item>
+                  <ListGroup.Item className="d-flex justify-content-between py-2">
+                    <span className="small text-muted">Tipo</span>
+                    <span className="small">
+                      {mapOrderType(selectedOrder.order_type) || "N/A"}
+                    </span>
+                  </ListGroup.Item>
+                  <ListGroup.Item className="d-flex justify-content-between py-2">
+                    <span className="small text-muted">Estado</span>
+                    <span className="small fw-semibold">
+                      {mapOrderStatus(selectedOrder.status) || "N/A"}
+                    </span>
+                  </ListGroup.Item>
+                  {selectedOrder.table_number && (
+                    <ListGroup.Item className="d-flex justify-content-between py-2">
+                      <span className="small text-muted">Mesa</span>
+                      <span className="small">
+                        {selectedOrder.table_number}
+                      </span>
+                    </ListGroup.Item>
+                  )}
+                  {selectedOrder.delivery_address && (
+                    <ListGroup.Item className="py-2">
+                      <span className="small text-muted d-block mb-1">
+                        Dirección
+                      </span>
+                      <span className="small">
+                        {selectedOrder.delivery_address}
+                      </span>
+                    </ListGroup.Item>
+                  )}
+                </ListGroup>
+              </Card>
+
+              <Card className="border-0 shadow-sm">
+                <Card.Header className="bg-light border-0 py-2">
+                  <strong className="small">Pago</strong>
+                </Card.Header>
+                <ListGroup variant="flush">
+                  <ListGroup.Item className="d-flex justify-content-between py-2">
+                    <span className="small text-muted">Método</span>
+                    <span className="small">
+                      {mapPaymentMethod(selectedOrder.payment_method)}
+                    </span>
+                  </ListGroup.Item>
+                  <ListGroup.Item className="d-flex justify-content-between py-2">
+                    <span className="small text-muted">Estado de pago</span>
+                    <span className="small">
+                      {mapPaymentStatus(selectedOrder.payment_status)}
+                    </span>
+                  </ListGroup.Item>
+                  <ListGroup.Item className="d-flex justify-content-between py-2">
+                    <span className="small text-muted">Total</span>
+                    <span className="fw-bold small">
+                      ${formatPrice(selectedOrder.total_amount)}
+                    </span>
+                  </ListGroup.Item>
+                </ListGroup>
+              </Card>
 
               {selectedOrder.special_instructions && (
-                <Alert variant="light" className="border">
+                <Alert
+                  variant="light"
+                  className="border mb-0 py-2 small"
+                >
                   <strong>Notas especiales:</strong>{" "}
                   {selectedOrder.special_instructions}
                 </Alert>
               )}
 
               <Card className="border-0 shadow-sm">
-                <Card.Header className="bg-light border-0">
-                  <strong>Ítems del pedido</strong>
+                <Card.Header className="bg-light border-0 py-2">
+                  <strong className="small">Ítems del pedido</strong>
                 </Card.Header>
                 {selectedOrder.items && selectedOrder.items.length > 0 ? (
                   <ListGroup variant="flush">
                     {selectedOrder.items.map((item) => (
                       <ListGroup.Item
                         key={item.id}
-                        className="d-flex justify-content-between align-items-start"
+                        className="d-flex justify-content-between align-items-start py-2"
                       >
                         <div>
-                          <div className="fw-semibold">
+                          <div className="fw-semibold small">
                             {item.menu_item_name ||
                               item.name ||
                               "Producto"}
                           </div>
-                          <div className="small">
+                          <div className="small text-muted">
                             Cantidad: {item.quantity} · Precio unit.: $
                             {formatPrice(item.unit_price)}
                           </div>
                         </div>
-                        <div className="fw-semibold">
+                        <div className="fw-semibold small">
                           ${formatPrice(item.subtotal)}
                         </div>
                       </ListGroup.Item>
                     ))}
-                    <ListGroup.Item className="d-flex justify-content-between">
-                      <span className="fw-semibold">Total</span>
-                      <span className="fw-bold">
+                    <ListGroup.Item className="d-flex justify-content-between py-2">
+                      <span className="fw-semibold small">Total</span>
+                      <span className="fw-bold small">
                         ${formatPrice(selectedOrder.total_amount)}
                       </span>
                     </ListGroup.Item>
                   </ListGroup>
                 ) : (
-                  <Card.Body>
-                    <Alert variant="light" className="border mb-0">
+                  <Card.Body className="py-2">
+                    <Alert variant="light" className="border mb-0 small">
                       No hay ítems para mostrar.
                     </Alert>
                   </Card.Body>
                 )}
               </Card>
-            </>
+            </div>
           )}
         </Modal.Body>
-        <Modal.Footer>
+        <Modal.Footer className="py-2 d-flex justify-content-between">
           {selectedOrder && canCancelOrder(selectedOrder.status) && (
             <Button
-              variant="outline-secondary"
+              variant="danger"
+              size="sm"
               onClick={() => handleCancelOrder(selectedOrder.id)}
               disabled={loadingAction}
             >
-              <MdCancel className="me-2" />
+              <MdOutlineCancel className="me-2" />
               {loadingAction ? "Cancelando..." : "Cancelar orden"}
             </Button>
           )}
-          <Button variant="secondary" onClick={() => setShowModal(false)}>
+          <Button
+            variant="danger"
+            size="sm"
+            onClick={() => setShowModal(false)}
+          >
             Cerrar
           </Button>
         </Modal.Footer>

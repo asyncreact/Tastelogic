@@ -1,161 +1,148 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+/* src/index.css */
 
-/* VARIABLES BASE (LIGHT) */
-:root {
-  --font-main: 'Inter', system-ui, -apple-system, sans-serif;
-
-  --page-bg: #ffffff;
-  --card-bg: #ffffff;
-  --input-bg: #f8f8f8;
-
-  --text-main: #000000;
-  --text-muted: #555555;
-  --text-inverse: #ffffff;
-
-  --primary: #000000;
-  --border-color: #e0e0e0;
-  --focus-border: #000000;
-
-  --btn-bg: #000000;
-  --btn-text: #ffffff;
-
-  --nav-bg: rgba(255, 255, 255, 0.95);
-  --nav-border: rgba(0, 0, 0, 0.08);
-  --nav-hover: #f3f4f6;
-
-  --badge-bg: #000000;
-  --badge-text: #ffffff;
-
-  --backdrop: blur(12px);
-  --shadow-sm: 0 4px 20px rgba(0, 0, 0, 0.08);
-}
-
-/* MODO OSCURO: APLICAR EN <html data-theme="dark"> O <body data-theme="dark"> */
-html[data-theme="dark"],
-body[data-theme="dark"],
-:root[data-theme="dark"] {
-  --page-bg: #050505;
-  --card-bg: #050505;
-  --input-bg: #141414;     /* fondo un poco más claro para ver iconos */
-
-  --text-main: #ffffff;
-  --text-muted: #cfcfcf;
-  --text-inverse: #000000;
-
-  --primary: #ffffff;
-  --border-color: #333333;
-  --focus-border: #ffffff;
-
-  --btn-bg: #ffffff;
-  --btn-text: #000000;
-
-  --nav-bg: rgba(0, 0, 0, 0.92);
-  --nav-border: rgba(255, 255, 255, 0.15);
-  --nav-hover: #111111;
-
-  --badge-bg: #ffffff;
-  --badge-text: #000000;
-
-  --shadow-sm: 0 4px 20px rgba(0, 0, 0, 0.8);
-}
-
-/* RESET BÁSICO */
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
-/* FONDO GLOBAL SIEMPRE CON VARIABLES */
-html {
-  background-color: var(--page-bg);
-  min-height: 100vh;
-}
-
-/* BODY */
+/* Fuente global para toda la app */
+html,
 body {
-  font-family: var(--font-main);
-  background-color: var(--page-bg);
-  color: var(--text-main);
-  transition: background-color 0.3s ease, color 0.3s ease;
-  min-height: 100vh;
-  -webkit-font-smoothing: antialiased;
+  font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+  color: #111827;
+  background-color: #f9fafb;
 }
 
-/* TIPOGRAFÍA GENERAL */
-p {
-  color: var(--text-muted);
-  line-height: 1.6;
-  margin-bottom: 1rem;
-  font-weight: 400;
-  opacity: 1;
+/* Variables para gradientes naranjas y rojos */
+:root {
+  --btn-orange-1: linear-gradient(135deg, #ff7a18 0%, #ffb347 100%);
+  --btn-orange-2: linear-gradient(135deg, #ff6a00 0%, #ffcc33 100%);
+  --btn-orange-3: linear-gradient(135deg, #ff8c42 0%, #ff5f6d 100%);
+
+  --btn-red-1: linear-gradient(135deg, #ef4444 0%, #f97373 100%);
+  --btn-red-2: linear-gradient(135deg, #dc2626 0%, #fb923c 100%);
+  --btn-red-3: linear-gradient(135deg, #b91c1c 0%, #f97316 100%);
 }
 
-/* FORM ELEMENTS SIEMPRE CON VARIABLES (IMPORTANTE PARA DARK MODE) */
-input,
-button,
-select,
-textarea {
-  font-family: inherit;
-}
-
-.text-main {
-  color: var(--text-main) !important;
-}
-
-body .text-muted {
-  color: var(--text-muted) !important;
-}
-
-/* Cards y modals respetando tema */
-.card,
-.modal-content {
-  background-color: var(--card-bg);
-  color: var(--text-main);
-  border-color: var(--border-color);
-}
-
-/* Form global (incluye fecha/hora) */
-.form-control,
-.form-select {
-  background-color: var(--input-bg);
-  color: var(--text-main);
-  border-color: var(--border-color);
-}
-
-.form-control::placeholder,
-textarea::placeholder {
-  color: var(--text-muted);
-  opacity: 0.7;
-}
-
-.form-control:focus,
-.form-select:focus {
-  background-color: var(--card-bg);
-  color: var(--text-main);
-  border-color: var(--focus-border);
-  box-shadow: none;
-}
-
-/* Botones globales coherentes con las variables */
-.btn-primary,
-.btn-dark,
-.btn-light {
-  background-color: var(--btn-bg) !important;
-  color: var(--btn-text) !important;
-  border-color: var(--border-color) !important;
+/* Botón primario con degradado naranja */
+.btn-primary {
+  background-image: var(--btn-orange-1);
+  border: none;
+  color: #ffffff;
+  background-size: 200% 100%;
+  background-position: left center;
+  transition:
+    background-position 0.3s ease,
+    transform 0.1s ease,
+    box-shadow 0.2s ease;
 }
 
 .btn-primary:hover,
-.btn-dark:hover,
-.btn-light:hover {
-  background-color: var(--btn-text) !important;
-  color: var(--btn-bg) !important;
-  border-color: var(--btn-text) !important;
+.btn-primary:focus {
+  background-position: right center;
+  color: #ffffff;
+  box-shadow: 0 8px 18px rgba(255, 122, 24, 0.35);
+  transform: translateY(-1px);
 }
 
-/* Badges */
+.btn-primary:active {
+  transform: translateY(0);
+  box-shadow: 0 4px 10px rgba(255, 122, 24, 0.25);
+}
+
+/* Botón secundario con el mismo estilo de gradiente */
+.btn-secondary {
+  background-image: var(--btn-orange-1);
+  border: none;
+  color: #ffffff;
+  background-size: 200% 100%;
+  background-position: left center;
+  transition:
+    background-position 0.3s ease,
+    transform 0.1s ease,
+    box-shadow 0.2s ease;
+}
+
+.btn-secondary:hover,
+.btn-secondary:focus {
+  background-position: right center;
+  color: #ffffff;
+  box-shadow: 0 8px 18px rgba(255, 122, 24, 0.35);
+  transform: translateY(-1px);
+}
+
+.btn-secondary:active {
+  transform: translateY(0);
+  box-shadow: 0 4px 10px rgba(255, 122, 24, 0.25);
+}
+
+/* Botón de peligro (cerrar / eliminar / cancelar) con degradado rojo */
+.btn-danger,
+.btn-red {
+  background-image: var(--btn-red-1);
+  border: none;
+  color: #ffffff;
+  background-size: 200% 100%;
+  background-position: left center;
+  transition:
+    background-position 0.3s ease,
+    transform 0.1s ease,
+    box-shadow 0.2s ease;
+}
+
+.btn-danger:hover,
+.btn-danger:focus,
+.btn-red:hover,
+.btn-red:focus {
+  background-position: right center;
+  color: #ffffff;
+  box-shadow: 0 8px 18px rgba(239, 68, 68, 0.35);
+  transform: translateY(-1px);
+}
+
+.btn-danger:active,
+.btn-red:active {
+  transform: translateY(0);
+  box-shadow: 0 4px 10px rgba(239, 68, 68, 0.25);
+}
+
+/* ===========================
+   BADGES (estados / etiquetas)
+   =========================== */
+
 .badge {
-  background-color: var(--badge-bg);
-  color: var(--badge-text);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border-radius: 999px;
+  padding: 0.22rem 0.6rem;
+  font-size: 0.7rem;
+}
+
+.badge.bg-secondary {
+  background-color: #e5e7eb;
+  color: #111827;
+}
+
+.badge-status-pending {
+  background-color: #ffffff;
+  color: #111827;
+}
+
+.badge-status-confirmed {
+  background-color: #ffffff;
+  color: #111827;
+}
+
+.badge-status-preparing,
+.badge-status-ready {
+  background-color: #ffffff;
+  color: #111827;
+}
+
+.badge-status-completed {
+  background-color: #ffffff;
+  color: #111827;
+}
+
+.badge-status-cancelled,
+.badge-status-expired {
+  background-color: #ffffff;
+  color: #111827;
 }

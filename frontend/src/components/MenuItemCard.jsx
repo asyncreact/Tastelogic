@@ -141,7 +141,7 @@ function MenuItemCard({ item }) {
             onClick={(e) => e.stopPropagation()}
           >
             <Button
-              variant="outline-secondary"
+              variant="primary"
               onClick={handleAddToCart}
               disabled={isUnavailable}
               className="d-flex align-items-center justify-content-center"
@@ -252,7 +252,7 @@ function MenuItemCard({ item }) {
         </Modal.Body>
 
         <Modal.Footer>
-          <Button variant="secondary" onClick={handleCloseModal}>
+          <Button variant="danger" onClick={handleCloseModal}>
             Cerrar
           </Button>
           <Button
