@@ -365,23 +365,6 @@ function AdminReservation() {
     }
   };
 
-  const getStatusClass = (status) => {
-    switch (status) {
-      case "pending":
-        return "badge-status-pending";
-      case "confirmed":
-        return "badge-status-confirmed";
-      case "completed":
-        return "badge-status-completed";
-      case "cancelled":
-        return "badge-status-cancelled";
-      case "expired":
-        return "badge-status-expired";
-      default:
-        return "badge-status-pending";
-    }
-  };
-
   const searchLower = searchAdmin.toLowerCase().trim();
 
   const filteredReservations = reservations.filter((r) => {
@@ -487,7 +470,7 @@ function AdminReservation() {
                         <span className="fw-semibold">
                           {r.reservation_number || `Reserva #${r.id}`}
                         </span>
-                        <Badge className={getStatusClass(r.status)}>
+                        <Badge className="badge text-uppercase">
                           {r.status}
                         </Badge>
                       </div>
@@ -501,8 +484,7 @@ function AdminReservation() {
                       <div className="small">
                         {formatDate(r.reservation_date)}{" "}
                         {formatTime(r.reservation_time)} · Mesa{" "}
-                        {formatTableLabel(r)} · Zona{" "}
-                        {formatZoneName(r)} ·{" "}
+                        {formatTableLabel(r)} · Zona {formatZoneName(r)} ·{" "}
                         {r.guest_count ?? r.guests} personas
                       </div>
 

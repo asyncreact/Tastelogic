@@ -222,11 +222,8 @@ function ReservationHistory() {
                     ? `Reserva ${reservation.reservation_number}`
                     : `Reserva #${reservation.id}`}
                 </span>
-                <span
-                  className={`badge text-uppercase badge-status-${
-                    reservation.status || "pending"
-                  }`}
-                >
+                {/* Badge único */}
+                <span className="badge text-uppercase">
                   {getStatusText(reservation.status)}
                 </span>
               </div>
@@ -280,7 +277,7 @@ function ReservationHistory() {
         size="md"
         centered
       >
-        <Modal.Header closeButton className="py-2">
+        <Modal.Header className="py-2" closeButton>
           <Modal.Title className="fs-6">
             Detalles de la reserva{" "}
             {selectedReservation?.reservation_number ||
@@ -353,7 +350,9 @@ function ReservationHistory() {
                     <ListGroup.Item className="d-flex justify-content-between py-2">
                       <span className="small text-muted">Estado</span>
                       <span className="small fw-semibold">
-                        {getStatusText(selectedReservation.status)}
+                        <span className="badge text-uppercase">
+                          {getStatusText(selectedReservation.status)}
+                        </span>
                       </span>
                     </ListGroup.Item>
                     {selectedReservation.special_requirements && (

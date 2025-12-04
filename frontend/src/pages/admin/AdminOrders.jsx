@@ -79,31 +79,6 @@ function AdminOrders() {
     fetchOrders();
   }, [fetchOrders]);
 
-  const getStatusVariant = (status) => {
-    switch (status) {
-      case "confirmed":
-      case "preparing":
-      case "ready":
-      case "completed":
-        return "success";
-      case "cancelled":
-        return "danger";
-      default:
-        return "warning";
-    }
-  };
-
-  const getPaymentVariant = (paymentStatus) => {
-    switch (paymentStatus) {
-      case "paid":
-        return "success";
-      case "refunded":
-        return "info";
-      default:
-        return "secondary";
-    }
-  };
-
   const showSuccessToast = (title) => {
     const Toast = MySwal.mixin({
       toast: true,
@@ -340,8 +315,10 @@ function AdminOrders() {
                         <span className="fw-semibold">
                           {o.order_number ? `Orden ${o.order_number}` : `Orden #${o.id}`}
                         </span>
-                        <Badge bg={getStatusVariant(o.status)}>{o.status}</Badge>
-                        <Badge bg={getPaymentVariant(paymentStatusOrder)}>
+                        <Badge className="badge text-uppercase">
+                          {o.status}
+                        </Badge>
+                        <Badge className="badge text-uppercase">
                           {paymentStatusOrder}
                         </Badge>
                       </div>
@@ -453,11 +430,11 @@ function AdminOrders() {
               </p>
               <p className="mb-1">
                 <strong>Estado:</strong>{" "}
-                <Badge bg={getStatusVariant(currentOrder.status)}>
+                <Badge className="badge text-uppercase">
                   {currentOrder.status}
                 </Badge>{" "}
                 · <strong>Pago:</strong>{" "}
-                <Badge bg={getPaymentVariant(currentOrder.payment_status ?? "pending")}>
+                <Badge className="badge text-uppercase">
                   {currentOrder.payment_status ?? "pending"}
                 </Badge>
               </p>

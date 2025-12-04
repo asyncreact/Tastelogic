@@ -103,9 +103,10 @@ body {
 }
 
 /* ===========================
-   BADGES (estados / etiquetas)
+   BADGES ÚNICOS
    =========================== */
 
+/* Estilo ÚNICO de badge para toda la app */
 .badge {
   font-weight: 600;
   letter-spacing: 0.04em;
@@ -113,36 +114,42 @@ body {
   border-radius: 999px;
   padding: 0.22rem 0.6rem;
   font-size: 0.7rem;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  background-color: #ffffff;
+  color: #111827;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
 }
 
+/* Variante pequeña opcional (si la necesitas) */
+.badge-sm {
+  font-size: 0.65rem;
+  padding: 0.16rem 0.5rem;
+}
+
+/* Variante para badge con iconos (solo ajusta el gap) */
+.badge-icon {
+  gap: 0.35rem;
+}
+
+/* Mantener compatibilidad con .bg-secondary si la usas con badges,
+   pero visualmente seguirá siendo casi igual */
 .badge.bg-secondary {
-  background-color: #e5e7eb;
-  color: #111827;
-}
-
-.badge-status-pending {
   background-color: #ffffff;
   color: #111827;
 }
 
-.badge-status-confirmed {
-  background-color: #ffffff;
-  color: #111827;
-}
-
-.badge-status-preparing,
-.badge-status-ready {
-  background-color: #ffffff;
-  color: #111827;
-}
-
-.badge-status-completed {
-  background-color: #ffffff;
-  color: #111827;
-}
-
-.badge-status-cancelled,
-.badge-status-expired {
-  background-color: #ffffff;
-  color: #111827;
+/* Quitar por completo el azul de Bootstrap en badges */
+.badge,
+span.badge,
+.badge.bg-primary,
+.badge.bg-info,
+.badge.bg-secondary {
+  background-color: #ffffff !important;
+  color: #111827 !important;
 }

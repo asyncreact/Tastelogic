@@ -259,11 +259,8 @@ function OrderHistory() {
                 <span className="fw-semibold">
                   Orden {order.order_number || `#${order.id}`}
                 </span>
-                <span
-                  className={`badge text-uppercase badge-status-${
-                    order.status || "pending"
-                  }`}
-                >
+                {/* Badge único */}
+                <span className="badge text-uppercase">
                   {mapOrderStatus(order.status)}
                 </span>
               </div>
@@ -369,7 +366,9 @@ function OrderHistory() {
                   <ListGroup.Item className="d-flex justify-content-between py-2">
                     <span className="small text-muted">Estado</span>
                     <span className="small fw-semibold">
-                      {mapOrderStatus(selectedOrder.status) || "N/A"}
+                      <span className="badge text-uppercase">
+                        {mapOrderStatus(selectedOrder.status) || "N/A"}
+                      </span>
                     </span>
                   </ListGroup.Item>
                   {selectedOrder.table_number && (
@@ -420,10 +419,7 @@ function OrderHistory() {
               </Card>
 
               {selectedOrder.special_instructions && (
-                <Alert
-                  variant="light"
-                  className="border mb-0 py-2 small"
-                >
+                <Alert variant="light" className="border mb-0 py-2 small">
                   <strong>Notas especiales:</strong>{" "}
                   {selectedOrder.special_instructions}
                 </Alert>
