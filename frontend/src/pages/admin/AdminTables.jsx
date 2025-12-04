@@ -339,10 +339,10 @@ function AdminTable() {
     <Container className="py-4">
       <Row className="mb-4">
         <Col md={8}>
-          <h2 className="d-flex align-items-center gap-2">
+          <h1 className="h3 d-flex align-items-center gap-2 mb-1">
             <MdOutlineTableBar />
             Administración de mesas
-          </h2>
+          </h1>
           <p className="text-muted mb-2">
             Gestiona zonas y mesas del restaurante de forma sencilla.
           </p>

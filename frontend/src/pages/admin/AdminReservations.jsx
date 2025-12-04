@@ -11,7 +11,7 @@ import {
   Modal,
   Badge,
 } from "react-bootstrap";
-import { MdEventSeat, MdOutlineTableBar, MdPeople } from "react-icons/md";
+import { IoCalendarOutline } from "react-icons/io5"
 import { useReservation } from "../../hooks/useReservation";
 import { useUsers } from "../../hooks/useUsers";
 import api from "../../api/auth";
@@ -396,7 +396,7 @@ function AdminReservation() {
       <Row className="mb-3">
         <Col>
           <h1 className="h3 d-flex align-items-center gap-2 mb-1">
-            <MdEventSeat />
+            <IoCalendarOutline />
             Admin Reservas
           </h1>
           <p className="text-muted mb-0">
@@ -593,7 +593,7 @@ function AdminReservation() {
                   <Form.Label>Personas (guest_count)</Form.Label>
                   <div className="input-group">
                     <span className="input-group-text">
-                      <MdPeople />
+                      <IoCalendarOutline />
                     </span>
                     <Form.Control
                       type="number"
