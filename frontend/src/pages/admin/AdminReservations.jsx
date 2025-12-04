@@ -12,6 +12,7 @@ import {
   Badge,
 } from "react-bootstrap";
 import { IoCalendarOutline } from "react-icons/io5"
+import { MdOutlineTableBar } from "react-icons/md";
 import { useReservation } from "../../hooks/useReservation";
 import { useUsers } from "../../hooks/useUsers";
 import api from "../../api/auth";
