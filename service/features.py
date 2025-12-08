@@ -15,6 +15,6 @@ def build_features(menu_item_id: int, dt: datetime) -> dict:
     return {
         "menu_item_id": menu_item_id,
         "order_hour": dt.hour,
-        "day_of_week": dt.weekday(),  # 0=lunes
+        "day_of_week": dt.weekday(),
         "season": get_season(dt),
     }

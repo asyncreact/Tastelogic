@@ -9,5 +9,5 @@ def load_model():
 def predict_quantity(model, features: dict):
     df = pd.DataFrame([features])
     y_pred = model.predict(df)[0]
-    confidence = 80.0  # placeholder simple
+    confidence = 80.0 
     return y_pred, confidence

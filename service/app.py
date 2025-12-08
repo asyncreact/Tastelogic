@@ -11,7 +11,7 @@ model = load_model()
 
 class PredictRequest(BaseModel):
     menu_item_id: int
-    datetime_str: str  # "2025-11-24 20:00:00"
+    datetime_str: str
 
 @app.post("/predict")
 def predict_demand(req: PredictRequest):
