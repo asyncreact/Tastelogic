@@ -1,0 +1,19 @@
+# Entorno virtual
+venv/
+
+# Caché de Python
+__pycache__/
+*.pyc
+
+# Modelos entrenados
+*.pkl
+
+# Variables de entorno / secretos
+.env
+
+# Archivos de logs
+*.log
+
+# Otros temporales
+*.tmp
+*.swp
