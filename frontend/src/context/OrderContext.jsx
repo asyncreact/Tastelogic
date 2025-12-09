@@ -1,7 +1,6 @@
 // src/context/OrderContext.jsx
-import { createContext, useState, useEffect, useCallback } from "react";
+import { createContext, useState, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from "../hooks/useAuth";
-
 import {
   getOrders,
   getOrder,
@@ -20,16 +19,20 @@ export function OrderProvider({ children }) {
   const userId = user?.id;
 
   const [orders, setOrders] = useState([]);
+  const [ordersMeta, setOrdersMeta] = useState({
+    total: 0,
+    page: 1,
+    limit: 20,
+    totalPages: 1,
+  });
   const [currentOrder, setCurrentOrder] = useState(null);
 
-  /* Carrito por usuario */
   const [cart, setCart] = useState(() => {
     try {
       if (!userId) return [];
       const savedCart = localStorage.getItem(`cart_${userId}`);
       return savedCart ? JSON.parse(savedCart) : [];
-    } catch (error) {
-      console.error("Error al cargar carrito:", error);
+    } catch {
       return [];
     }
   });
@@ -37,31 +40,24 @@ export function OrderProvider({ children }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  /* Parseo de errores enviados por el backend */
-  const parseApiError = (err, fallback) => {
+  const parseApiError = useCallback((err, fallback) => {
     const errorData = err?.response?.data || {};
-
     if (errorData.details && Array.isArray(errorData.details)) {
       const message = errorData.message || fallback;
       return { message, details: errorData.details };
     }
-
     const message = errorData.message || err.message || fallback;
     return { message };
-  };
+  }, []);
 
-  /* Guardar carrito cuando cambia */
   useEffect(() => {
     try {
       if (userId) {
         localStorage.setItem(`cart_${userId}`, JSON.stringify(cart));
       }
-    } catch (error) {
-      console.error("Error al guardar carrito:", error);
-    }
+    } catch {}
   }, [cart, userId]);
 
-  /* Cargar carrito cuando cambia el usuario */
   useEffect(() => {
     if (!userId) {
       setCart([]);
@@ -69,236 +65,270 @@ export function OrderProvider({ children }) {
       try {
         const savedCart = localStorage.getItem(`cart_${userId}`);
         setCart(savedCart ? JSON.parse(savedCart) : []);
-      } catch (error) {
-        console.error("Error al cargar carrito:", error);
+      } catch {
         setCart([]);
       }
     }
   }, [userId]);
 
-  /* Obtener todas las órdenes (memoizado para evitar loops) */
   const fetchOrders = useCallback(
     async (params = {}) => {
       if (!user) {
         setOrders([]);
-        return;
+        setOrdersMeta((prev) => ({
+          ...prev,
+          total: 0,
+          page: params.page || 1,
+          limit: params.limit || prev.limit || 20,
+          totalPages: 1,
+        }));
+        return { data: [], meta: { total: 0, page: 1, limit: params.limit || 20 } };
       }
-
       try {
         setLoading(true);
         setError(null);
         const response = await getOrders(params);
-        setOrders(response.data?.orders || response.data?.data || []);
+        const data =
+          response.data?.orders ||
+          response.data?.data ||
+          response.data?.rows ||
+          response.data ||
+          [];
+        const meta =
+          response.data?.meta ||
+          response.data?.pagination ||
+          response.meta ||
+          response.pagination ||
+          {};
+        const safeData = Array.isArray(data) ? data : [];
+        const safeMeta = {
+          total: Number(meta.total || meta.totalItems || safeData.length || 0),
+          page: Number(meta.page || params.page || 1),
+          limit: Number(meta.limit || params.limit || 20),
+          totalPages:
+            Number(meta.totalPages) ||
+            (Number(meta.limit || params.limit || 20) > 0
+              ? Math.ceil(
+                  Number(meta.total || meta.totalItems || safeData.length || 0) /
+                    Number(meta.limit || params.limit || 20)
+                )
+              : 1),
+        };
+        setOrders(safeData);
+        setOrdersMeta(safeMeta);
+        return { data: safeData, meta: safeMeta };
       } catch (err) {
         const parsed = parseApiError(err, "Error al cargar órdenes");
         setError(parsed.message);
-        console.error("Error fetchOrders:", err);
+        return { data: [], meta: { total: 0, page: 1, limit: params.limit || 20 } };
       } finally {
         setLoading(false);
       }
     },
-    [user] // solo depende de user
+    [user, parseApiError]
   );
 
-  /* Obtener una orden específica */
-  const fetchOrder = async (orderId) => {
-    if (!user) {
-      throw { message: "Debes iniciar sesión para ver los detalles de la orden." };
-    }
+  const fetchOrder = useCallback(
+    async (orderId) => {
+      if (!user) {
+        throw { message: "Debes iniciar sesión para ver los detalles de la orden." };
+      }
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await getOrder(orderId);
+        const orderData =
+          response.data?.order || response.data?.data || response.data;
+        setCurrentOrder(orderData);
+        return orderData;
+      } catch (err) {
+        const parsed = parseApiError(err, "Error al cargar orden");
+        setError(parsed.message);
+        throw parsed;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [user, parseApiError]
+  );
 
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await getOrder(orderId);
-      const orderData =
-        response.data?.order || response.data?.data || response.data;
+  const addOrder = useCallback(
+    async (orderData) => {
+      if (!user) {
+        throw { message: "Debes iniciar sesión para confirmar tu pedido." };
+      }
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await createOrder(orderData);
+        const newOrder = response.data?.order || response.data?.data;
+        setOrders((prev) => [newOrder, ...prev]);
+        setOrdersMeta((prev) => ({
+          ...prev,
+          total: prev.total + 1,
+        }));
+        setCart([]);
+        if (userId) localStorage.removeItem(`cart_${userId}`);
+        return {
+          success: true,
+          message: response.data?.message || "Orden creada correctamente",
+          order: newOrder,
+        };
+      } catch (err) {
+        const parsed = parseApiError(err, "Error al crear orden");
+        setError(parsed.message);
+        throw parsed;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [user, userId, parseApiError]
+  );
 
-      setCurrentOrder(orderData);
-      return orderData;
-    } catch (err) {
-      const parsed = parseApiError(err, "Error al cargar orden");
-      setError(parsed.message);
-      console.error("Error fetchOrder:", err);
-      throw parsed;
-    } finally {
-      setLoading(false);
-    }
-  };
+  const editOrder = useCallback(
+    async (orderId, orderData) => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await updateOrder(orderId, orderData);
+        const updatedOrder = response.data?.order || response.data?.data;
+        setOrders((prev) =>
+          prev.map((o) => (o.id === orderId ? updatedOrder : o))
+        );
+        setCurrentOrder((prev) =>
+          prev && prev.id === orderId ? updatedOrder : prev
+        );
+        return {
+          success: true,
+          message: response.data?.message || "Orden actualizada correctamente",
+          order: updatedOrder,
+        };
+      } catch (err) {
+        const parsed = parseApiError(err, "Error al actualizar orden");
+        setError(parsed.message);
+        throw parsed;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [parseApiError]
+  );
 
-  /* Crear una nueva orden */
-  const addOrder = async (orderData) => {
-    if (!user) {
-      throw { message: "Debes iniciar sesión para confirmar tu pedido." };
-    }
+  const changeOrderStatus = useCallback(
+    async (orderId, status) => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await updateOrderStatus(orderId, status);
+        const updatedOrder = response.data?.order || response.data?.data;
+        setOrders((prev) =>
+          prev.map((o) => (o.id === orderId ? updatedOrder : o))
+        );
+        setCurrentOrder((prev) =>
+          prev && prev.id === orderId ? updatedOrder : prev
+        );
+        return {
+          success: true,
+          message: response.data?.message || "Estado de la orden actualizado",
+          order: updatedOrder,
+        };
+      } catch (err) {
+        const parsed = parseApiError(err, "Error al actualizar estado de orden");
+        setError(parsed.message);
+        throw parsed;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [parseApiError]
+  );
 
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await createOrder(orderData);
-      const newOrder = response.data?.order || response.data?.data;
+  const changePaymentStatus = useCallback(
+    async (orderId, paymentStatus) => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await updateOrderPayment(orderId, paymentStatus);
+        const updatedOrder = response.data?.order || response.data?.data;
+        setOrders((prev) =>
+          prev.map((o) => (o.id === orderId ? updatedOrder : o))
+        );
+        setCurrentOrder((prev) =>
+          prev && prev.id === orderId ? updatedOrder : prev
+        );
+        return {
+          success: true,
+          message: response.data?.message || "Estado de pago actualizado",
+          order: updatedOrder,
+        };
+      } catch (err) {
+        const parsed = parseApiError(err, "Error al actualizar pago");
+        setError(parsed.message);
+        throw parsed;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [parseApiError]
+  );
 
-      setOrders((prev) => [newOrder, ...prev]);
-      setCart([]);
-      if (userId) localStorage.removeItem(`cart_${userId}`);
+  const cancelOrderById = useCallback(
+    async (orderId) => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await cancelOrder(orderId);
+        const updatedOrder = response.data?.order || response.data?.data;
+        setOrders((prev) =>
+          prev.map((o) => (o.id === orderId ? updatedOrder : o))
+        );
+        setCurrentOrder((prev) =>
+          prev && prev.id === orderId ? updatedOrder : prev
+        );
+        return {
+          success: true,
+          message: response.data?.message || "Orden cancelada correctamente",
+          order: updatedOrder,
+        };
+      } catch (err) {
+        const parsed = parseApiError(err, "Error al cancelar orden");
+        setError(parsed.message);
+        throw parsed;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [parseApiError]
+  );
 
-      return {
-        success: true,
-        message: response.data?.message || "Orden creada correctamente",
-        order: newOrder,
-      };
-    } catch (err) {
-      const parsed = parseApiError(err, "Error al crear orden");
-      setError(parsed.message);
-      console.error("Error addOrder:", err);
-      throw parsed;
-    } finally {
-      setLoading(false);
-    }
-  };
+  const removeOrder = useCallback(
+    async (orderId) => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await deleteOrder(orderId);
+        setOrders((prev) => prev.filter((o) => o.id !== orderId));
+        setOrdersMeta((prev) => ({
+          ...prev,
+          total: Math.max(0, prev.total - 1),
+        }));
+        setCurrentOrder((prev) => (prev && prev.id === orderId ? null : prev));
+        return {
+          success: true,
+          message: response.data?.message || "Orden eliminada correctamente",
+        };
+      } catch (err) {
+        const parsed = parseApiError(err, "Error al eliminar orden");
+        setError(parsed.message);
+        throw parsed;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [parseApiError]
+  );
 
-  /* Editar una orden */
-  const editOrder = async (orderId, orderData) => {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await updateOrder(orderId, orderData);
-      const updatedOrder = response.data?.order || response.data?.data;
-
-      setOrders((prev) =>
-        prev.map((o) => (o.id === orderId ? updatedOrder : o))
-      );
-
-      if (currentOrder?.id === orderId) setCurrentOrder(updatedOrder);
-
-      return {
-        success: true,
-        message: response.data?.message || "Orden actualizada correctamente",
-        order: updatedOrder,
-      };
-    } catch (err) {
-      const parsed = parseApiError(err, "Error al actualizar orden");
-      setError(parsed.message);
-      console.error("Error editOrder:", err);
-      throw parsed;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  /* Cambiar estado de la orden */
-  const changeOrderStatus = async (orderId, status) => {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await updateOrderStatus(orderId, status);
-      const updatedOrder = response.data?.order || response.data?.data;
-
-      setOrders((prev) =>
-        prev.map((o) => (o.id === orderId ? updatedOrder : o))
-      );
-
-      if (currentOrder?.id === orderId) setCurrentOrder(updatedOrder);
-
-      return {
-        success: true,
-        message: response.data?.message || "Estado de la orden actualizado",
-        order: updatedOrder,
-      };
-    } catch (err) {
-      const parsed = parseApiError(err, "Error al actualizar estado de orden");
-      setError(parsed.message);
-      console.error("Error changeOrderStatus:", err);
-      throw parsed;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  /* Cambiar estado de pago */
-  const changePaymentStatus = async (orderId, paymentStatus) => {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await updateOrderPayment(orderId, paymentStatus);
-      const updatedOrder = response.data?.order || response.data?.data;
-
-      setOrders((prev) =>
-        prev.map((o) => (o.id === orderId ? updatedOrder : o))
-      );
-
-      if (currentOrder?.id === orderId) setCurrentOrder(updatedOrder);
-
-      return {
-        success: true,
-        message: response.data?.message || "Estado de pago actualizado",
-        order: updatedOrder,
-      };
-    } catch (err) {
-      const parsed = parseApiError(err, "Error al actualizar pago");
-      setError(parsed.message);
-      console.error("Error changePaymentStatus:", err);
-      throw parsed;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  /* Cancelar una orden */
-  const cancelOrderById = async (orderId) => {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await cancelOrder(orderId);
-      const updatedOrder = response.data?.order || response.data?.data;
-
-      setOrders((prev) =>
-        prev.map((o) => (o.id === orderId ? updatedOrder : o))
-      );
-
-      if (currentOrder?.id === orderId) setCurrentOrder(updatedOrder);
-
-      return {
-        success: true,
-        message: response.data?.message || "Orden cancelada correctamente",
-        order: updatedOrder,
-      };
-    } catch (err) {
-      const parsed = parseApiError(err, "Error al cancelar orden");
-      setError(parsed.message);
-      console.error("Error cancelOrderById:", err);
-      throw parsed;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  /* Eliminar una orden */
-  const removeOrder = async (orderId) => {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await deleteOrder(orderId);
-
-      setOrders((prev) => prev.filter((o) => o.id !== orderId));
-
-      if (currentOrder?.id === orderId) setCurrentOrder(null);
-
-      return {
-        success: true,
-        message: response.data?.message || "Orden eliminada correctamente",
-      };
-    } catch (err) {
-      const parsed = parseApiError(err, "Error al eliminar orden");
-      setError(parsed.message);
-      console.error("Error removeOrder:", err);
-      throw parsed;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  /* Agregar al carrito */
-  const addToCart = (item, quantity = 1) => {
+  const addToCart = useCallback((item, quantity = 1) => {
     setCart((prev) => {
       const existing = prev.find((i) => i.id === item.id);
       if (existing) {
@@ -308,66 +338,82 @@ export function OrderProvider({ children }) {
       }
       return [...prev, { ...item, quantity }];
     });
-  };
+  }, []);
 
-  /* Remover del carrito */
-  const removeFromCart = (itemId) => {
+  const removeFromCart = useCallback((itemId) => {
     setCart((prev) => prev.filter((i) => i.id !== itemId));
-  };
+  }, []);
 
-  /* Actualizar cantidad en carrito */
-  const updateCartQuantity = (itemId, quantity) => {
+  const updateCartQuantity = useCallback((itemId, quantity) => {
     if (quantity <= 0) {
-      removeFromCart(itemId);
+      setCart((prev) => prev.filter((i) => i.id !== itemId));
       return;
     }
-
     setCart((prev) =>
       prev.map((i) => (i.id === itemId ? { ...i, quantity } : i))
     );
-  };
+  }, []);
 
-  /* Vaciar carrito */
-  const clearCart = () => {
+  const clearCart = useCallback(() => {
     setCart([]);
     if (userId) localStorage.removeItem(`cart_${userId}`);
-  };
+  }, [userId]);
 
-  /* Calcular total del carrito */
-  const getCartTotal = () => {
+  const getCartTotal = useCallback(() => {
     return cart.reduce(
       (total, item) => total + Number(item.price) * item.quantity,
       0
     );
-  };
+  }, [cart]);
 
-  const clearError = () => setError(null);
+  const clearError = useCallback(() => setError(null), []);
 
-  const value = {
-    orders,
-    currentOrder,
-    cart,
-    loading,
-    error,
-    fetchOrders,
-    fetchOrder,
-    addOrder,
-    editOrder,
-    changeOrderStatus,
-    changePaymentStatus,
-    cancelOrderById,
-    removeOrder,
-    addToCart,
-    removeFromCart,
-    updateCartQuantity,
-    clearCart,
-    getCartTotal,
-    clearError,
-  };
-
-  return (
-    <OrderContext.Provider value={value}>
-      {children}
-    </OrderContext.Provider>
+  const value = useMemo(
+    () => ({
+      orders,
+      ordersMeta,
+      currentOrder,
+      cart,
+      loading,
+      error,
+      fetchOrders,
+      fetchOrder,
+      addOrder,
+      editOrder,
+      changeOrderStatus,
+      changePaymentStatus,
+      cancelOrderById,
+      removeOrder,
+      addToCart,
+      removeFromCart,
+      updateCartQuantity,
+      clearCart,
+      getCartTotal,
+      clearError,
+    }),
+    [
+      orders,
+      ordersMeta,
+      currentOrder,
+      cart,
+      loading,
+      error,
+      fetchOrders,
+      fetchOrder,
+      addOrder,
+      editOrder,
+      changeOrderStatus,
+      changePaymentStatus,
+      cancelOrderById,
+      removeOrder,
+      addToCart,
+      removeFromCart,
+      updateCartQuantity,
+      clearCart,
+      getCartTotal,
+      clearError,
+    ]
   );
+
+  return <OrderContext.Provider value={value}>{children}</OrderContext.Provider>;
 }

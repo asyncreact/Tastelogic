@@ -83,6 +83,7 @@ function OrderHistory() {
   const { user } = useAuth();
   const {
     orders,
+    ordersMeta,
     fetchOrders,
     fetchOrder,
     cancelOrderById,
@@ -95,17 +96,30 @@ function OrderHistory() {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [loadingAction, setLoadingAction] = useState(false);
 
-  useEffect(() => {
-    const loadOrders = async () => {
-      if (!user) {
-        setLoadingOrders(false);
-        return;
-      }
-      await fetchOrders();
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
+
+  const loadPage = async (pageToLoad = 1) => {
+    if (!user) {
       setLoadingOrders(false);
-    };
-    loadOrders();
-  }, [user, fetchOrders]);
+      return;
+    }
+    setLoadingOrders(true);
+    try {
+      await fetchOrders({ page: pageToLoad, limit: pageSize });
+    } finally {
+      setLoadingOrders(false);
+    }
+  };
+
+  useEffect(() => {
+    loadPage(1);
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    loadPage(currentPage);
+  }, [currentPage]);
 
   const handleViewDetails = async (orderId) => {
     if (!user) {
@@ -149,7 +163,7 @@ function OrderHistory() {
       try {
         setLoadingAction(true);
         await cancelOrderById(orderId);
-        await fetchOrders();
+        await loadPage(currentPage);
         setShowModal(false);
         Swal.fire({
           icon: "success",
@@ -207,6 +221,12 @@ function OrderHistory() {
     return isNaN(numPrice) ? "0.00" : numPrice.toFixed(2);
   };
 
+  const total = ordersMeta?.total || 0;
+  const totalPages = Math.max(
+    1,
+    Math.ceil(total / (ordersMeta?.limit || pageSize))
+  );
+
   if (loadingOrders || loading) {
     return (
       <div className="text-center py-5">
@@ -235,7 +255,7 @@ function OrderHistory() {
     );
   }
 
-  if (orders.length === 0) {
+  if (!orders || orders.length === 0) {
     return (
       <Alert variant="light" className="text-center border-0">
         <h5 className="mb-1">No tienes órdenes aún</h5>
@@ -248,62 +268,102 @@ function OrderHistory() {
 
   return (
     <>
-      <div className="d-flex flex-column gap-3">
-        {orders.map((order) => (
-          <div
-            key={order.id}
-            className="d-flex flex-column flex-md-row align-items-md-center justify-content-between border rounded px-3 py-2"
-          >
-            <div className="mb-2 mb-md-0">
-              <div className="d-flex align-items-center gap-2">
-                <span className="fw-semibold">
-                  Orden {order.order_number || `#${order.id}`}
-                </span>
-                {/* Badge único */}
-                <span className="badge text-uppercase">
-                  {mapOrderStatus(order.status)}
-                </span>
-              </div>
+      <div style={{ paddingBottom: "60px" }}>
+        <div className="d-flex flex-column gap-3">
+          {orders.map((order) => (
+            <div
+              key={order.id}
+              className="d-flex flex-column flex-md-row align-items-md-center justify-content-between border rounded px-3 py-2"
+            >
+              <div className="mb-2 mb-md-0">
+                <div className="d-flex align-items-center gap-2">
+                  <span className="fw-semibold">
+                    Orden {order.order_number || `#${order.id}`}
+                  </span>
+                  <span className="badge text-uppercase">
+                    {mapOrderStatus(order.status)}
+                  </span>
+                </div>
 
-              <div className="small text-muted">
-                {formatDate(order.order_date || order.created_at)} ·{" "}
-                {formatTime(order.order_time || order.created_at)}
-              </div>
-              {order.order_type && (
                 <div className="small text-muted">
-                  Tipo: {mapOrderType(order.order_type)}
+                  {formatDate(order.order_date || order.created_at)} ·{" "}
+                  {formatTime(order.order_time || order.created_at)}
                 </div>
-              )}
-              {order.user_name && (
-                <div className="small mt-1 text-muted">
-                  Cliente: {order.user_name} ({order.user_email})
-                </div>
-              )}
-            </div>
+                {order.order_type && (
+                  <div className="small text-muted">
+                    Tipo: {mapOrderType(order.order_type)}
+                  </div>
+                )}
+                {order.user_name && (
+                  <div className="small mt-1 text-muted">
+                    Cliente: {order.user_name} ({order.user_email})
+                  </div>
+                )}
+              </div>
 
-            <div className="d-flex flex-wrap gap-2 justify-content-md-end">
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={() => handleViewDetails(order.id)}
-              >
-                <BiCommentDetail className="me-1" />
-                Ver detalles
-              </Button>
-              {canCancelOrder(order.status) && (
+              <div className="d-flex flex-wrap gap-2 justify-content-md-end">
                 <Button
-                  variant="danger"
+                  variant="primary"
                   size="sm"
-                  onClick={() => handleCancelOrder(order.id)}
-                  disabled={loadingAction}
+                  onClick={() => handleViewDetails(order.id)}
                 >
-                  <MdOutlineCancel className="me-1" />
-                  {loadingAction ? "Cancelando..." : "Cancelar"}
+                  <BiCommentDetail className="me-1" />
+                  Ver detalles
                 </Button>
-              )}
+                {canCancelOrder(order.status) && (
+                  <Button
+                    variant="danger"
+                    size="sm"
+                    onClick={() => handleCancelOrder(order.id)}
+                    disabled={loadingAction}
+                  >
+                    <MdOutlineCancel className="me-1" />
+                    {loadingAction ? "Cancelando..." : "Cancelar"}
+                  </Button>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
+      </div>
+
+      <div
+        style={{
+          position: "fixed",
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 1030,
+          background: "#ffffff",
+          borderTop: "1px solid #e5e7eb",
+          padding: "8px 16px",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
+        <span className="small text-muted">
+          Mostrando {orders.length} de {total} órdenes · página {currentPage} de{" "}
+          {totalPages}
+        </span>
+        <div style={{ display: "flex", gap: "8px" }}>
+          <Button
+            size="sm"
+            variant="primary"
+            disabled={currentPage === 1}
+            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+          >
+            Anterior
+          </Button>
+          <Button
+            size="sm"
+            variant="primary"
+            disabled={currentPage === totalPages}
+            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+          >
+            Siguiente
+          </Button>
+        </div>
       </div>
 
       <Modal

@@ -55,6 +55,7 @@ const formatTime = (timeString) => {
 function AdminOrders() {
   const {
     orders,
+    ordersMeta,
     currentOrder,
     loading,
     error,
@@ -75,9 +76,8 @@ function AdminOrders() {
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [loadingDetail, setLoadingDetail] = useState(false);
 
-  useEffect(() => {
-    fetchOrders();
-  }, [fetchOrders]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 20;
 
   const showSuccessToast = (title) => {
     const Toast = MySwal.mixin({
@@ -138,6 +138,13 @@ function AdminOrders() {
     try {
       const result = await removeOrder(id);
       showSuccessToast((result && result.message) || "Orden eliminada correctamente");
+      const totalAfter = (ordersMeta.total || 1) - 1;
+      const totalPagesAfter = Math.max(1, Math.ceil(totalAfter / pageSize));
+      if (currentPage > totalPagesAfter) {
+        setCurrentPage(totalPagesAfter);
+      } else {
+        fetchCurrentPage();
+      }
     } catch (err) {
       showBackendError(err, "Error al eliminar la orden");
     }
@@ -148,6 +155,7 @@ function AdminOrders() {
     try {
       const result = await changeOrderStatus(order.id, newStatus);
       showSuccessToast((result && result.message) || "Estado de la orden actualizado");
+      fetchCurrentPage();
     } catch (err) {
       showBackendError(err, "Error al cambiar el estado de la orden");
     }
@@ -159,6 +167,7 @@ function AdminOrders() {
     try {
       const result = await changePaymentStatus(order.id, newStatus);
       showSuccessToast((result && result.message) || "Estado de pago actualizado");
+      fetchCurrentPage();
     } catch (err) {
       showBackendError(err, "Error al cambiar el estado de pago");
     }
@@ -180,6 +189,7 @@ function AdminOrders() {
     try {
       const result = await cancelOrderById(order.id);
       showSuccessToast((result && result.message) || "Orden cancelada correctamente");
+      fetchCurrentPage();
     } catch (err) {
       showBackendError(err, "Error al cancelar la orden");
     }
@@ -204,28 +214,33 @@ function AdminOrders() {
   const getUserById = (userId) =>
     users.find((u) => String(u.id) === String(userId));
 
-  const searchLower = searchAdmin.toLowerCase().trim();
-  const filteredOrders = (orders || []).filter((o) => {
-    if (statusFilter !== "all" && o.status !== statusFilter) return false;
+  const buildFilters = () => {
+    const params = {};
+    if (statusFilter !== "all") params.status = statusFilter;
+    if (paymentFilter !== "all") params.payment_status = paymentFilter;
+    if (searchAdmin.trim()) params.search = searchAdmin.trim();
+    return params;
+  };
 
-    const paymentStatusOrder = o.payment_status ?? "pending";
-    if (paymentFilter !== "all" && paymentStatusOrder !== paymentFilter) return false;
+  const fetchCurrentPage = async () => {
+    const params = buildFilters();
+    await fetchOrders({ page: currentPage, limit: pageSize, ...params });
+  };
 
-    if (!searchLower) return true;
+  useEffect(() => {
+    const load = async () => {
+      const params = buildFilters();
+      await fetchOrders({ page: currentPage, limit: pageSize, ...params });
+    };
+    load();
+  }, [fetchOrders, currentPage, pageSize, statusFilter, paymentFilter, searchAdmin]);
 
-    const number = (o.order_number || o.id || "").toString().toLowerCase();
-    const owner = getUserById(o.user_id);
-    const userName = (owner?.name ?? "").toLowerCase();
-    const userEmail = (owner?.email ?? "").toLowerCase();
-    const total = (o.total_amount ?? "").toString().toLowerCase();
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchAdmin, statusFilter, paymentFilter]);
 
-    return (
-      number.includes(searchLower) ||
-      userName.includes(searchLower) ||
-      userEmail.includes(searchLower) ||
-      total.includes(searchLower)
-    );
-  });
+  const total = ordersMeta.total || 0;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   if (loading && (!orders || orders.length === 0)) {
     return (
@@ -295,111 +310,154 @@ function AdminOrders() {
 
       <Row>
         <Col>
-          {filteredOrders.length === 0 ? (
-            <p className="text-muted mb-0">
-              No hay órdenes o ninguna coincide con la búsqueda/filtro.
-            </p>
-          ) : (
-            <div className="d-flex flex-column gap-3">
-              {filteredOrders.map((o) => {
-                const paymentStatusOrder = o.payment_status ?? "pending";
-                const owner = getUserById(o.user_id);
+          <div style={{ paddingBottom: "60px" }}>
+            {orders.length === 0 ? (
+              <p className="text-muted mb-0">
+                No hay órdenes o ninguna coincide con la búsqueda/filtro.
+              </p>
+            ) : (
+              <div className="d-flex flex-column gap-3">
+                {orders.map((o) => {
+                  const paymentStatusOrder = o.payment_status ?? "pending";
+                  const owner = getUserById(o.user_id);
 
-                return (
-                  <div
-                    key={o.id}
-                    className="d-flex flex-column flex-md-row align-items-md-center justify-content-between border rounded px-3 py-2"
-                  >
-                    <div className="mb-2 mb-md-0">
-                      <div className="d-flex align-items-center gap-2">
-                        <span className="fw-semibold">
-                          {o.order_number ? `Orden ${o.order_number}` : `Orden #${o.id}`}
-                        </span>
-                        <Badge className="badge text-uppercase">
-                          {o.status}
-                        </Badge>
-                        <Badge className="badge text-uppercase">
-                          {paymentStatusOrder}
-                        </Badge>
-                      </div>
+                  return (
+                    <div
+                      key={o.id}
+                      className="d-flex flex-column flex-md-row align-items-md-center justify-content-between border rounded px-3 py-2"
+                    >
+                      <div className="mb-2 mb-md-0">
+                        <div className="d-flex align-items-center gap-2">
+                          <span className="fw-semibold">
+                            {o.order_number ? `Orden ${o.order_number}` : `Orden #${o.id}`}
+                          </span>
+                          <Badge className="badge text-uppercase">
+                            {o.status}
+                          </Badge>
+                          <Badge className="badge text-uppercase">
+                            {paymentStatusOrder}
+                          </Badge>
+                        </div>
 
-                      <div className="small text-muted">
-                        {owner ? (
-                          <>
-                            <UserInfoInline userId={o.user_id} users={users} /> · Total:{" "}
-                            {(o.total_amount ?? 0).toString()} {o.currency || "RD$"}
-                          </>
-                        ) : (
-                          <>
-                            Usuario no encontrado · Total:{" "}
-                            {(o.total_amount ?? 0).toString()} {o.currency || "RD$"}
-                          </>
+                        <div className="small text-muted">
+                          {owner ? (
+                            <>
+                              <UserInfoInline userId={o.user_id} users={users} /> · Total:{" "}
+                              {(o.total_amount ?? 0).toString()} {o.currency || "RD$"}
+                            </>
+                          ) : (
+                            <>
+                              Usuario no encontrado · Total:{" "}
+                              {(o.total_amount ?? 0).toString()} {o.currency || "RD$"}
+                            </>
+                          )}
+                        </div>
+
+                        {o.special_instructions && (
+                          <div className="small text-muted mt-1">
+                            Notas: {o.special_instructions}
+                          </div>
                         )}
                       </div>
 
-                      {o.special_instructions && (
-                        <div className="small text-muted mt-1">
-                          Notas: {o.special_instructions}
-                        </div>
-                      )}
+                      <div className="d-flex flex-wrap gap-2 justify-content-md-end">
+                        <Form.Select
+                          size="sm"
+                          value={o.status}
+                          onChange={(e) => handleChangeStatus(o, e.target.value)}
+                        >
+                          <option value="pending">Pendiente</option>
+                          <option value="confirmed">Confirmado</option>
+                          <option value="preparing">En preparación</option>
+                          <option value="ready">Listo</option>
+                          <option value="completed">Completado</option>
+                          <option value="cancelled">Cancelado</option>
+                        </Form.Select>
+
+                        <Form.Select
+                          size="sm"
+                          value={paymentStatusOrder}
+                          onChange={(e) => handleChangePayment(o, e.target.value)}
+                        >
+                          <option value="pending">Pago pendiente</option>
+                          <option value="paid">Pagado</option>
+                          <option value="refunded">Reembolsado</option>
+                        </Form.Select>
+
+                        <Button
+                          size="sm"
+                          variant="primary"
+                          onClick={() => handleOpenDetail(o.id)}
+                        >
+                          Ver detalle
+                        </Button>
+
+                        <Button
+                          size="sm"
+                          variant="danger"
+                          onClick={() => handleCancelOrder(o)}
+                          disabled={o.status === "cancelled" || o.status === "completed"}
+                        >
+                          Cancelar
+                        </Button>
+
+                        <Button
+                          size="sm"
+                          variant="danger"
+                          onClick={() => handleDelete(o.id)}
+                        >
+                          Eliminar
+                        </Button>
+                      </div>
                     </div>
-
-                    <div className="d-flex flex-wrap gap-2 justify-content-md-end">
-                      <Form.Select
-                        size="sm"
-                        value={o.status}
-                        onChange={(e) => handleChangeStatus(o, e.target.value)}
-                      >
-                        <option value="pending">Pendiente</option>
-                        <option value="confirmed">Confirmado</option>
-                        <option value="preparing">En preparación</option>
-                        <option value="ready">Listo</option>
-                        <option value="completed">Completado</option>
-                        <option value="cancelled">Cancelado</option>
-                      </Form.Select>
-
-                      <Form.Select
-                        size="sm"
-                        value={paymentStatusOrder}
-                        onChange={(e) => handleChangePayment(o, e.target.value)}
-                      >
-                        <option value="pending">Pago pendiente</option>
-                        <option value="paid">Pagado</option>
-                        <option value="refunded">Reembolsado</option>
-                      </Form.Select>
-
-                      <Button
-                        size="sm"
-                        variant="primary"
-                        onClick={() => handleOpenDetail(o.id)}
-                      >
-                        Ver detalle
-                      </Button>
-
-                      <Button
-                        size="sm"
-                        variant="danger"
-                        onClick={() => handleCancelOrder(o)}
-                        disabled={o.status === "cancelled" || o.status === "completed"}
-                      >
-                        Cancelar
-                      </Button>
-
-                      <Button
-                        size="sm"
-                        variant="danger"
-                        onClick={() => handleDelete(o.id)}
-                      >
-                        Eliminar
-                      </Button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </Col>
       </Row>
+
+      <div
+        style={{
+          position: "fixed",
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 1030,
+          background: "#ffffff",
+          borderTop: "1px solid #e5e7eb",
+          padding: "8px 16px",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
+        <span className="text-muted small">
+          Mostrando {orders.length} de {total} órdenes · página {currentPage} de{" "}
+          {totalPages}
+        </span>
+        <div style={{ display: "flex", gap: "8px" }}>
+          <Button
+            size="sm"
+            variant="primary"
+            disabled={currentPage === 1}
+            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+          >
+            Anterior
+          </Button>
+          <Button
+            size="sm"
+            variant="primary"
+            disabled={currentPage === totalPages}
+            onClick={() =>
+              setCurrentPage((p) => Math.min(totalPages, p + 1))
+            }
+          >
+            Siguiente
+          </Button>
+        </div>
+      </div>
 
       <Modal show={showDetailModal} onHide={handleCloseDetail} centered size="lg">
         <Modal.Header closeButton>

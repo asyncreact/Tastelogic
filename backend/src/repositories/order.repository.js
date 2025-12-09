@@ -7,50 +7,71 @@ import { pool } from "../config/db.js";
 /* Obtiene todos los pedidos con filtros opcionales */
 export const getOrders = async (filters = {}) => {
   try {
-    let query = "SELECT * FROM public.orders WHERE 1=1";
+    let baseQuery = "FROM public.orders WHERE 1=1";
     const params = [];
     let paramIndex = 1;
 
     if (filters.user_id) {
-      query += ` AND user_id = $${paramIndex}`;
+      baseQuery += ` AND user_id = $${paramIndex}`;
       params.push(filters.user_id);
       paramIndex++;
     }
 
     if (filters.table_id) {
-      query += ` AND table_id = $${paramIndex}`;
+      baseQuery += ` AND table_id = $${paramIndex}`;
       params.push(filters.table_id);
       paramIndex++;
     }
 
     if (filters.order_type) {
-      query += ` AND order_type = $${paramIndex}`;
+      baseQuery += ` AND order_type = $${paramIndex}`;
       params.push(filters.order_type);
       paramIndex++;
     }
 
     if (filters.status) {
-      query += ` AND status = $${paramIndex}`;
+      baseQuery += ` AND status = $${paramIndex}`;
       params.push(filters.status);
       paramIndex++;
     }
 
     if (filters.payment_status) {
-      query += ` AND payment_status = $${paramIndex}`;
+      baseQuery += ` AND payment_status = $${paramIndex}`;
       params.push(filters.payment_status);
       paramIndex++;
     }
 
     if (filters.order_date) {
-      query += ` AND DATE(order_date) = $${paramIndex}`;
+      baseQuery += ` AND DATE(order_date) = $${paramIndex}`;
       params.push(filters.order_date);
       paramIndex++;
     }
 
-    query += " ORDER BY created_at DESC";
+    const page = Number(filters.page) > 0 ? Number(filters.page) : 1;
+    const limit = Number(filters.limit) > 0 ? Number(filters.limit) : 20;
+    const offset = (page - 1) * limit;
 
-    const result = await pool.query(query, params);
-    return result.rows;
+    const countQuery = `SELECT COUNT(*) AS total ${baseQuery}`;
+    const countResult = await pool.query(countQuery, params);
+    const total = Number(countResult.rows[0]?.total || 0);
+
+    const dataQuery = `
+      SELECT *
+      ${baseQuery}
+      ORDER BY created_at DESC
+      LIMIT $${paramIndex}
+      OFFSET $${paramIndex + 1}
+    `;
+    const dataParams = [...params, limit, offset];
+    const result = await pool.query(dataQuery, dataParams);
+
+    return {
+      rows: result.rows,
+      total,
+      page,
+      limit,
+      totalPages: limit > 0 ? Math.ceil(total / limit) : 1,
+    };
   } catch (error) {
     console.error("Error en getOrders:", error);
     throw error;

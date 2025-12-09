@@ -52,11 +52,25 @@ export const listOrders = async (req, res, next) => {
       filters.order_date = req.query.order_date;
     }
 
-    const orders = await getOrders(filters);
+    // nuevos params de paginación desde query
+    if (req.query.page) {
+      filters.page = Number(req.query.page);
+    }
+    if (req.query.limit) {
+      filters.limit = Number(req.query.limit);
+    }
+
+    const result = await getOrders(filters);
 
     return successResponse(res, "Pedidos obtenidos correctamente", {
-      orders,
-      count: orders.length,
+      orders: result.rows,            
+      count: result.rows.length,       
+      meta: {
+        total: result.total,
+        page: result.page,
+        limit: result.limit,
+        totalPages: result.totalPages,
+      },
     });
   } catch (err) {
     next(err);
