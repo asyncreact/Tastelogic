@@ -14,7 +14,7 @@ import zoneRoutes from "./src/routes/zone.routes.js";
 import tableRoutes from "./src/routes/table.routes.js";
 import reservationRoutes from "./src/routes/reservation.routes.js";
 import orderRoutes from "./src/routes/order.routes.js";
-import iaRoutes from "./src/routes/ai.routes.js"; // ← NUEVO
+import iaRoutes from "./src/routes/ai.routes.js";
 import { errorHandler } from "./src/middleware/errorHandler.middleware.js";
 
 dotenv.config();
@@ -25,36 +25,33 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 /* MIDDLEWARE - PARSERS */
-
 app.use(express.json({ limit: "10mb", type: "application/json" }));
 app.use(express.urlencoded({ extended: true }));
 
 /* MIDDLEWARE - HEADERS */
-
 app.use((req, res, next) => {
   res.setHeader("Content-Type", "application/json; charset=utf-8");
   next();
 });
 
 /* MIDDLEWARE - CORS */
-
 app.use(
   cors({
-    origin: [process.env.FRONTEND_URL, "http://localhost:5173"],
+    origin: [
+      process.env.FRONTEND_URL, // URL del front en Render
+      "http://localhost:5173",  // front local
+    ],
     credentials: true,
   })
 );
 
 /* MIDDLEWARE - LOGGING */
-
 app.use(morgan("dev"));
 
 /* MIDDLEWARE - STATIC FILES */
-
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 /* RUTAS PÚBLICAS - HEALTH CHECK */
-
 app.get("/", (req, res) => {
   res.json({ message: "TasteLogic API funcionando correctamente" });
 });
@@ -69,7 +66,6 @@ app.get("/api/ping", async (req, res, next) => {
 });
 
 /* RUTAS API */
-
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/menu", menuRoutes);
@@ -77,14 +73,12 @@ app.use("/api/zones", zoneRoutes);
 app.use("/api/tables", tableRoutes);
 app.use("/api/reservations", reservationRoutes);
 app.use("/api/orders", orderRoutes);
-app.use("/api/ai", iaRoutes); // ← NUEVO
+app.use("/api/ai", iaRoutes);
 
 /* MIDDLEWARE - ERROR HANDLER */
-
 app.use(errorHandler);
 
 /* INICIAR SERVIDOR */
-
 const startServer = async () => {
   try {
     await connectDB();
@@ -109,3 +103,5 @@ const startServer = async () => {
 };
 
 startServer();
+
+export default app;

@@ -1,4 +1,4 @@
-// src/config/db.jss
+// src/config/db.js
 import pg from "pg";
 import dotenv from "dotenv";
 
@@ -12,10 +12,9 @@ export const pool = new Pool({
   database: process.env.DB_NAME,
   password: process.env.DB_PASSWORD,
   port: process.env.DB_PORT || 5432,
-  ssl:
-    process.env.NODE_ENV === "production"
-      ? { rejectUnauthorized: false }
-      : false,
+  ssl: {
+    rejectUnauthorized: false,
+  },
   max: 10,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 5000,
