@@ -1,4 +1,7 @@
+// src/pages/Dashboard.jsx
+import { LuLayoutDashboard } from "react-icons/lu";
 import { useEffect, useContext, useMemo, useState } from "react";
+
 import {
   Container,
   Row,
@@ -6,12 +9,14 @@ import {
   Card,
   Badge,
   Pagination,
-  Carousel, // <--- Importamos Carousel
+  Carousel,
 } from "react-bootstrap";
+
 import { useAuth } from "../hooks/useAuth";
 import { AiContext } from "../context/AiContext";
 import { useMenu } from "../hooks/useMenu";
 import MenuItemCard from "../components/MenuItemCard";
+
 import {
   MdLocalFireDepartment,
   MdRecommend,
@@ -21,6 +26,7 @@ import { BiStar } from "react-icons/bi";
 
 function Dashboard() {
   const { user } = useAuth();
+
   const {
     topSold,
     todayTop,
@@ -33,10 +39,12 @@ function Dashboard() {
     fetchSeasonTop,
     loading,
   } = useContext(AiContext);
+
   const { items, fetchItems } = useMenu();
 
   const [popularPage, setPopularPage] = useState(1);
   const [seasonPage, setSeasonPage] = useState(1);
+
   const ITEMS_PER_PAGE = 5;
 
   useEffect(() => {
@@ -109,36 +117,22 @@ function Dashboard() {
     list.length === 0 ? 1 : Math.ceil(list.length / ITEMS_PER_PAGE);
 
   return (
-    <Container className="py-4">
-      <style>{`
-        .custom-pagination .page-item.active .page-link {
-          background-image: var(--btn-orange-1) !important;
-          border-color: transparent !important;
-          color: white !important;
-        }
-        .custom-pagination .page-link {
-          color: #ff7a18;
-          border: none;
-          background: transparent;
-          font-weight: 600;
-        }
-        .custom-pagination .page-link:hover {
-          background-color: #fff3e0;
-          color: #e65100;
-        }
-        .card-section-header {
-          border-bottom: 1px solid rgba(0,0,0,0.05);
-        }
-      `}</style>
-
+    <Container className="py-4" style={{ maxWidth: "1280px" }}>
       {/* ENCABEZADO */}
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <div className="d-flex align-items-center gap-2">
+      <div className="d-flex flex-wrap justify-content-between align-items-center mb-5 gap-3">
+        <div className="d-flex align-items-center">
+          {/* Icono Dashboard con mismo tamaño/estilo que Menú */}
+          <div
+            className="d-flex align-items-center justify-content-center rounded-3 me-3 shadow-sm icon-orange"
+            style={{ width: 56, height: 56 }}
+          >
+            <LuLayoutDashboard size={28} />
+          </div>
           <div>
-            <h2 className="h4 mb-0">
+            <h2 className="h4 mb-0 fw-bold text-dark">
               Hola, {user?.name ? user.name.split(" ")[0] : "visitante"}
             </h2>
-            <small>
+            <small className="text-muted">
               ¿Qué se te antoja hoy? Aquí tienes recomendaciones basadas en tus
               pedidos.
             </small>
@@ -151,12 +145,14 @@ function Dashboard() {
         <Card className="border-0 shadow-sm rounded-4 mb-4">
           <Card.Body className="p-4">
             <div className="d-flex align-items-center mb-4">
+              {/* ICONO CON DEGRADADO NARANJA */}
               <div
-                className="bg-warning text-white d-flex align-items-center justify-content-center rounded-3 me-3"
+                className="icon-orange me-3"
                 style={{ width: 56, height: 56 }}
               >
                 <MdLocalFireDepartment size={28} />
               </div>
+
               <div>
                 <small className="text-uppercase text-warning fw-bold d-block">
                   Top del día
@@ -167,17 +163,15 @@ function Dashboard() {
               </div>
             </div>
 
-            {/* CARRUSEL INICIO */}
-            <Carousel 
-              variant="dark" 
-              indicators={todayTopItems.length > 1} 
+            <Carousel
+              variant="dark"
+              indicators={todayTopItems.length > 1}
               controls={todayTopItems.length > 1}
               interval={4000}
-              className="pb-2" // Espacio extra abajo si hay indicadores
+              className="pb-2"
             >
               {todayTopItems.map((item) => (
                 <Carousel.Item key={item.id}>
-                  {/* Centramos el contenido para que se vea como un "Plato Hero" */}
                   <Row className="justify-content-center">
                     <Col md={8} lg={5}>
                       <MenuItemCard item={item} />
@@ -186,8 +180,6 @@ function Dashboard() {
                 </Carousel.Item>
               ))}
             </Carousel>
-            {/* CARRUSEL FIN */}
-
           </Card.Body>
         </Card>
       )}
@@ -196,14 +188,14 @@ function Dashboard() {
       <Row className="g-4">
         {/* IZQUIERDA */}
         <Col lg={8}>
-          
           {/* 1. TENDENCIAS & POPULARES */}
           <Card className="border-0 shadow-sm rounded-4 mb-4">
             <Card.Header className="bg-white pt-4 px-4 card-section-header">
               <div className="d-flex align-items-center justify-content-between">
                 <div className="d-flex align-items-center">
-                  <div 
-                    className="bg-primary text-white d-flex align-items-center justify-content-center rounded-3 me-3" 
+                  {/* ICONO TENDENCIAS CON DEGRADADO NARANJA */}
+                  <div
+                    className="icon-orange me-3"
                     style={{ width: 48, height: 48 }}
                   >
                     <MdTrendingUp size={28} />
@@ -213,48 +205,60 @@ function Dashboard() {
                     <small className="text-muted">Lo más vendido</small>
                   </div>
                 </div>
-                <span className="text-muted small">
-                  Página {popularPage} de {getTotalPages(topSoldItems)}
-                </span>
+                <div>
+                  <span className="text-muted">
+                    <small>
+                      Página {popularPage} de {getTotalPages(topSoldItems)}
+                    </small>
+                  </span>
+                </div>
               </div>
             </Card.Header>
 
             <Card.Body className="p-4">
               {loading && <p>Cargando menú...</p>}
 
-              <Row className="g-3 mb-3">
-                {topSoldItems.length > 0 ? (
-                  paginate(topSoldItems, popularPage).map((item) => (
-                    <Col md={6} key={item.id}>
-                      <MenuItemCard
-                        item={item}
-                        highlightBadge={
-                          <Badge bg="warning" text="dark">
-                            Popular
-                          </Badge>
+              {topSoldItems.length > 0 ? (
+                <>
+                  <Row className="g-3 mb-3">
+                    {paginate(topSoldItems, popularPage).map((item) => (
+                      <Col md={6} key={item.id}>
+                        <MenuItemCard
+                          item={item}
+                          highlightBadge={
+                            <Badge bg="warning" text="dark">
+                              Popular
+                            </Badge>
+                          }
+                        />
+                      </Col>
+                    ))}
+                  </Row>
+
+                  {topSoldItems.length > ITEMS_PER_PAGE && (
+                    <Pagination className="justify-content-center custom-pagination mb-0">
+                      <Pagination.Prev
+                        disabled={popularPage === 1}
+                        onClick={() =>
+                          setPopularPage((p) => Math.max(1, p - 1))
                         }
                       />
-                    </Col>
-                  ))
-                ) : (
-                  <Col>
-                    <p className="text-muted">No hay datos de tendencias hoy.</p>
-                  </Col>
-                )}
-              </Row>
-
-              {topSoldItems.length > ITEMS_PER_PAGE && (
-                <Pagination className="justify-content-center custom-pagination mb-0">
-                  <Pagination.Prev
-                    disabled={popularPage === 1}
-                    onClick={() => setPopularPage((p) => p - 1)}
-                  />
-                  <Pagination.Item active>{popularPage}</Pagination.Item>
-                  <Pagination.Next
-                    disabled={popularPage >= getTotalPages(topSoldItems)}
-                    onClick={() => setPopularPage((p) => p + 1)}
-                  />
-                </Pagination>
+                      <Pagination.Item active>{popularPage}</Pagination.Item>
+                      <Pagination.Next
+                        disabled={
+                          popularPage === getTotalPages(topSoldItems)
+                        }
+                        onClick={() =>
+                          setPopularPage((p) =>
+                            Math.min(getTotalPages(topSoldItems), p + 1)
+                          )
+                        }
+                      />
+                    </Pagination>
+                  )}
+                </>
+              ) : (
+                <p className="text-muted">No hay datos de tendencias hoy.</p>
               )}
             </Card.Body>
           </Card>
@@ -264,8 +268,9 @@ function Dashboard() {
             <Card.Header className="bg-white pt-4 px-4 card-section-header">
               <div className="d-flex align-items-center justify-content-between">
                 <div className="d-flex align-items-center">
-                   <div 
-                    className="bg-info text-white d-flex align-items-center justify-content-center rounded-3 me-3" 
+                  {/* ICONO TEMPORADA CON DEGRADADO NARANJA */}
+                  <div
+                    className="icon-orange me-3"
                     style={{ width: 48, height: 48 }}
                   >
                     <BiStar size={24} />
@@ -277,9 +282,13 @@ function Dashboard() {
                     </small>
                   </div>
                 </div>
-                <span className="text-muted small">
-                  Página {seasonPage} de {getTotalPages(seasonTopItems)}
-                </span>
+                <div>
+                  <span className="text-muted">
+                    <small>
+                      Página {seasonPage} de {getTotalPages(seasonTopItems)}
+                    </small>
+                  </span>
+                </div>
               </div>
             </Card.Header>
 
@@ -291,6 +300,7 @@ function Dashboard() {
                       <MenuItemCard
                         item={item}
                         highlightBadge={<Badge bg="info">Season</Badge>}
+                        SeasonBadge
                       />
                     </Col>
                   ))
@@ -307,12 +317,18 @@ function Dashboard() {
                 <Pagination className="justify-content-center custom-pagination mb-0">
                   <Pagination.Prev
                     disabled={seasonPage === 1}
-                    onClick={() => setSeasonPage((p) => p - 1)}
+                    onClick={() =>
+                      setSeasonPage((p) => Math.max(1, p - 1))
+                    }
                   />
                   <Pagination.Item active>{seasonPage}</Pagination.Item>
                   <Pagination.Next
-                    disabled={seasonPage >= getTotalPages(seasonTopItems)}
-                    onClick={() => setSeasonPage((p) => p + 1)}
+                    disabled={seasonPage === getTotalPages(seasonTopItems)}
+                    onClick={() =>
+                      setSeasonPage((p) =>
+                        Math.min(getTotalPages(seasonTopItems), p + 1)
+                      )
+                    }
                   />
                 </Pagination>
               )}
@@ -322,25 +338,24 @@ function Dashboard() {
 
         {/* DERECHA */}
         <Col lg={4}>
-          
           {/* 3. SUGERIDOS PARA TI */}
           <Card className="border-0 shadow-sm rounded-4">
             <Card.Header className="bg-white pt-4 px-4 card-section-header">
               <div className="d-flex align-items-center">
-                 <div 
-                    className="bg-success text-white d-flex align-items-center justify-content-center rounded-3 me-3" 
-                    style={{ width: 48, height: 48 }}
-                  >
-                    <MdRecommend size={26} />
-                  </div>
+                {/* ICONO SUGERIDOS CON DEGRADADO NARANJA */}
+                <div
+                  className="icon-orange me-3"
+                  style={{ width: 48, height: 48 }}
+                >
+                  <MdRecommend size={26} />
+                </div>
                 <div>
                   <h5 className="fw-bold mb-0 h6">Sugeridos</h5>
-                  <small className="text-muted">
-                    Para ti
-                  </small>
+                  <small className="text-muted">Para ti</small>
                 </div>
               </div>
             </Card.Header>
+
             <Card.Body className="p-4">
               {topPredictedItems.length > 0 ? (
                 <div className="d-flex flex-column gap-3">
@@ -351,7 +366,7 @@ function Dashboard() {
                   ))}
                 </div>
               ) : (
-                <p className="text-muted small">
+                <p className="text-muted">
                   Aún estamos aprendiendo tus gustos.
                 </p>
               )}

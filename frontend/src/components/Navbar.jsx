@@ -50,7 +50,10 @@ function AppNavbar() {
         <div className="navbar-left">
           <Link to="/" className="navbar-logo" onClick={closeMenu}>
             <button className="navbar-icon-button" type="button">
-              <span className="navbar-icon-circle">
+              <span
+                className="icon-orange navbar-icon-circle"
+                style={{ width: 36, height: 36 }}
+              >
                 <IoRestaurantOutline size={20} />
               </span>
               <span className="navbar-icon-text">TASTELOGIC</span>

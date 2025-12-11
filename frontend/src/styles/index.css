@@ -170,3 +170,13 @@ span.badge,
   background-color: #fff3e0;
   color: #e65100;
 }
+
+/* Iconos con el mismo degradado naranja que los botones */
+.icon-orange {
+  background-image: var(--btn-orange-1);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.75rem; /* similar a rounded-3 */
+}

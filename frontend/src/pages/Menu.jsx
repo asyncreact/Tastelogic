@@ -1,4 +1,5 @@
 // src/pages/Menu.jsx
+
 import { useEffect, useState, useMemo } from "react";
 import {
   Container,
@@ -9,11 +10,9 @@ import {
   Form,
   InputGroup,
 } from "react-bootstrap";
-
 import { MdOutlineFastfood } from "react-icons/md";
 import { BiCategory, BiSearchAlt } from "react-icons/bi";
 import { RiShoppingBag4Line } from "react-icons/ri";
-
 import { useMenu } from "../hooks/useMenu";
 import { useOrder } from "../hooks/useOrder";
 import MenuItemCard from "../components/MenuItemCard";
@@ -84,7 +83,7 @@ function Menu() {
     );
   }
 
-  // color naranja base
+  // color naranja base (por si lo sigues usando en otros sitios)
   const orange = "#ff7a18";
 
   return (
@@ -93,13 +92,8 @@ function Menu() {
       <div className="d-flex flex-wrap justify-content-between align-items-center mb-5 gap-3">
         <div className="d-flex align-items-center">
           <div
-            className="d-flex align-items-center justify-content-center rounded-3 me-3 shadow-sm"
-            style={{
-              width: 56,
-              height: 56,
-              backgroundColor: orange,
-              color: "white",
-            }}
+            className="d-flex align-items-center justify-content-center rounded-3 me-3 shadow-sm icon-orange"
+            style={{ width: 56, height: 56 }}
           >
             <MdOutlineFastfood size={28} />
           </div>
@@ -114,12 +108,12 @@ function Menu() {
         {itemsInCart > 0 && (
           <div className="bg-white border rounded-pill ps-2 pe-4 py-2 shadow-sm d-flex align-items-center gap-3">
             <div
-              className="d-flex align-items-center justify-content-center rounded-circle"
-              style={{ width: 36, height: 36, backgroundColor: orange, color: "white" }}
+              className="d-flex align-items-center justify-content-center rounded-circle icon-orange"
+              style={{ width: 36, height: 36 }}
             >
               <RiShoppingBag4Line size={18} />
             </div>
-            <div className="d-flex flex-column" style={{ lineHeight: "1.2" }}>
+            <div className="d-flex flex-column" style={{ lineHeight: 1.2 }}>
               <span className="fw-bold text-dark small">Tu Bolsa</span>
               <span
                 className="text-muted small"
@@ -137,7 +131,7 @@ function Menu() {
         <Col md={8}>
           <InputGroup className="shadow-sm rounded-3 overflow-hidden border-0">
             <InputGroup.Text className="bg-white border-0 ps-3">
-              <BiSearchAlt style={{ color: orange }} size={20} />
+              <BiSearchAlt className="text-orange" size={20} />
             </InputGroup.Text>
             <Form.Control
               type="search"
@@ -168,10 +162,7 @@ function Menu() {
       {error && (
         <Row className="mb-3">
           <Col>
-            <Alert
-              variant="danger"
-              className="mb-0 rounded-3 border-0 shadow-sm"
-            >
+            <Alert variant="danger" className="mb-0 rounded-3 border-0 shadow-sm">
               {error}
             </Alert>
           </Col>
@@ -179,52 +170,62 @@ function Menu() {
       )}
 
       {/* LISTADO */}
-      {filteredItems.length === 0 ? (
-        <Alert
-          variant="light"
-          className="text-center border-0 bg-transparent py-5"
-        >
-          <div className="mb-2" style={{ color: orange, opacity: 0.6 }}>
-            <BiSearchAlt size={48} />
-          </div>
-          <p className="h6 text-muted">
-            No se encontraron resultados para tu búsqueda.
-          </p>
-        </Alert>
-      ) : visibleCategories.length === 0 ? (
-        <Alert variant="light" className="border-0">
-          No hay categorías.
-        </Alert>
-      ) : (
-        visibleCategories.map((category) => (
-          <div key={category.id} className="mb-5">
-            {/* Cabecera de Categoría en naranja */}
-            <div className="d-flex align-items-center mb-4 border-bottom pb-3">
+      <Row>
+        <Col>
+          {filteredItems.length === 0 ? (
+            <Alert
+              variant="light"
+              className="text-center border-0 bg-transparent py-5"
+            >
               <div
-                className="d-flex align-items-center justify-content-center rounded-3 me-3 shadow-sm"
-                style={{ width: 42, height: 42, backgroundColor: orange, color: "white" }}
+                className="mb-2 d-flex align-items-center justify-content-center icon-orange"
+                style={{ width: 56, height: 56, margin: "0 auto" }}
               >
-                <BiCategory size={22} />
+                <BiSearchAlt size={28} />
               </div>
-              <h4 className="h5 mb-0 fw-bold text-dark">{category.name}</h4>
-            </div>
+              <p className="h6 text-muted mb-0">
+                No se encontraron resultados para tu búsqueda.
+              </p>
+            </Alert>
+          ) : visibleCategories.length === 0 ? (
+            <Alert variant="light" className="border-0">
+              No hay categorías.
+            </Alert>
+          ) : (
+            visibleCategories.map((category) => (
+              <div key={category.id} className="mb-5">
+                {/* Cabecera de Categoría con icono en degradado naranja */}
+                <div className="d-flex align-items-center mb-4 border-bottom pb-3">
+                  <div
+                    className="d-flex align-items-center justify-content-center rounded-3 me-3 shadow-sm icon-orange"
+                    style={{ width: 42, height: 42 }}
+                  >
+                    <BiCategory size={22} />
+                  </div>
+                  <h4 className="h5 mb-0 fw-bold text-dark">
+                    {category.name}
+                  </h4>
+                </div>
 
-            <Row className="g-4">
-              {filteredItems
-                .filter(
-                  (item) => String(item.category_id) === String(category.id)
-                )
-                .map((item) => (
-                  <Col key={item.id} xs={12} md={6} lg={4} xl={3}>
-                    <div className="h-100">
-                      <MenuItemCard item={item} />
-                    </div>
-                  </Col>
-                ))}
-            </Row>
-          </div>
-        ))
-      )}
+                <Row className="g-4">
+                  {filteredItems
+                    .filter(
+                      (item) =>
+                        String(item.category_id) === String(category.id)
+                    )
+                    .map((item) => (
+                      <Col key={item.id} xs={12} md={6} lg={4} xl={3}>
+                        <div className="h-100">
+                          <MenuItemCard item={item} />
+                        </div>
+                      </Col>
+                    ))}
+                </Row>
+              </div>
+            ))
+          )}
+        </Col>
+      </Row>
     </Container>
   );
 }
