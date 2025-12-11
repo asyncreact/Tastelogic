@@ -1,7 +1,9 @@
 // src/components/MenuItemCard.jsx
 import { useState } from "react";
-import { Card, Button, Modal } from "react-bootstrap";
-import { BiImage } from "react-icons/bi";
+import { Card, Button, Modal, Row, Col } from "react-bootstrap";
+// Agregamos iconos útiles para el detalle
+import { BiImage, BiTimeFive, BiDish } from "react-icons/bi";
+import { MdClose } from "react-icons/md"; 
 import { useOrder } from "../hooks/useOrder";
 import Swal from "sweetalert2";
 
@@ -68,6 +70,7 @@ function MenuItemCard({ item }) {
 
   return (
     <>
+      {/* --- TU CARD ORIGINAL (Sin cambios) --- */}
       <Card
         className={`border-0 shadow-sm mb-3 ${
           isUnavailable ? "bg-light text-muted" : ""
@@ -188,82 +191,107 @@ function MenuItemCard({ item }) {
         </Card.Body>
       </Card>
 
-      <Modal show={showModal} onHide={handleCloseModal} centered>
-        <Modal.Header closeButton>
-          <Modal.Title>{item.name}</Modal.Title>
-        </Modal.Header>
+      {/* --- MODAL ACTUALIZADO CON ICONOS ICON-ORANGE --- */}
+      <Modal 
+        show={showModal} 
+        onHide={handleCloseModal} 
+        centered
+        contentClassName="border-0 rounded-4 overflow-hidden" 
+      >
+        {/* Encabezado con Imagen "Hero" */}
+        <div className="position-relative bg-light">
+          <button
+            onClick={handleCloseModal}
+            className="position-absolute top-0 end-0 m-3 btn btn-light rounded-circle shadow-sm d-flex align-items-center justify-content-center"
+            style={{ width: 32, height: 32, zIndex: 10, border: 'none', opacity: 0.9 }}
+          >
+            <MdClose size={18} />
+          </button>
 
-        <Modal.Body>
           {imageSrc ? (
-            <img
-              src={imageSrc}
-              alt={item.name}
-              style={{
-                width: "100%",
-                maxHeight: 240,
-                objectFit: "cover",
-                borderRadius: 8,
-                marginBottom: 16,
-              }}
-            />
+            <div style={{ width: "100%", height: "240px" }}>
+              <img
+                src={imageSrc}
+                alt={item.name}
+                className="w-100 h-100"
+                style={{
+                  objectFit: "cover",
+                  filter: isUnavailable ? "grayscale(1)" : "none",
+                }}
+              />
+            </div>
           ) : (
             <div
-              className="d-flex align-items-center justify-content-center bg-light mb-3"
-              style={{
-                width: "100%",
-                height: 180,
-                borderRadius: 8,
-              }}
+              className="d-flex align-items-center justify-content-center bg-secondary bg-opacity-10 text-secondary"
+              style={{ width: "100%", height: "200px" }}
             >
-              <BiImage size={40} />
+              <BiImage size={48} opacity={0.5} />
             </div>
           )}
+        </div>
 
-          <p className="mb-2">
-            <strong>Precio: </strong>
-            {formatPrice(item.price)}
+        <Modal.Body className="p-4">
+          <div className="d-flex justify-content-between align-items-start mb-2">
+            <h5 className="mb-0 text-dark" style={{ fontWeight: 600 }}>{item.name}</h5>
+            <span className="text-orange" style={{ fontWeight: 600, fontSize: '1.1rem' }}>
+              {formatPrice(item.price)}
+            </span>
+          </div>
+
+          <p className="text-muted small mb-4">
+            {item.description || "Sin descripción disponible."}
           </p>
 
-          <p className="mb-2">
-            <strong>Descripción: </strong>
-            {item.description || "Sin descripción"}
-          </p>
-
-          {item.ingredients && (
-            <p className="mb-2">
-              <strong>Ingredientes: </strong>
-              {item.ingredients}
-            </p>
-          )}
-
-          {item.estimated_prep_time && (
-            <p className="mb-2">
-              <strong>Tiempo estimado: </strong>
-              {item.estimated_prep_time} min
-            </p>
-          )}
+          <Row className="g-3">
+             {item.estimated_prep_time && (
+                <Col xs={6}>
+                    <div className="d-flex align-items-center p-2 rounded-3 bg-light">
+                        {/* ICONO TIEMPO CON FONDO NARANJA GRADIENTE */}
+                        <div 
+                          className="icon-orange me-2 rounded-circle" 
+                          style={{ width: 32, height: 32 }}
+                        >
+                          <BiTimeFive size={18} />
+                        </div>
+                        <span className="small text-dark fw-semibold">{item.estimated_prep_time} min</span>
+                    </div>
+                </Col>
+             )}
+             
+             {item.ingredients && (
+                <Col xs={12}>
+                    <div className="d-flex align-items-start p-2 rounded-3 bg-light">
+                        {/* ICONO INGREDIENTES CON FONDO NARANJA GRADIENTE */}
+                        <div 
+                          className="icon-orange me-2 mt-1 flex-shrink-0 rounded-circle" 
+                          style={{ width: 32, height: 32 }}
+                        >
+                          <BiDish size={18} />
+                        </div>
+                        <span className="small text-dark pt-1">{item.ingredients}</span>
+                    </div>
+                </Col>
+             )}
+          </Row>
 
           {isUnavailable && (
-            <p className="mb-0">
-              <strong>Estado: </strong>
+            <div className="mt-3 p-2 bg-light text-danger rounded small text-center">
               {unavailableReason}
-            </p>
+            </div>
           )}
         </Modal.Body>
 
-        <Modal.Footer>
-          <Button variant="danger" onClick={handleCloseModal}>
-            Cerrar
-          </Button>
+        <Modal.Footer className="border-top-0 p-4 pt-0">
           <Button
             variant="primary"
+            className="w-100 py-2 rounded-3"
             onClick={() => {
               handleAddToCart();
               handleCloseModal();
             }}
             disabled={isUnavailable}
           >
-            Añadir al carrito
+            {isUnavailable ? "No disponible" : "Agregar a la bolsa"}
           </Button>
         </Modal.Footer>
       </Modal>

@@ -4,7 +4,6 @@ import { Container, Tabs, Tab, Card } from "react-bootstrap";
 import CartSection from "../components/CartSection";
 import OrderHistory from "../components/OrderHistory";
 
-// Iconos estilo App
 import { MdOutlineReceiptLong, MdHistory } from "react-icons/md";
 import { RiShoppingBag3Line } from "react-icons/ri";
 
@@ -13,16 +12,17 @@ function Orders() {
 
   return (
     <div className="bg-light min-vh-100 pb-5">
-      <Container className="py-4" style={{ maxWidth: "1280px" }}>
-        {/* === ENCABEZADO CON ICONO ESTILO APP === */}
-        <div className="d-flex flex-wrap align-items-center mb-5 gap-3">
-          {/* Caja de Icono Principal con degradado naranja */}
+      <Container className="pt-4" style={{ maxWidth: "1280px" }}> {/* Cambié pt-3 a pt-4 para más aire arriba */}
+        
+        {/* === CAMBIO AQUÍ: Agregué 'justify-content-center' === */}
+        <div className="d-flex flex-wrap justify-content-center align-items-center mb-4 gap-3">
           <div
-            className="d-flex align-items-center justify-content-center rounded-3 me-3 shadow-sm icon-orange"
+            className="d-flex align-items-center justify-content-center rounded-3 shadow-sm icon-orange"
             style={{ width: 56, height: 56 }}
           >
             <MdOutlineReceiptLong size={28} />
           </div>
+          {/* Opcional: text-start o text-center dependiendo de tu gusto, pero el bloque ya está centrado */}
           <div>
             <h2 className="h4 mb-0 fw-bold text-dark">Mis Pedidos</h2>
             <small className="text-muted">
@@ -31,13 +31,13 @@ function Orders() {
           </div>
         </div>
 
-        {/* === CONTENEDOR DE PESTAÑAS (Estilo Tarjeta) === */}
-        <Card className="border-0 shadow-sm rounded-4 overflow-hidden">
+        {/* Card centrado en la página */}
+        <Card className="border-0 shadow-sm rounded-4 overflow-hidden mx-auto" style={{ maxWidth: "1200px" }}>
           <Card.Header className="bg-white border-bottom-0 p-0">
             <Tabs
               activeKey={activeTab}
               onSelect={(k) => setActiveTab(k || "cart")}
-              className="px-4 pt-3 border-bottom"
+              className="px-4 pt-3 border-bottom justify-content-center"
               id="orders-tabs"
             >
               <Tab
@@ -59,16 +59,18 @@ function Orders() {
             </Tabs>
           </Card.Header>
 
-          <Card.Body className="p-4">
-            {/* Renderizado Condicional del Contenido */}
+          <Card.Body
+            className="p-4 d-flex justify-content-center align-items-center"
+            style={{ minHeight: "320px" }}
+          >
             {activeTab === "cart" && (
-              <div className="animate-fade-in">
+              <div className="animate-fade-in w-100" style={{ maxWidth: "800px" }}>
                 <CartSection />
               </div>
             )}
 
             {activeTab === "history" && (
-              <div className="animate-fade-in">
+              <div className="animate-fade-in w-100" style={{ maxWidth: "800px" }}>
                 <OrderHistory />
               </div>
             )}

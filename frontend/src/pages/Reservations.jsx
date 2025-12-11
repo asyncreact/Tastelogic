@@ -14,11 +14,13 @@ function Reservations() {
   return (
     <div className="bg-light min-vh-100 pb-5">
       <Container className="py-4" style={{ maxWidth: "1280px" }}>
-        {/* === ENCABEZADO CON ICONO ESTILO APP === */}
-        <div className="d-flex flex-wrap align-items-center mb-5 gap-3">
+        
+        {/* === ENCABEZADO CENTRADO === */}
+        {/* Se agregó 'justify-content-center' */}
+        <div className="d-flex flex-wrap justify-content-center align-items-center mb-5 gap-3">
           {/* Caja de Icono Principal con degradado naranja */}
           <div
-            className="d-flex align-items-center justify-content-center rounded-3 me-3 shadow-sm icon-orange"
+            className="d-flex align-items-center justify-content-center rounded-3 shadow-sm icon-orange"
             style={{ width: 56, height: 56 }}
           >
             {/* Icono de calendario */}
@@ -32,13 +34,14 @@ function Reservations() {
           </div>
         </div>
 
-        {/* === CONTENEDOR DE PESTAÑAS (Estilo Tarjeta) === */}
-        <Card className="border-0 shadow-sm rounded-4 overflow-hidden">
+        {/* === CONTENEDOR DE PESTAÑAS (Estilo Tarjeta Centrada) === */}
+        {/* Se agregó 'mx-auto' y maxWidth para alinear con el encabezado */}
+        <Card className="border-0 shadow-sm rounded-4 overflow-hidden mx-auto" style={{ maxWidth: "1200px" }}>
           <Card.Header className="bg-white border-bottom-0 p-0">
             <Tabs
               activeKey={activeTab}
               onSelect={(key) => setActiveTab(key || "new")}
-              className="px-4 pt-3 border-bottom"
+              className="px-4 pt-3 border-bottom justify-content-center"
               id="reservations-tabs"
             >
               <Tab
@@ -60,16 +63,16 @@ function Reservations() {
             </Tabs>
           </Card.Header>
 
-          <Card.Body className="p-4">
+          <Card.Body className="p-4 d-flex justify-content-center">
             {/* Renderizado Condicional del Contenido */}
             {activeTab === "new" && (
-              <div className="animate-fade-in">
+              <div className="animate-fade-in w-100" style={{ maxWidth: "800px" }}>
                 <NewReservationForm onSuccess={() => setActiveTab("history")} />
               </div>
             )}
 
             {activeTab === "history" && (
-              <div className="animate-fade-in">
+              <div className="animate-fade-in w-100" style={{ maxWidth: "800px" }}>
                 <ReservationHistory />
               </div>
             )}

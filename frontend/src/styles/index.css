@@ -1,64 +1,60 @@
 /* src/index.css */
 
-/* Fuente global para toda la app */
-html,
-body {
-  font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-    sans-serif;
-  color: #111827;
-  background-color: #f9fafb;
-}
+/* =========================================
+   1. VARIABLES Y CONFIGURACIÓN BASE
+   ========================================= */
 
-/* Variables para gradientes naranjas y rojos */
 :root {
+  /* Gradientes Naranjas (Marca Principal) */
   --btn-orange-1: linear-gradient(135deg, #ff7a18 0%, #ffb347 100%);
   --btn-orange-2: linear-gradient(135deg, #ff6a00 0%, #ffcc33 100%);
   --btn-orange-3: linear-gradient(135deg, #ff8c42 0%, #ff5f6d 100%);
 
+  /* Gradientes Rojos (Peligro/Acción Negativa) */
   --btn-red-1: linear-gradient(135deg, #ef4444 0%, #f97373 100%);
   --btn-red-2: linear-gradient(135deg, #dc2626 0%, #fb923c 100%);
   --btn-red-3: linear-gradient(135deg, #b91c1c 0%, #f97316 100%);
+
+  /* Colores Planos Auxiliares */
+  --text-active: #ff7a18;
+  --text-inactive: #9CA3AF;
+  --orange-primary: #ff7a18;
 }
 
-/* Botón primario con degradado naranja */
-.btn-primary {
-  background-image: var(--btn-orange-1);
+html,
+body {
+  font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #111827;
+  background-color: #f9fafb;
+}
+
+/* =========================================
+   2. BOTONES (Primary, Secondary, Danger)
+   ========================================= */
+
+/* Estilos base compartidos para animaciones */
+.btn-primary,
+.btn-secondary,
+.btn-danger,
+.btn-red {
   border: none;
   color: #ffffff;
   background-size: 200% 100%;
   background-position: left center;
-  transition:
-    background-position 0.3s ease,
-    transform 0.1s ease,
+  transition: 
+    background-position 0.3s ease, 
+    transform 0.1s ease, 
     box-shadow 0.2s ease;
+}
+
+/* --- Primary & Secondary (Naranja) --- */
+.btn-primary,
+.btn-secondary {
+  background-image: var(--btn-orange-1);
 }
 
 .btn-primary:hover,
-.btn-primary:focus {
-  background-position: right center;
-  color: #ffffff;
-  box-shadow: 0 8px 18px rgba(255, 122, 24, 0.35);
-  transform: translateY(-1px);
-}
-
-.btn-primary:active {
-  transform: translateY(0);
-  box-shadow: 0 4px 10px rgba(255, 122, 24, 0.25);
-}
-
-/* Botón secundario con el mismo estilo de gradiente */
-.btn-secondary {
-  background-image: var(--btn-orange-1);
-  border: none;
-  color: #ffffff;
-  background-size: 200% 100%;
-  background-position: left center;
-  transition:
-    background-position 0.3s ease,
-    transform 0.1s ease,
-    box-shadow 0.2s ease;
-}
-
+.btn-primary:focus,
 .btn-secondary:hover,
 .btn-secondary:focus {
   background-position: right center;
@@ -67,23 +63,16 @@ body {
   transform: translateY(-1px);
 }
 
+.btn-primary:active,
 .btn-secondary:active {
   transform: translateY(0);
   box-shadow: 0 4px 10px rgba(255, 122, 24, 0.25);
 }
 
-/* Botón de peligro (cerrar / eliminar / cancelar) con degradado rojo */
+/* --- Danger & Red (Rojo) --- */
 .btn-danger,
 .btn-red {
   background-image: var(--btn-red-1);
-  border: none;
-  color: #ffffff;
-  background-size: 200% 100%;
-  background-position: left center;
-  transition:
-    background-position 0.3s ease,
-    transform 0.1s ease,
-    box-shadow 0.2s ease;
 }
 
 .btn-danger:hover,
@@ -102,81 +91,171 @@ body {
   box-shadow: 0 4px 10px rgba(239, 68, 68, 0.25);
 }
 
-/* ===========================
-   BADGES ÚNICOS
-   =========================== */
-
-/* Estilo ÚNICO de badge para toda la app */
-.badge {
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  border-radius: 999px;
-  padding: 0.22rem 0.6rem;
-  font-size: 0.7rem;
-
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.25rem;
-
-  border: 1px solid rgba(15, 23, 42, 0.06);
+/* Botón Blanco Personalizado (Usado en Modals) */
+.btn-white {
   background-color: #ffffff;
-  color: #111827;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+  border: 1px solid #e5e7eb;
+  color: #374151;
+  transition: all 0.2s ease;
 }
-
-/* Variante pequeña opcional (si la necesitas) */
-.badge-sm {
-  font-size: 0.65rem;
-  padding: 0.16rem 0.5rem;
-}
-
-/* Variante para badge con iconos (solo ajusta el gap) */
-.badge-icon {
-  gap: 0.35rem;
-}
-
-/* Mantener compatibilidad con .bg-secondary si la usas con badges,
-   pero visualmente seguirá siendo casi igual */
-.badge.bg-secondary {
-  background-color: #ffffff;
+.btn-white:hover {
+  background-color: #f3f4f6;
   color: #111827;
 }
 
-/* Quitar por completo el azul de Bootstrap en badges */
-.badge,
-span.badge,
-.badge.bg-primary,
-.badge.bg-info,
-.badge.bg-secondary {
-  background-color: #ffffff !important;
-  color: #111827 !important;
+/* =========================================
+   3. TABS / PESTAÑAS (Estilo Flat Naranja)
+   ========================================= */
+
+.nav-tabs {
+  border-bottom: 2px solid #f0f0f0;
 }
 
-/* Agrega esto a tu index.css para la paginación */
+.nav-tabs .nav-link {
+  border: none !important;
+  background: transparent !important;
+  color: var(--text-inactive);
+  font-weight: 500;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.nav-tabs .nav-link:hover {
+  color: #ff9f5a;
+  border: none !important;
+}
+
+.nav-tabs .nav-link.active {
+  color: var(--text-active) !important;
+  font-weight: 700;
+  background: transparent !important;
+  box-shadow: 0 3px 0 0 var(--text-active); 
+}
+
+/* =========================================
+   4. PAGINACIÓN
+   ========================================= */
+
 .custom-pagination .page-item.active .page-link {
   background-image: var(--btn-orange-1) !important;
   border-color: transparent !important;
   color: white !important;
+  box-shadow: 0 4px 10px rgba(255, 122, 24, 0.25);
 }
+
 .custom-pagination .page-link {
-  color: #ff7a18; /* Texto naranja cuando no está activo */
+  color: #ff7a18;
   border: none;
   background: transparent;
   font-weight: 600;
+  margin: 0 2px;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
+
 .custom-pagination .page-link:hover {
   background-color: #fff3e0;
   color: #e65100;
 }
 
-/* Iconos con el mismo degradado naranja que los botones */
+/* =========================================
+   5. BADGES (Estilo Limpio/Blanco)
+   ========================================= */
+
+.badge {
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border-radius: 999px;
+  padding: 0.35em 0.8em;
+  font-size: 0.7rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background-color: #ffffff !important;
+  color: #111827 !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+}
+
+/* Sobrescritura forzada de colores Bootstrap en Badges */
+.badge.bg-primary,
+.badge.bg-info,
+.badge.bg-secondary,
+.badge.bg-success,
+.badge.bg-warning,
+.badge.bg-light,
+.badge.bg-dark {
+  background-color: #ffffff !important;
+  color: #111827 !important;
+}
+
+.badge-sm {
+  font-size: 0.65rem;
+  padding: 0.25em 0.6em;
+}
+
+/* =========================================
+   6. UTILIDADES Y COMPONENTES
+   ========================================= */
+
+/* Caja para iconos con gradiente */
 .icon-orange {
   background-image: var(--btn-orange-1);
   color: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 0.75rem; /* similar a rounded-3 */
+  border-radius: 0.75rem; 
+}
+
+/* Texto color naranja marca */
+.text-orange {
+  color: var(--orange-primary) !important;
+}
+
+/* Fondo naranja sutil (para selecciones activas) */
+.bg-orange-subtle {
+  background-color: #fff7ed !important;
+  color: #9a3412 !important;
+}
+
+/* Bordes punteados (Estilo Factura) */
+.border-dashed {
+  border-style: dashed !important;
+}
+
+/* Utilidades de interacción */
+.cursor-pointer {
+  cursor: pointer;
+}
+
+.hover-shadow {
+  transition: all 0.2s ease-in-out;
+}
+
+.hover-shadow:hover {
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1) !important;
+  transform: translateY(-2px);
+}
+
+/* Animación de entrada suave */
+.animate-fade-in {
+  animation: fadeIn 0.4s ease-out forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

@@ -88,8 +88,9 @@ function Menu() {
 
   return (
     <Container className="py-4" style={{ maxWidth: "1280px" }}>
-      {/* ENCABEZADO */}
-      <div className="d-flex flex-wrap justify-content-between align-items-center mb-5 gap-3">
+      {/* === ENCABEZADO CENTRADO === */}
+      {/* Se cambió justify-content-between por justify-content-center */}
+      <div className="d-flex flex-wrap justify-content-center align-items-center mb-5 gap-4">
         <div className="d-flex align-items-center">
           <div
             className="d-flex align-items-center justify-content-center rounded-3 me-3 shadow-sm icon-orange"
@@ -105,6 +106,7 @@ function Menu() {
           </div>
         </div>
 
+        {/* El indicador del carrito ahora aparece al lado del título, centrado */}
         {itemsInCart > 0 && (
           <div className="bg-white border rounded-pill ps-2 pe-4 py-2 shadow-sm d-flex align-items-center gap-3">
             <div
@@ -126,8 +128,9 @@ function Menu() {
         )}
       </div>
 
-      {/* BÚSQUEDA Y FILTROS */}
-      <Row className="mb-5 g-3">
+      {/* === BÚSQUEDA Y FILTROS CENTRADOS === */}
+      {/* Se agregó mx-auto y maxWidth para que no se estire demasiado */}
+      <Row className="mb-5 g-3 mx-auto" style={{ maxWidth: "1000px" }}>
         <Col md={8}>
           <InputGroup className="shadow-sm rounded-3 overflow-hidden border-0">
             <InputGroup.Text className="bg-white border-0 ps-3">
@@ -194,7 +197,7 @@ function Menu() {
           ) : (
             visibleCategories.map((category) => (
               <div key={category.id} className="mb-5">
-                {/* Cabecera de Categoría con icono en degradado naranja */}
+                {/* Cabecera de Categoría */}
                 <div className="d-flex align-items-center mb-4 border-bottom pb-3">
                   <div
                     className="d-flex align-items-center justify-content-center rounded-3 me-3 shadow-sm icon-orange"

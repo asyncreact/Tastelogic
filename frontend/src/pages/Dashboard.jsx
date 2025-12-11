@@ -118,8 +118,9 @@ function Dashboard() {
 
   return (
     <Container className="py-4" style={{ maxWidth: "1280px" }}>
-      {/* ENCABEZADO */}
-      <div className="d-flex flex-wrap justify-content-between align-items-center mb-5 gap-3">
+      {/* === ENCABEZADO CENTRADO === */}
+      {/* Se cambió justify-content-between por justify-content-center */}
+      <div className="d-flex flex-wrap justify-content-center align-items-center mb-5 gap-3">
         <div className="d-flex align-items-center">
           {/* Icono Dashboard con mismo tamaño/estilo que Menú */}
           <div

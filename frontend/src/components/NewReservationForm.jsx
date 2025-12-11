@@ -9,11 +9,18 @@ import {
   Card,
   Spinner,
   Modal,
+  InputGroup,
 } from "react-bootstrap";
 import { useReservation } from "../hooks/useReservation";
 import api from "../api/auth";
 import Swal from "sweetalert2";
-import { MdEventAvailable, MdPeople, MdOutlineTableBar } from "react-icons/md";
+
+// Iconos actualizados
+import { MdPeople, MdOutlineTableBar, MdClose } from "react-icons/md";
+import { BiCalendar, BiTimeFive, BiNote } from "react-icons/bi";
+import { FaRegMap, FaCheckCircle } from "react-icons/fa";
+// Nuevo icono solicitado
+import { RiReservedLine } from "react-icons/ri";
 
 const API_URL = (import.meta.env.VITE_API_URL || "http://localhost:4000").replace(
   /\/$/,
@@ -82,6 +89,7 @@ function NewReservationForm({ onSuccess }) {
         table_id: "",
       }));
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     formData.zone_id,
     formData.reservation_date,
@@ -265,26 +273,37 @@ function NewReservationForm({ onSuccess }) {
   };
 
   return (
-    <div className="py-3">
+    <div className="py-2">
       <Row className="justify-content-center">
-        <Col lg={10}>
-          <Card className="shadow-sm border-0">
-            <Card.Body>
-              <div className="mb-3 d-flex align-items-center gap-2">
-                <MdEventAvailable size={22} />
+        <Col lg={10} xl={9}>
+          <Card className="shadow-sm border-0 rounded-4 overflow-hidden">
+            <Card.Body className="p-4 p-md-5">
+              {/* === ENCABEZADO ACTUALIZADO CON RiReservedLine === */}
+              <div className="mb-4 d-flex align-items-center gap-3 border-bottom pb-4">
+                <div 
+                  className="icon-orange rounded-circle flex-shrink-0" 
+                  style={{ width: 48, height: 48 }}
+                >
+                  <RiReservedLine size={24} />
+                </div>
                 <div>
-                  <h2 className="h5 mb-1">Crear reserva</h2>
-                  <small>Selecciona una zona y luego completa los datos.</small>
+                  <h2 className="h5 mb-0 text-dark">Nueva Reserva</h2>
+                  <small className="text-muted">
+                    Selecciona tu zona preferida y verifica disponibilidad.
+                  </small>
                 </div>
               </div>
 
-              <div className="mb-4">
-                <h5 className="h6 mb-2">Zonas disponibles</h5>
+              {/* === PASO 1: SELECCIÓN DE ZONA (GRID) === */}
+              <div className="mb-5">
+                <h6 className="text-dark mb-3 small text-uppercase" style={{ letterSpacing: '0.05em', color: '#6b7280' }}>
+                   1. Selecciona una Zona
+                </h6>
 
                 {loadingZones ? (
-                  <div className="d-flex align-items-center gap-2">
-                    <Spinner animation="border" size="sm" />
-                    <span className="small">Cargando zonas...</span>
+                  <div className="d-flex align-items-center gap-2 text-muted">
+                    <Spinner animation="border" size="sm" variant="warning" />
+                    <span className="small">Cargando espacios...</span>
                   </div>
                 ) : zones.length === 0 ? (
                   <Alert variant="light" className="border-0">
@@ -300,78 +319,67 @@ function NewReservationForm({ onSuccess }) {
 
                       return (
                         <Col key={zone.id} xs={12} md={4}>
-                          <Card
-                            className={`h-100 position-relative ${
-                              isSelected ? "border-2 border-secondary bg-light" : ""
-                            }`}
+                          <div
+                            className="card h-100 border-0 shadow-sm overflow-hidden position-relative"
                             style={{
                               cursor: isUnavailable ? "not-allowed" : "pointer",
                               opacity: isUnavailable ? 0.6 : 1,
-                              transition: "box-shadow 0.15s ease, transform 0.15s ease",
+                              // Borde naranja si seleccionado
+                              border: isSelected ? "2px solid #ff7a18" : "1px solid rgba(0,0,0,0.05)",
+                              // Fondo suave si seleccionado
+                              backgroundColor: isSelected ? "#fff7ed" : "#fff",
+                              transform: isSelected ? "translateY(-2px)" : "none",
+                              transition: "all 0.2s ease"
                             }}
                             onClick={() => {
                               if (isUnavailable) return;
                               setSelectedZone(zone);
                               setShowZoneModal(true);
                             }}
-                            onMouseEnter={(e) => {
-                              if (isUnavailable) return;
-                              e.currentTarget.style.boxShadow =
-                                "0 8px 16px rgba(0,0,0,0.12)";
-                              e.currentTarget.style.transform = "translateY(-2px)";
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.boxShadow = "";
-                              e.currentTarget.style.transform = "";
-                            }}
                           >
+                            {/* Checkmark en esquina superior derecha si está seleccionado */}
                             {isSelected && (
-                              <span
-                                className="badge bg-secondary position-absolute"
-                                style={{ top: 8, right: 8 }}
+                              <div 
+                                className="position-absolute top-0 end-0 m-2"
+                                style={{ zIndex: 5 }}
                               >
-                                Zona seleccionada
-                              </span>
-                            )}
-                            <Card.Body className="d-flex align-items-center">
-                              {img ? (
-                                <img
-                                  src={img}
-                                  alt={zone.name}
-                                  style={{
-                                    width: 56,
-                                    height: 56,
-                                    objectFit: "cover",
-                                    borderRadius: 8,
-                                    marginRight: 12,
-                                  }}
-                                />
-                              ) : (
-                                <div
-                                  className="d-flex align-items-center justify-content-center bg-light"
-                                  style={{
-                                    width: 56,
-                                    height: 56,
-                                    borderRadius: 8,
-                                    marginRight: 12,
-                                  }}
-                                >
-                                  <MdOutlineTableBar size={24} />
+                                <div className="bg-white rounded-circle p-1 d-flex align-items-center justify-content-center shadow-sm">
+                                  <FaCheckCircle size={20} color="#ff7a18" />
                                 </div>
-                              )}
-                              <div>
-                                <div className="fw-semibold">{zone.name}</div>
-                                <div className="small text-muted">
-                                  {zone.description || "Sin descripción"}
-                                </div>
-                                {isUnavailable && (
-                                  <div className="small text-muted mt-1">
-                                    Zona no disponible por el momento
-                                  </div>
-                                )}
                               </div>
-                            </Card.Body>
-                          </Card>
+                            )}
+
+                            <div className="d-flex align-items-center p-3 h-100">
+                                {img ? (
+                                    <img
+                                    src={img}
+                                    alt={zone.name}
+                                    style={{
+                                        width: 48,
+                                        height: 48,
+                                        objectFit: "cover",
+                                        borderRadius: 10,
+                                        marginRight: 12,
+                                    }}
+                                    />
+                                ) : (
+                                    <div
+                                    className="d-flex align-items-center justify-content-center bg-light text-secondary rounded-3 me-3"
+                                    style={{ width: 48, height: 48 }}
+                                    >
+                                    <MdOutlineTableBar size={20} />
+                                    </div>
+                                )}
+                                <div className="lh-sm pe-2">
+                                    <div className={`mb-0 small ${isSelected ? 'text-orange fw-bold' : 'text-dark fw-semibold'}`}>
+                                        {zone.name}
+                                    </div>
+                                    <div className="text-muted" style={{ fontSize: '0.75rem' }}>
+                                        {isUnavailable ? "No disponible" : "Ver detalles"}
+                                    </div>
+                                </div>
+                            </div>
+                          </div>
                         </Col>
                       );
                     })}
@@ -379,168 +387,191 @@ function NewReservationForm({ onSuccess }) {
                 )}
               </div>
 
+              {/* === PASO 2: FORMULARIO DE DETALLES === */}
               {selectedZone && (
-                <Form onSubmit={handleSubmit}>
-                  <Row className="g-3">
-                    <Col md={6}>
-                      <Form.Group controlId="zone_readonly">
-                        <Form.Label>Zona seleccionada</Form.Label>
-                        <Form.Control
-                          type="text"
-                          value={selectedZone ? selectedZone.name : ""}
-                          readOnly
-                        />
-                      </Form.Group>
-                    </Col>
+                <Form onSubmit={handleSubmit} className="animate-fade-in">
+                  <h6 className="text-dark mb-3 small text-uppercase" style={{ letterSpacing: '0.05em', color: '#6b7280' }}>
+                    2. Detalles de la Reserva
+                  </h6>
+                  
+                  <div className="bg-light rounded-4 p-4 mb-4">
+                    <Row className="g-3">
+                        {/* CAMPO ZONA BLOQUEADO (READ-ONLY) */}
+                        <Col md={6}>
+                            <Form.Group>
+                                <Form.Label className="small text-muted mb-1">Zona Seleccionada</Form.Label>
+                                <InputGroup className="shadow-sm rounded-3 overflow-hidden border-0">
+                                    <InputGroup.Text className="bg-white border-0 ps-3">
+                                        <FaRegMap className="text-orange" size={18} />
+                                    </InputGroup.Text>
+                                    <Form.Control
+                                        type="text"
+                                        value={selectedZone.name}
+                                        className="border-0 py-2 fw-semibold text-dark bg-white"
+                                        readOnly
+                                        style={{ cursor: "default" }}
+                                    />
+                                </InputGroup>
+                            </Form.Group>
+                        </Col>
 
-                    <Col md={6}>
-                      <Form.Group controlId="guest_count">
-                        <Form.Label>Personas</Form.Label>
-                        <div className="input-group">
-                          <span className="input-group-text">
-                            <MdPeople />
-                          </span>
-                          <Form.Control
-                            type="number"
-                            name="guest_count"
-                            value={formData.guest_count}
-                            onChange={handleChange}
-                            min={1}
-                            required
-                          />
-                        </div>
-                      </Form.Group>
-                    </Col>
+                        <Col md={6}>
+                            <Form.Group>
+                                <Form.Label className="small text-muted mb-1">Personas</Form.Label>
+                                <InputGroup className="shadow-sm rounded-3 overflow-hidden border-0">
+                                    <InputGroup.Text className="bg-white border-0 ps-3">
+                                        <MdPeople className="text-orange" size={18} />
+                                    </InputGroup.Text>
+                                    <Form.Control
+                                        type="number"
+                                        name="guest_count"
+                                        className="border-0 py-2"
+                                        value={formData.guest_count}
+                                        onChange={handleChange}
+                                        min={1}
+                                        required
+                                        placeholder="0"
+                                    />
+                                </InputGroup>
+                            </Form.Group>
+                        </Col>
 
-                    <Col md={6}>
-                      <Form.Group controlId="reservation_date">
-                        <Form.Label>Fecha</Form.Label>
-                        <Form.Control
-                          type="date"
-                          name="reservation_date"
-                          value={formData.reservation_date}
-                          onChange={handleChange}
-                          min={getMinDate()}
-                          required
-                        />
-                      </Form.Group>
-                    </Col>
+                        <Col md={6}>
+                            <Form.Group>
+                                <Form.Label className="small text-muted mb-1">Fecha</Form.Label>
+                                <InputGroup className="shadow-sm rounded-3 overflow-hidden border-0">
+                                    <InputGroup.Text className="bg-white border-0 ps-3">
+                                        <BiCalendar className="text-orange" size={18} />
+                                    </InputGroup.Text>
+                                    <Form.Control
+                                        type="date"
+                                        name="reservation_date"
+                                        className="border-0 py-2"
+                                        value={formData.reservation_date}
+                                        onChange={handleChange}
+                                        min={getMinDate()}
+                                        required
+                                    />
+                                </InputGroup>
+                            </Form.Group>
+                        </Col>
 
-                    <Col md={6}>
-                      <Form.Group controlId="reservation_time">
-                        <Form.Label>Hora</Form.Label>
-                        <Form.Control
-                          type="time"
-                          name="reservation_time"
-                          value={formData.reservation_time}
-                          onChange={handleChange}
-                          min={getMinTime()}
-                          max="23:59"
-                          required
-                        />
-                      </Form.Group>
-                    </Col>
+                        <Col md={6}>
+                            <Form.Group>
+                                <Form.Label className="small text-muted mb-1">Hora</Form.Label>
+                                <InputGroup className="shadow-sm rounded-3 overflow-hidden border-0">
+                                    <InputGroup.Text className="bg-white border-0 ps-3">
+                                        <BiTimeFive className="text-orange" size={18} />
+                                    </InputGroup.Text>
+                                    <Form.Control
+                                        type="time"
+                                        name="reservation_time"
+                                        className="border-0 py-2"
+                                        value={formData.reservation_time}
+                                        onChange={handleChange}
+                                        min={getMinTime()}
+                                        max="23:59"
+                                        required
+                                    />
+                                </InputGroup>
+                            </Form.Group>
+                        </Col>
+                    </Row>
+                  </div>
 
-                    <Col xs={12}>
-                      <Form.Group controlId="table_id">
-                        <Form.Label>Mesa</Form.Label>
-                        {loadingTables ? (
-                          <div className="d-flex align-items-center gap-2">
-                            <Spinner animation="border" size="sm" />
-                            <span className="small">Buscando mesas...</span>
-                          </div>
-                        ) : availableTables.length === 0 &&
-                          formData.zone_id &&
-                          formData.reservation_date &&
-                          formData.reservation_time &&
-                          formData.guest_count ? (
-                          <Alert variant="light" className="border">
-                            No hay mesas para estos datos. Prueba otra hora o zona.
-                          </Alert>
-                        ) : (
-                          <div className="d-flex flex-wrap gap-2">
-                            {availableTables.map((table) => {
-                              const isActive =
-                                String(formData.table_id) === String(table.id);
+                  <h6 className="text-dark mb-3 small text-uppercase" style={{ letterSpacing: '0.05em', color: '#6b7280' }}>
+                    3. Selección de Mesa
+                  </h6>
 
-                              return (
-                                <button
-                                  key={table.id}
-                                  type="button"
-                                  className={`btn btn-outline-secondary d-flex align-items-center p-2 rounded-3 ${
-                                    isActive ? "btn-secondary text-white" : ""
-                                  }`}
-                                  style={{ minWidth: "200px" }}
-                                  onClick={() =>
-                                    setFormData((prev) => ({
-                                      ...prev,
-                                      table_id: String(table.id),
-                                    }))
-                                  }
-                                >
-                                  <MdOutlineTableBar className="me-2" />
-                                  <div className="text-start">
-                                    <div className="fw-semibold small">
-                                      Mesa {table.table_number}
-                                    </div>
-                                    <div className="small">
-                                      {table.capacity} max · {table.zone_name} zona
-                                    </div>
-                                  </div>
-                                </button>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </Form.Group>
-                    </Col>
-
-                    <Col xs={12}>
-                      <Form.Group controlId="special_requirements">
-                        <Form.Label>Notas (opcional)</Form.Label>
-                        <Form.Control
-                          as="textarea"
-                          rows={2}
-                          name="special_requirements"
-                          value={formData.special_requirements}
-                          onChange={handleChange}
-                          placeholder="Ej: aniversario, alergias, ubicación específica."
-                        />
-                      </Form.Group>
-                    </Col>
-                  </Row>
-
-                  <Row>
-                    <Col>
-                      <div className="d-flex justify-content-end mt-3">
-                        <Button
-                          type="submit"
-                          variant="secondary"
-                          disabled={
-                            loading ||
-                            loadingTables ||
-                            loadingZones ||
-                            !selectedZone
-                          }
-                        >
-                          {loading ? (
-                            <>
-                              <Spinner
-                                as="span"
-                                animation="border"
-                                size="sm"
-                                role="status"
-                                className="me-2"
-                              />
-                              Guardando...
-                            </>
-                          ) : (
-                            "Confirmar reserva"
-                          )}
-                        </Button>
+                  <div className="mb-4">
+                    {loadingTables ? (
+                      <div className="d-flex align-items-center gap-2 py-3">
+                        <Spinner animation="border" size="sm" variant="warning" />
+                        <span className="small text-muted">Buscando mesas disponibles...</span>
                       </div>
-                    </Col>
-                  </Row>
+                    ) : availableTables.length === 0 &&
+                      formData.zone_id &&
+                      formData.reservation_date &&
+                      formData.reservation_time &&
+                      formData.guest_count ? (
+                      <Alert variant="warning" className="border-0 shadow-sm rounded-3 small">
+                        No hay mesas disponibles para esta capacidad en este horario. Intenta cambiar la hora.
+                      </Alert>
+                    ) : availableTables.length > 0 ? (
+                      <div className="d-grid gap-2" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))" }}>
+                        {availableTables.map((table) => {
+                          const isActive = String(formData.table_id) === String(table.id);
+                          return (
+                            <div
+                              key={table.id}
+                              onClick={() => setFormData((prev) => ({ ...prev, table_id: String(table.id) }))}
+                              className={`p-3 rounded-3 border text-center cursor-pointer transition-all ${
+                                isActive 
+                                    ? "border-orange bg-white text-orange shadow-sm" 
+                                    : "border-light bg-white text-muted hover-shadow"
+                              }`}
+                              style={{ 
+                                cursor: 'pointer',
+                                border: isActive ? '1px solid #ff7a18' : '1px solid #e5e7eb',
+                              }}
+                            >
+                              <MdOutlineTableBar size={24} className={`mb-2 ${isActive ? 'text-orange' : 'text-secondary'}`} />
+                              <div className="small fw-semibold text-dark">Mesa {table.table_number}</div>
+                              <div style={{ fontSize: '0.7rem' }} className="text-muted">
+                                {table.capacity} pers.
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                        <p className="text-muted small fst-italic">
+                            Completa los campos de arriba para ver las mesas disponibles.
+                        </p>
+                    )}
+                  </div>
+
+                  <Form.Group className="mb-4">
+                    <Form.Label className="small text-muted mb-1">Notas adicionales (opcional)</Form.Label>
+                     <InputGroup className="shadow-sm rounded-3 overflow-hidden border-0">
+                        <InputGroup.Text className="bg-white border-0 ps-3 align-items-start pt-2">
+                             <BiNote className="text-orange" size={18} />
+                        </InputGroup.Text>
+                        <Form.Control
+                            as="textarea"
+                            rows={2}
+                            name="special_requirements"
+                            className="border-0 py-2"
+                            value={formData.special_requirements}
+                            onChange={handleChange}
+                            placeholder="Ej: Aniversario, alergias, requerimientos de accesibilidad..."
+                        />
+                     </InputGroup>
+                  </Form.Group>
+
+                  <div className="d-flex justify-content-end pt-3 border-top">
+                    <Button
+                      type="submit"
+                      variant="primary"
+                      className="px-5 py-2 rounded-pill fw-semibold shadow-sm"
+                      disabled={
+                        loading ||
+                        loadingTables ||
+                        loadingZones ||
+                        !selectedZone ||
+                        !formData.table_id
+                      }
+                    >
+                      {loading ? (
+                        <>
+                          <Spinner as="span" animation="border" size="sm" className="me-2" />
+                          Procesando...
+                        </>
+                      ) : (
+                        "Confirmar Reserva"
+                      )}
+                    </Button>
+                  </div>
                 </Form>
               )}
             </Card.Body>
@@ -548,45 +579,59 @@ function NewReservationForm({ onSuccess }) {
         </Col>
       </Row>
 
+      {/* --- MODAL DE ZONA --- */}
       <Modal
         show={showZoneModal && !!selectedZone}
         onHide={() => setShowZoneModal(false)}
         centered
+        contentClassName="border-0 rounded-4 overflow-hidden"
       >
-        <Modal.Header closeButton>
-          <Modal.Title>
-            {selectedZone ? selectedZone.name : "Zona"}
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
+        <div className="position-relative bg-light">
+             <button
+                onClick={() => setShowZoneModal(false)}
+                className="position-absolute top-0 end-0 m-3 btn btn-light rounded-circle shadow-sm d-flex align-items-center justify-content-center"
+                style={{ width: 32, height: 32, zIndex: 10, border: 'none', opacity: 0.9 }}
+            >
+                <MdClose size={18} />
+            </button>
+
+             {selectedZone && getZoneImageUrl(selectedZone.image_url) ? (
+                 <div style={{ width: "100%", height: "200px" }}>
+                    <img
+                        src={getZoneImageUrl(selectedZone.image_url)}
+                        alt={selectedZone.name}
+                        className="w-100 h-100"
+                        style={{ objectFit: "cover" }}
+                    />
+                 </div>
+             ) : (
+                <div 
+                    className="d-flex align-items-center justify-content-center bg-secondary bg-opacity-10 text-secondary"
+                    style={{ width: "100%", height: "160px" }}
+                >
+                     <MdOutlineTableBar size={48} opacity={0.5} />
+                </div>
+             )}
+        </div>
+
+        <Modal.Body className="p-4">
           {selectedZone && (
             <>
-              {getZoneImageUrl(selectedZone.image_url) && (
-                <img
-                  src={getZoneImageUrl(selectedZone.image_url)}
-                  alt={selectedZone.name}
-                  style={{
-                    width: "100%",
-                    maxHeight: 240,
-                    objectFit: "cover",
-                    borderRadius: 8,
-                    marginBottom: 16,
-                  }}
-                />
-              )}
-              <p className="mb-2">
-                <strong>Descripción: </strong>
-                {selectedZone.description || "Sin descripción"}
+              <h5 className="mb-2 text-dark" style={{ fontWeight: 600 }}>{selectedZone.name}</h5>
+              <p className="text-muted small mb-0 leading-relaxed">
+                {selectedZone.description || "Disfruta de un ambiente agradable en esta zona."}
               </p>
             </>
           )}
         </Modal.Body>
-        <Modal.Footer>
+
+        <Modal.Footer className="border-top-0 p-4 pt-0">
           <Button
-            variant="secondary"
+            variant="primary"
+            className="w-100 py-2 rounded-3"
             onClick={() => selectedZone && handleSelectZone(selectedZone)}
           >
-            Reservar en esta zona
+            Seleccionar esta zona
           </Button>
         </Modal.Footer>
       </Modal>
