@@ -18,7 +18,6 @@ pnpm-debug.log*
 .env.development
 
 # Archivos de uploads (si son temporales o generados)
-uploads/
 temp/
 tmp/
 
