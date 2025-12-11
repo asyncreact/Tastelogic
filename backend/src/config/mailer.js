@@ -1,21 +1,12 @@
-import nodemailer from "nodemailer";
+// src/config/mailer.js
+
 import dotenv from "dotenv";
+import sgMail from "@sendgrid/mail";
 
 dotenv.config();
 
-/** Configura el transporter SMTP básico para enviar correos */
-export const transporter = nodemailer.createTransport({
-  host: process.env.EMAIL_HOST || "smtp.gmail.com",
-  port: Number(process.env.EMAIL_PORT) || 587,
-  secure: Number(process.env.EMAIL_PORT) === 465,
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-  tls: {
-    rejectUnauthorized: false,
-  },
-});
+// Configura SendGrid con la API key
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 /** Escapa caracteres especiales en HTML para prevenir inyecciones */
 const escapeHtml = (unsafe = "") => {
@@ -52,7 +43,7 @@ const lavaGradient = () => {
   ].sort((a, b) => a.pos - b.pos);
 
   const stopsCss = stops
-    .map(s => `${s.color} ${s.pos.toFixed(0)}%`)
+    .map((s) => `${s.color} ${s.pos.toFixed(0)}%`)
     .join(", ");
 
   const angle = Math.random() * 360; // Ángulo aleatorio 0-360°
@@ -174,7 +165,7 @@ const simpleTemplate = ({
   `;
 };
 
-/** Envía un correo usando los datos y plantilla proporcionados */
+/** Envía un correo usando SendGrid + la plantilla anterior */
 export const sendMail = async ({
   to,
   subject,
@@ -195,12 +186,13 @@ export const sendMail = async ({
     appName,
   });
 
-  const mailOptions = {
-    from: from || process.env.EMAIL_FROM || process.env.EMAIL_USER,
+  const msg = {
     to,
+    from: from || process.env.EMAIL_FROM,
     subject,
+    text: message || "",
     html,
   };
 
-  return transporter.sendMail(mailOptions); // Envia el correo electrónico
+  return sgMail.send(msg);
 };

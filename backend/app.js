@@ -84,20 +84,6 @@ const startServer = async () => {
     await connectDB();
     console.log("Base de datos conectada");
 
-    // NO bloquear el arranque por SMTP en Render
-    import("./src/config/mailer.js")
-      .then(({ transporter }) => transporter.verify())
-      .then((smtpOk) => {
-        if (smtpOk) {
-          console.log("SMTP conectado correctamente");
-        } else {
-          console.warn("No se pudo verificar la conexión SMTP");
-        }
-      })
-      .catch((err) => {
-        console.warn("Error verificando SMTP:", err.message);
-      });
-
     app.listen(PORT, "0.0.0.0", () => {
       console.log(`Servidor corriendo en http://0.0.0.0:${PORT}`);
       console.log(`Entorno: ${process.env.NODE_ENV || "development"}`);

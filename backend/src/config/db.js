@@ -6,15 +6,17 @@ dotenv.config();
 
 const { Pool } = pg;
 
+const isProduction = process.env.NODE_ENV === "production";
+
 export const pool = new Pool({
   user: process.env.DB_USER,
   host: process.env.DB_HOST,
   database: process.env.DB_NAME,
   password: process.env.DB_PASSWORD,
   port: process.env.DB_PORT || 5432,
-  ssl: {
-    rejectUnauthorized: false,
-  },
+  ...(isProduction && {
+    ssl: { rejectUnauthorized: false },
+  }),
   max: 10,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 5000,
@@ -38,3 +40,4 @@ export const connectDB = async () => {
 pool.on("error", (err) => {
   console.error("Error inesperado en el cliente PostgreSQL:", err.message);
 });
+
