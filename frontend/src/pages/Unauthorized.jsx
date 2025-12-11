@@ -3,59 +3,79 @@ import { Container, Card, Button } from "react-bootstrap";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 
+import { MdNoAccounts, MdArrowBack, MdDashboard } from "react-icons/md";
+
 function Unauthorized() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
   return (
-    <Container className="min-vh-100 d-flex align-items-center justify-content-center">
-      <Card className="shadow-lg w-100" style={{ maxWidth: "500px" }}>
-        <Card.Body className="text-center p-5">
-          {/* Icono de error */}
-          <div className="text-danger mb-4" style={{ fontSize: "80px" }}>
-            ⛔
-          </div>
-
-          {/* Título */}
-          <h1 className="h2 text-danger mb-3">Acceso Denegado</h1>
-
-          {/* Mensaje */}
-          <p className="text-muted mb-4">
-            No tienes los permisos necesarios para acceder a esta página.
-          </p>
-
-          {/* Información adicional */}
-          {user && (
-            <div className="alert alert-light mb-4 text-start">
-              <small className="text-muted">
-                <strong>Usuario actual:</strong> {user.name}
-                <br />
-                <strong>Rol:</strong> {user.role}
-              </small>
+    <div className="bg-light min-vh-100 d-flex align-items-center justify-content-center animate-fade-in pb-5">
+      <Container style={{ maxWidth: "480px" }}>
+        <Card className="border-0 shadow-lg rounded-4 overflow-hidden">
+          <Card.Body className="p-5 text-center">
+            
+            <div
+              className="d-flex align-items-center justify-content-center rounded-circle mx-auto mb-4"
+              style={{
+                width: 80,
+                height: 80,
+                backgroundImage: "var(--btn-red-1)",
+                color: "white",
+                boxShadow: "0 10px 25px rgba(239, 68, 68, 0.25)",
+              }}
+            >
+              <MdNoAccounts size={40} />
             </div>
-          )}
 
-          {/* Botones de acción */}
-          <div className="d-grid gap-2">
-            <Button
-              variant="primary"
-              size="lg"
-              onClick={() => navigate(-1)}
-            >
-              ← Volver atrás
-            </Button>
+            {/* Títulos */}
+            <h2 className="fw-bold text-dark mb-2">Acceso Denegado</h2>
+            <p className="text-muted mb-4 leading-relaxed">
+              Lo sentimos, no tienes los permisos necesarios para ver esta página.
+            </p>
 
-            <Button
-              as={Link}
-              to="/dashboard"
-              variant="outline-secondary"
-            >
-              Ir al Dashboard
-            </Button>
-          </div>
-        </Card.Body>
-      </Card>
-    </Container>
+            {/* Información de Usuario*/}
+            {user && (
+              <div className="bg-light rounded-4 p-3 mb-4 text-start border border-light">
+                <div className="d-flex justify-content-between align-items-center mb-1">
+                  <span className="small text-muted">Usuario actual</span>
+                  <span className="small fw-bold text-dark">{user.name}</span>
+                </div>
+                <div className="d-flex justify-content-between align-items-center">
+                  <span className="small text-muted">Tu Rol</span>
+                  <span className="badge bg-white text-secondary border shadow-sm">
+                    {user.role}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Botones de Acción */}
+            <div className="d-grid gap-3">
+              <Button
+                variant="primary"
+                size="lg"
+                className="rounded-pill shadow-sm fw-semibold fs-6"
+                onClick={() => navigate(-1)}
+              >
+                <MdArrowBack className="me-2" size={20} />
+                Volver atrás
+              </Button>
+
+              <Button
+                as={Link}
+                to="/dashboard"
+                variant="white"
+                className="rounded-pill border shadow-sm text-muted bg-white fw-medium"
+              >
+                <MdDashboard className="me-2" size={18} />
+                Ir al Dashboard
+              </Button>
+            </div>
+          </Card.Body>
+        </Card>
+      </Container>
+    </div>
   );
 }
 

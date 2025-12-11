@@ -9,11 +9,14 @@ import {
   Button,
   Card,
   Spinner,
+  InputGroup,
 } from "react-bootstrap";
 import { forgotPassword } from "../api/auth";
 import Swal from "sweetalert2";
 import withReactContent from "sweetalert2-react-content";
 
+// Iconos estilo App
+import { MdLockReset, MdEmail, MdArrowBack } from "react-icons/md";
 
 const MySwal = withReactContent(Swal);
 
@@ -43,17 +46,18 @@ function ForgotPassword() {
         "Te hemos enviado un enlace para restablecer tu contraseña";
 
       await MySwal.fire({
-        title: "CORREO ENVIADO",
+        title: "Correo Enviado",
         html: `
           <div style="font-size: 0.95rem;">
             <p style="margin-bottom: 10px;">${message}</p>
-            <p style="opacity: 0.7; font-size: 0.85rem;">
-              Revisa tu bandeja de entrada y sigue las instrucciones.
+            <p class="text-muted small">
+              Revisa tu bandeja de entrada (y spam) para continuar.
             </p>
           </div>
         `,
         icon: "success",
-        confirmButtonText: "ENTENDIDO",
+        confirmButtonText: "Entendido",
+        confirmButtonColor: "#ff7a18",
         allowOutsideClick: false,
       });
 
@@ -65,10 +69,11 @@ function ForgotPassword() {
         "Error al enviar el correo. Por favor intenta de nuevo";
 
       MySwal.fire({
-        title: "ERROR",
+        title: "Error",
         text: errorMessage,
         icon: "error",
-        confirmButtonText: "CERRAR",
+        confirmButtonText: "Cerrar",
+        confirmButtonColor: "#ef4444",
       });
     } finally {
       setLoading(false);
@@ -76,41 +81,56 @@ function ForgotPassword() {
   };
 
   return (
-    <div className="d-flex align-items-center justify-content-center min-vh-100 position-relative bg-light">
-
+    <div className="bg-light min-vh-100 d-flex align-items-center justify-content-center animate-fade-in py-5">
       <Container>
         <Row className="justify-content-center">
           <Col xs={12} sm={10} md={6} lg={5} xl={4}>
-            <Card>
-              <Card.Body className="p-4">
+            <Card className="border-0 shadow-lg rounded-4 overflow-hidden">
+              <Card.Body className="p-4 p-md-5">
+                
+                {/* Encabezado con Icono */}
                 <div className="text-center mb-4">
-                  <h2 className="fw-bold mb-1">TasteLogic</h2>
-                  <p className="text-muted mb-0">RECUPERAR CONTRASEÑA</p>
+                  <div
+                    className="d-flex align-items-center justify-content-center rounded-circle mx-auto mb-3 icon-orange shadow-sm"
+                    style={{ width: 70, height: 70 }}
+                  >
+                    <MdLockReset size={32} />
+                  </div>
+                  <h2 className="fw-bold text-dark mb-1">Recuperar Acceso</h2>
+                  <p className="text-muted small px-2">
+                    Ingresa tu email y te enviaremos instrucciones para restablecer tu contraseña.
+                  </p>
                 </div>
 
-                <p className="text-muted text-center small mb-4">
-                  Ingresa tu email y te enviaremos las instrucciones para restablecer tu acceso.
-                </p>
-
                 <Form noValidate validated={validated} onSubmit={handleSubmit}>
-                  <Form.Group className="mb-3" controlId="formEmail">
-                    <Form.Label>Email</Form.Label>
-                    <Form.Control
-                      type="email"
-                      placeholder="nombre@correo.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                    />
-                    <Form.Control.Feedback type="invalid">
+                  
+                  {/* Input Email Estilizado */}
+                  <Form.Group className="mb-4" controlId="formEmail">
+                    <Form.Label className="small text-muted ms-1 mb-1">Correo electrónico</Form.Label>
+                    <InputGroup className="shadow-sm rounded-3 overflow-hidden border-0">
+                      <InputGroup.Text className="bg-white border-0 ps-3">
+                        <MdEmail className="text-orange" size={20} />
+                      </InputGroup.Text>
+                      <Form.Control
+                        type="email"
+                        placeholder="nombre@correo.com"
+                        className="border-0 py-2 fw-medium"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                        style={{ fontSize: '0.95rem' }}
+                      />
+                    </InputGroup>
+                    <Form.Control.Feedback type="invalid" className="small ps-1">
                       Por favor ingresa un email válido.
                     </Form.Control.Feedback>
                   </Form.Group>
 
+                  {/* Botón Enviar */}
                   <Button
                     type="submit"
-                    variant="dark"
-                    className="w-100 mt-2"
+                    variant="primary" // Gradiente naranja
+                    className="w-100 rounded-pill py-2 fw-bold shadow-sm"
                     disabled={loading}
                   >
                     {loading ? (
@@ -122,19 +142,21 @@ function ForgotPassword() {
                           role="status"
                           className="me-2"
                         />
-                        ENVIANDO...
+                        Enviando...
                       </>
                     ) : (
                       "ENVIAR ENLACE"
                     )}
                   </Button>
 
-                  <div className="text-center mt-3">
+                  {/* Footer Volver */}
+                  <div className="text-center mt-4 pt-2">
                     <Link
                       to="/login"
-                      className="fw-semibold small text-decoration-none"
+                      className="d-inline-flex align-items-center fw-semibold small text-decoration-none text-muted hover-orange"
                     >
-                      VOLVER A INICIAR SESIÓN
+                      <MdArrowBack className="me-1" />
+                      Volver a Iniciar Sesión
                     </Link>
                   </div>
                 </Form>

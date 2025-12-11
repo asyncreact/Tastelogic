@@ -6,6 +6,8 @@ import { verifyAccount } from "../api/auth";
 import Swal from "sweetalert2";
 import withReactContent from "sweetalert2-react-content";
 
+import { MdMarkEmailRead, MdErrorOutline, MdHourglassEmpty } from "react-icons/md";
+
 const MySwal = withReactContent(Swal);
 
 function VerifyEmail() {
@@ -18,18 +20,7 @@ function VerifyEmail() {
     const verifyEmail = async () => {
       if (hasVerified.current) return;
       hasVerified.current = true;
-
-      MySwal.fire({
-        title: "VERIFICANDO EMAIL",
-        text: "Por favor espera un momento...",
-        allowOutsideClick: false,
-        allowEscapeKey: false,
-        showConfirmButton: false,
-        didOpen: () => {
-          MySwal.showLoading();
-        },
-      });
-
+      
       try {
         const response = await verifyAccount(token);
         setStatus("success");
@@ -40,10 +31,11 @@ function VerifyEmail() {
           "Tu cuenta ha sido verificada exitosamente";
 
         await MySwal.fire({
-          title: "EMAIL VERIFICADO",
+          title: "¡Email Verificado!",
           text: message,
           icon: "success",
-          confirmButtonText: "IR A INICIAR SESIÓN",
+          confirmButtonText: "Ir a Iniciar Sesión",
+          confirmButtonColor: "#ff7a18",
           allowOutsideClick: false,
         });
 
@@ -56,13 +48,13 @@ function VerifyEmail() {
           "El enlace de verificación es inválido o ha expirado";
 
         const result = await MySwal.fire({
-          title: "ERROR DE VERIFICACIÓN",
+          title: "Error de Verificación",
           text: errorMessage,
           icon: "error",
           showCancelButton: true,
-          confirmButtonText: "REGISTRARSE NUEVAMENTE",
-          cancelButtonText: "IR AL LOGIN",
-          confirmButtonColor: "#000",
+          confirmButtonText: "Registrarse de nuevo",
+          cancelButtonText: "Ir al Login",
+          confirmButtonColor: "#ef4444",
           cancelButtonColor: "#6c757d",
           reverseButtons: true,
         });
@@ -81,43 +73,72 @@ function VerifyEmail() {
   }, [token, navigate]);
 
   return (
-    <div className="d-flex align-items-center justify-content-center min-vh-100 position-relative bg-light">
-
+    <div className="bg-light min-vh-100 d-flex align-items-center justify-content-center animate-fade-in py-5">
       <Container>
         <Row className="w-100 justify-content-center">
           <Col md={8} lg={6} xl={5}>
-            <Card className="text-center">
-              <Card.Body className="p-5">
-                <h2 className="fw-bold mb-3">TasteLogic</h2>
-                <p className="text-muted mb-4">ESTADO DE VERIFICACIÓN</p>
-
-                <div className="py-4">
+            <Card className="border-0 shadow-lg rounded-4 overflow-hidden">
+              <Card.Body className="p-5 text-center">
+                
+                {/* Encabezado Dinámico según Estado */}
+                <div className="mb-4">
                   {status === "loading" && (
-                    <div className="text-muted small text-uppercase">
-                      <Spinner
-                        animation="border"
-                        size="sm"
-                        role="status"
-                        className="me-2"
-                      >
-                        <span className="visually-hidden">Loading...</span>
-                      </Spinner>
-                      Procesando solicitud...
+                    <div
+                      className="d-flex align-items-center justify-content-center rounded-circle mx-auto mb-3 shadow-sm bg-light text-secondary"
+                      style={{ width: 80, height: 80 }}
+                    >
+                      <MdHourglassEmpty size={36} />
                     </div>
                   )}
 
                   {status === "success" && (
-                    <div className="text-success fw-bold text-uppercase">
-                      ¡Verificación Exitosa!
+                    <div
+                      className="d-flex align-items-center justify-content-center rounded-circle mx-auto mb-3 shadow-sm text-white"
+                      style={{ width: 80, height: 80, backgroundColor: "#10b981" }} // Verde éxito
+                    >
+                      <MdMarkEmailRead size={36} />
                     </div>
                   )}
 
                   {status === "error" && (
-                    <div className="text-danger fw-bold text-uppercase">
-                      No se pudo verificar el correo
+                    <div
+                      className="d-flex align-items-center justify-content-center rounded-circle mx-auto mb-3 shadow-sm text-white"
+                      style={{ width: 80, height: 80, backgroundImage: "var(--btn-red-1)" }} // Rojo error
+                    >
+                      <MdErrorOutline size={36} />
+                    </div>
+                  )}
+
+                  <h2 className="fw-bold text-dark mb-1">Verificación</h2>
+                  <p className="text-muted small">Estado de tu cuenta</p>
+                </div>
+
+                {/* Contenido del Estado */}
+                <div className="py-2">
+                  {status === "loading" && (
+                    <div className="d-flex flex-column align-items-center">
+                      <Spinner animation="border" variant="warning" className="mb-3" />
+                      <span className="text-muted small fw-semibold">
+                        Verificando tu enlace...
+                      </span>
+                    </div>
+                  )}
+
+                  {status === "success" && (
+                    <div className="text-success fw-bold">
+                      <p className="mb-0">¡Verificación Exitosa!</p>
+                      <small className="text-muted fw-normal">Redirigiendo al login...</small>
+                    </div>
+                  )}
+
+                  {status === "error" && (
+                    <div className="text-danger fw-bold">
+                      <p className="mb-0">No se pudo verificar</p>
+                      <small className="text-muted fw-normal">El enlace puede haber expirado.</small>
                     </div>
                   )}
                 </div>
+
               </Card.Body>
             </Card>
           </Col>

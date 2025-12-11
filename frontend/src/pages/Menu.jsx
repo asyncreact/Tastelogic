@@ -1,5 +1,3 @@
-// src/pages/Menu.jsx
-
 import { useEffect, useState, useMemo } from "react";
 import {
   Container,
@@ -28,7 +26,6 @@ function Menu() {
   useEffect(() => {
     fetchCategories();
     fetchItems();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const categoryById = useMemo(() => {
@@ -75,6 +72,8 @@ function Menu() {
 
   const itemsInCart = cart.reduce((total, item) => total + item.quantity, 0);
 
+  const orange = "#ff7a18";
+
   if (loading) {
     return (
       <Container className="min-vh-100 d-flex justify-content-center align-items-center">
@@ -83,13 +82,8 @@ function Menu() {
     );
   }
 
-  // color naranja base (por si lo sigues usando en otros sitios)
-  const orange = "#ff7a18";
-
   return (
-    <Container className="py-4" style={{ maxWidth: "1280px" }}>
-      {/* === ENCABEZADO CENTRADO === */}
-      {/* Se cambió justify-content-between por justify-content-center */}
+    <Container className="py-4 animate-fade-in" style={{ maxWidth: "1280px" }}>
       <div className="d-flex flex-wrap justify-content-center align-items-center mb-5 gap-4">
         <div className="d-flex align-items-center">
           <div
@@ -106,7 +100,6 @@ function Menu() {
           </div>
         </div>
 
-        {/* El indicador del carrito ahora aparece al lado del título, centrado */}
         {itemsInCart > 0 && (
           <div className="bg-white border rounded-pill ps-2 pe-4 py-2 shadow-sm d-flex align-items-center gap-3">
             <div
@@ -128,8 +121,6 @@ function Menu() {
         )}
       </div>
 
-      {/* === BÚSQUEDA Y FILTROS CENTRADOS === */}
-      {/* Se agregó mx-auto y maxWidth para que no se estire demasiado */}
       <Row className="mb-5 g-3 mx-auto" style={{ maxWidth: "1000px" }}>
         <Col md={8}>
           <InputGroup className="shadow-sm rounded-3 overflow-hidden border-0">
@@ -161,7 +152,6 @@ function Menu() {
         </Col>
       </Row>
 
-      {/* ERRORES */}
       {error && (
         <Row className="mb-3">
           <Col>
@@ -172,7 +162,6 @@ function Menu() {
         </Row>
       )}
 
-      {/* LISTADO */}
       <Row>
         <Col>
           {filteredItems.length === 0 ? (
@@ -197,7 +186,6 @@ function Menu() {
           ) : (
             visibleCategories.map((category) => (
               <div key={category.id} className="mb-5">
-                {/* Cabecera de Categoría */}
                 <div className="d-flex align-items-center mb-4 border-bottom pb-3">
                   <div
                     className="d-flex align-items-center justify-content-center rounded-3 me-3 shadow-sm icon-orange"

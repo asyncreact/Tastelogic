@@ -1,4 +1,3 @@
-// src/pages/Orders.jsx
 import { useState } from "react";
 import { Container, Tabs, Tab, Card } from "react-bootstrap";
 import CartSection from "../components/CartSection";
@@ -12,9 +11,7 @@ function Orders() {
 
   return (
     <div className="bg-light min-vh-100 pb-5">
-      <Container className="pt-4" style={{ maxWidth: "1280px" }}> {/* Cambié pt-3 a pt-4 para más aire arriba */}
-        
-        {/* === CAMBIO AQUÍ: Agregué 'justify-content-center' === */}
+      <Container className="pt-4" style={{ maxWidth: "1280px" }}>
         <div className="d-flex flex-wrap justify-content-center align-items-center mb-4 gap-3">
           <div
             className="d-flex align-items-center justify-content-center rounded-3 shadow-sm icon-orange"
@@ -22,7 +19,6 @@ function Orders() {
           >
             <MdOutlineReceiptLong size={28} />
           </div>
-          {/* Opcional: text-start o text-center dependiendo de tu gusto, pero el bloque ya está centrado */}
           <div>
             <h2 className="h4 mb-0 fw-bold text-dark">Mis Pedidos</h2>
             <small className="text-muted">
@@ -31,8 +27,10 @@ function Orders() {
           </div>
         </div>
 
-        {/* Card centrado en la página */}
-        <Card className="border-0 shadow-sm rounded-4 overflow-hidden mx-auto" style={{ maxWidth: "1200px" }}>
+        <Card
+          className="border-0 shadow-sm rounded-4 overflow-hidden mx-auto"
+          style={{ maxWidth: "1200px" }}
+        >
           <Card.Header className="bg-white border-bottom-0 p-0">
             <Tabs
               activeKey={activeTab}

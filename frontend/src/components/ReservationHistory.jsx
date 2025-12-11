@@ -8,7 +8,6 @@ import {
   Row,
   Col,
 } from "react-bootstrap";
-// Iconos
 import { BiCalendarEvent, BiTimeFive, BiDetail, BiUser } from "react-icons/bi";
 import { MdOutlineCancel, MdOutlineTableRestaurant } from "react-icons/md";
 import { FaRegMap } from "react-icons/fa";
@@ -218,7 +217,6 @@ function ReservationHistory() {
             className="bg-white rounded-4 p-3 d-flex flex-column flex-md-row justify-content-between align-items-md-center shadow-sm border-0 transition-all hover-shadow"
           >
             <div className="d-flex align-items-center gap-3 mb-3 mb-md-0">
-              {/* Icono de calendario con tu degradado naranja */}
               <div
                 className="icon-orange rounded-3 flex-shrink-0"
                 style={{ width: 48, height: 48 }}
@@ -270,7 +268,6 @@ function ReservationHistory() {
         ))}
       </div>
 
-      {/* === MODAL ESTILO TICKET DE RESERVA === */}
       <Modal
         show={showModal}
         onHide={() => setShowModal(false)}
@@ -279,121 +276,116 @@ function ReservationHistory() {
       >
         {selectedReservation && (
           <div className="bg-white">
-             {/* Cabecera Tipo Ticket */}
-             <div 
+            <div 
               className="bg-light p-4 text-center"
               style={{ 
                 borderBottom: '2px dashed #e5e7eb',
                 position: 'relative'
               }}
             >
-                <div 
-                    className="icon-orange rounded-circle mx-auto mb-3 shadow-sm" 
-                    style={{ width: 56, height: 56 }}
-                >
-                    <BiCalendarEvent size={28} />
-                </div>
-                <h5 className="mb-0 fw-bold text-dark">Confirmación de Reserva</h5>
-                <p className="text-muted small mb-2">Presenta tu ticket al llegar al local</p>
-                <div className="d-inline-block px-3 py-1 rounded-pill bg-white border shadow-sm mt-1">
-                    <span className="fw-bold text-orange">
-                      {selectedReservation.reservation_number || `#${selectedReservation.id}`}
-                    </span>
-                </div>
+              <div 
+                className="icon-orange rounded-circle mx-auto mb-3 shadow-sm" 
+                style={{ width: 56, height: 56 }}
+              >
+                <BiCalendarEvent size={28} />
+              </div>
+              <h5 className="mb-0 fw-bold text-dark">Confirmación de Reserva</h5>
+              <p className="text-muted small mb-2">Presenta tu ticket al llegar al local</p>
+              <div className="d-inline-block px-3 py-1 rounded-pill bg-white border shadow-sm mt-1">
+                <span className="fw-bold text-orange">
+                  {selectedReservation.reservation_number || `#${selectedReservation.id}`}
+                </span>
+              </div>
 
-                {/* Decoración semicírculos (opcional) */}
-                <div style={{ position: 'absolute', bottom: -10, left: -10, width: 20, height: 20, background: '#fff', borderRadius: '50%' }}></div>
-                <div style={{ position: 'absolute', bottom: -10, right: -10, width: 20, height: 20, background: '#fff', borderRadius: '50%' }}></div>
+              <div style={{ position: 'absolute', bottom: -10, left: -10, width: 20, height: 20, background: '#fff', borderRadius: '50%' }}></div>
+              <div style={{ position: 'absolute', bottom: -10, right: -10, width: 20, height: 20, background: '#fff', borderRadius: '50%' }}></div>
             </div>
 
             <Modal.Body className="p-0">
-               <div className="p-4">
-                  {/* Grid de Información */}
-                  <Row className="g-3 mb-4">
-                      <Col xs={6}>
-                          <div className="d-flex align-items-center gap-2 mb-1">
-                              <BiCalendarEvent className="text-muted" />
-                              <span className="small text-muted">Fecha</span>
-                          </div>
-                          <div className="small fw-semibold text-dark">
-                              {formatDate(selectedReservation.reservation_date)}
-                          </div>
-                      </Col>
-                      <Col xs={6}>
-                          <div className="d-flex align-items-center gap-2 mb-1">
-                              <BiTimeFive className="text-muted" />
-                              <span className="small text-muted">Hora</span>
-                          </div>
-                          <div className="small fw-semibold text-dark">
-                              {formatTime(selectedReservation.reservation_time)}
-                          </div>
-                      </Col>
-                      <Col xs={6}>
-                          <div className="d-flex align-items-center gap-2 mb-1">
-                              <MdOutlineTableRestaurant className="text-muted" />
-                              <span className="small text-muted">Mesa</span>
-                          </div>
-                          <div className="small fw-semibold text-dark">
-                             Mesa {selectedReservation.table_number}
-                          </div>
-                      </Col>
-                      <Col xs={6}>
-                          <div className="d-flex align-items-center gap-2 mb-1">
-                              <FaRegMap className="text-muted" />
-                              <span className="small text-muted">Zona</span>
-                          </div>
-                          <div className="small fw-semibold text-dark">
-                             {selectedReservation.zone_name || getZoneName(selectedReservation.zone_id)}
-                          </div>
-                      </Col>
-                      <Col xs={6}>
-                          <div className="d-flex align-items-center gap-2 mb-1">
-                              <BiUser className="text-muted" />
-                              <span className="small text-muted">Personas</span>
-                          </div>
-                          <div className="small fw-semibold text-dark">
-                             {selectedReservation.guest_count} max
-                          </div>
-                      </Col>
-                  </Row>
+              <div className="p-4">
+                <Row className="g-3 mb-4">
+                  <Col xs={6}>
+                    <div className="d-flex align-items-center gap-2 mb-1">
+                      <BiCalendarEvent className="text-muted" />
+                      <span className="small text-muted">Fecha</span>
+                    </div>
+                    <div className="small fw-semibold text-dark">
+                      {formatDate(selectedReservation.reservation_date)}
+                    </div>
+                  </Col>
+                  <Col xs={6}>
+                    <div className="d-flex align-items-center gap-2 mb-1">
+                      <BiTimeFive className="text-muted" />
+                      <span className="small text-muted">Hora</span>
+                    </div>
+                    <div className="small fw-semibold text-dark">
+                      {formatTime(selectedReservation.reservation_time)}
+                    </div>
+                  </Col>
+                  <Col xs={6}>
+                    <div className="d-flex align-items-center gap-2 mb-1">
+                      <MdOutlineTableRestaurant className="text-muted" />
+                      <span className="small text-muted">Mesa</span>
+                    </div>
+                    <div className="small fw-semibold text-dark">
+                      Mesa {selectedReservation.table_number}
+                    </div>
+                  </Col>
+                  <Col xs={6}>
+                    <div className="d-flex align-items-center gap-2 mb-1">
+                      <FaRegMap className="text-muted" />
+                      <span className="small text-muted">Zona</span>
+                    </div>
+                    <div className="small fw-semibold text-dark">
+                      {selectedReservation.zone_name || getZoneName(selectedReservation.zone_id)}
+                    </div>
+                  </Col>
+                  <Col xs={6}>
+                    <div className="d-flex align-items-center gap-2 mb-1">
+                      <BiUser className="text-muted" />
+                      <span className="small text-muted">Personas</span>
+                    </div>
+                    <div className="small fw-semibold text-dark">
+                      {selectedReservation.guest_count} max
+                    </div>
+                  </Col>
+                </Row>
 
-                  {/* Notas */}
-                  {selectedReservation.special_requirements && (
-                      <Alert variant="warning" className="small border-0 text-dark mb-4 bg-orange-subtle">
-                          <strong>Nota especial:</strong> {selectedReservation.special_requirements}
-                      </Alert>
-                  )}
+                {selectedReservation.special_requirements && (
+                  <Alert variant="warning" className="small border-0 text-dark mb-4 bg-orange-subtle">
+                    <strong>Nota especial:</strong> {selectedReservation.special_requirements}
+                  </Alert>
+                )}
 
-                  {/* Separador Punteado */}
-                  <div className="mb-4" style={{ borderBottom: '1px dashed #e5e7eb' }}></div>
+                <div className="mb-4" style={{ borderBottom: '1px dashed #e5e7eb' }}></div>
 
-                  <div className="d-flex justify-content-between align-items-center">
-                      <span className="small text-muted">Estado actual</span>
-                      <span className="badge bg-light text-dark border px-3 py-2">
-                          {getStatusText(selectedReservation.status)}
-                      </span>
-                  </div>
-               </div>
+                <div className="d-flex justify-content-between align-items-center">
+                  <span className="small text-muted">Estado actual</span>
+                  <span className="badge bg-light text-dark border px-3 py-2">
+                    {getStatusText(selectedReservation.status)}
+                  </span>
+                </div>
+              </div>
             </Modal.Body>
 
             <div className="p-4 bg-light border-top d-flex gap-2">
+              <Button 
+                variant="white" 
+                className="flex-grow-1 border shadow-sm text-muted bg-white"
+                onClick={() => setShowModal(false)}
+              >
+                Cerrar
+              </Button>
+              {canCancelReservation(selectedReservation) && (
                 <Button 
-                    variant="white" 
-                    className="flex-grow-1 border shadow-sm text-muted bg-white"
-                    onClick={() => setShowModal(false)}
+                  variant="danger" 
+                  className="flex-grow-1 shadow-sm"
+                  onClick={() => handleCancelReservation(selectedReservation.id)}
+                  disabled={loadingAction}
                 >
-                    Cerrar
+                  {loadingAction ? "Procesando..." : "Cancelar Reserva"}
                 </Button>
-                {canCancelReservation(selectedReservation) && (
-                    <Button 
-                        variant="danger" 
-                        className="flex-grow-1 shadow-sm"
-                        onClick={() => handleCancelReservation(selectedReservation.id)}
-                        disabled={loadingAction}
-                    >
-                        {loadingAction ? "Procesando..." : "Cancelar Reserva"}
-                    </Button>
-                )}
+              )}
             </div>
           </div>
         )}

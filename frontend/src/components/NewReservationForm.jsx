@@ -15,11 +15,9 @@ import { useReservation } from "../hooks/useReservation";
 import api from "../api/auth";
 import Swal from "sweetalert2";
 
-// Iconos actualizados
 import { MdPeople, MdOutlineTableBar, MdClose } from "react-icons/md";
 import { BiCalendar, BiTimeFive, BiNote } from "react-icons/bi";
 import { FaRegMap, FaCheckCircle } from "react-icons/fa";
-// Nuevo icono solicitado
 import { RiReservedLine } from "react-icons/ri";
 
 const API_URL = (import.meta.env.VITE_API_URL || "http://localhost:4000").replace(
@@ -278,7 +276,6 @@ function NewReservationForm({ onSuccess }) {
         <Col lg={10} xl={9}>
           <Card className="shadow-sm border-0 rounded-4 overflow-hidden">
             <Card.Body className="p-4 p-md-5">
-              {/* === ENCABEZADO ACTUALIZADO CON RiReservedLine === */}
               <div className="mb-4 d-flex align-items-center gap-3 border-bottom pb-4">
                 <div 
                   className="icon-orange rounded-circle flex-shrink-0" 
@@ -294,10 +291,9 @@ function NewReservationForm({ onSuccess }) {
                 </div>
               </div>
 
-              {/* === PASO 1: SELECCIÓN DE ZONA (GRID) === */}
               <div className="mb-5">
                 <h6 className="text-dark mb-3 small text-uppercase" style={{ letterSpacing: '0.05em', color: '#6b7280' }}>
-                   1. Selecciona una Zona
+                  1. Selecciona una Zona
                 </h6>
 
                 {loadingZones ? (
@@ -324,9 +320,7 @@ function NewReservationForm({ onSuccess }) {
                             style={{
                               cursor: isUnavailable ? "not-allowed" : "pointer",
                               opacity: isUnavailable ? 0.6 : 1,
-                              // Borde naranja si seleccionado
                               border: isSelected ? "2px solid #ff7a18" : "1px solid rgba(0,0,0,0.05)",
-                              // Fondo suave si seleccionado
                               backgroundColor: isSelected ? "#fff7ed" : "#fff",
                               transform: isSelected ? "translateY(-2px)" : "none",
                               transition: "all 0.2s ease"
@@ -337,7 +331,6 @@ function NewReservationForm({ onSuccess }) {
                               setShowZoneModal(true);
                             }}
                           >
-                            {/* Checkmark en esquina superior derecha si está seleccionado */}
                             {isSelected && (
                               <div 
                                 className="position-absolute top-0 end-0 m-2"
@@ -350,34 +343,34 @@ function NewReservationForm({ onSuccess }) {
                             )}
 
                             <div className="d-flex align-items-center p-3 h-100">
-                                {img ? (
-                                    <img
-                                    src={img}
-                                    alt={zone.name}
-                                    style={{
-                                        width: 48,
-                                        height: 48,
-                                        objectFit: "cover",
-                                        borderRadius: 10,
-                                        marginRight: 12,
-                                    }}
-                                    />
-                                ) : (
-                                    <div
-                                    className="d-flex align-items-center justify-content-center bg-light text-secondary rounded-3 me-3"
-                                    style={{ width: 48, height: 48 }}
-                                    >
-                                    <MdOutlineTableBar size={20} />
-                                    </div>
-                                )}
-                                <div className="lh-sm pe-2">
-                                    <div className={`mb-0 small ${isSelected ? 'text-orange fw-bold' : 'text-dark fw-semibold'}`}>
-                                        {zone.name}
-                                    </div>
-                                    <div className="text-muted" style={{ fontSize: '0.75rem' }}>
-                                        {isUnavailable ? "No disponible" : "Ver detalles"}
-                                    </div>
+                              {img ? (
+                                <img
+                                  src={img}
+                                  alt={zone.name}
+                                  style={{
+                                    width: 48,
+                                    height: 48,
+                                    objectFit: "cover",
+                                    borderRadius: 10,
+                                    marginRight: 12,
+                                  }}
+                                />
+                              ) : (
+                                <div
+                                  className="d-flex align-items-center justify-content-center bg-light text-secondary rounded-3 me-3"
+                                  style={{ width: 48, height: 48 }}
+                                >
+                                  <MdOutlineTableBar size={20} />
                                 </div>
+                              )}
+                              <div className="lh-sm pe-2">
+                                <div className={`mb-0 small ${isSelected ? 'text-orange fw-bold' : 'text-dark fw-semibold'}`}>
+                                  {zone.name}
+                                </div>
+                                <div className="text-muted" style={{ fontSize: '0.75rem' }}>
+                                  {isUnavailable ? "No disponible" : "Ver detalles"}
+                                </div>
+                              </div>
                             </div>
                           </div>
                         </Col>
@@ -387,7 +380,6 @@ function NewReservationForm({ onSuccess }) {
                 )}
               </div>
 
-              {/* === PASO 2: FORMULARIO DE DETALLES === */}
               {selectedZone && (
                 <Form onSubmit={handleSubmit} className="animate-fade-in">
                   <h6 className="text-dark mb-3 small text-uppercase" style={{ letterSpacing: '0.05em', color: '#6b7280' }}>
@@ -396,86 +388,85 @@ function NewReservationForm({ onSuccess }) {
                   
                   <div className="bg-light rounded-4 p-4 mb-4">
                     <Row className="g-3">
-                        {/* CAMPO ZONA BLOQUEADO (READ-ONLY) */}
-                        <Col md={6}>
-                            <Form.Group>
-                                <Form.Label className="small text-muted mb-1">Zona Seleccionada</Form.Label>
-                                <InputGroup className="shadow-sm rounded-3 overflow-hidden border-0">
-                                    <InputGroup.Text className="bg-white border-0 ps-3">
-                                        <FaRegMap className="text-orange" size={18} />
-                                    </InputGroup.Text>
-                                    <Form.Control
-                                        type="text"
-                                        value={selectedZone.name}
-                                        className="border-0 py-2 fw-semibold text-dark bg-white"
-                                        readOnly
-                                        style={{ cursor: "default" }}
-                                    />
-                                </InputGroup>
-                            </Form.Group>
-                        </Col>
+                      <Col md={6}>
+                        <Form.Group>
+                          <Form.Label className="small text-muted mb-1">Zona Seleccionada</Form.Label>
+                          <InputGroup className="shadow-sm rounded-3 overflow-hidden border-0">
+                            <InputGroup.Text className="bg-white border-0 ps-3">
+                              <FaRegMap className="text-orange" size={18} />
+                            </InputGroup.Text>
+                            <Form.Control
+                              type="text"
+                              value={selectedZone.name}
+                              className="border-0 py-2 fw-semibold text-dark bg-white"
+                              readOnly
+                              style={{ cursor: "default" }}
+                            />
+                          </InputGroup>
+                        </Form.Group>
+                      </Col>
 
-                        <Col md={6}>
-                            <Form.Group>
-                                <Form.Label className="small text-muted mb-1">Personas</Form.Label>
-                                <InputGroup className="shadow-sm rounded-3 overflow-hidden border-0">
-                                    <InputGroup.Text className="bg-white border-0 ps-3">
-                                        <MdPeople className="text-orange" size={18} />
-                                    </InputGroup.Text>
-                                    <Form.Control
-                                        type="number"
-                                        name="guest_count"
-                                        className="border-0 py-2"
-                                        value={formData.guest_count}
-                                        onChange={handleChange}
-                                        min={1}
-                                        required
-                                        placeholder="0"
-                                    />
-                                </InputGroup>
-                            </Form.Group>
-                        </Col>
+                      <Col md={6}>
+                        <Form.Group>
+                          <Form.Label className="small text-muted mb-1">Personas</Form.Label>
+                          <InputGroup className="shadow-sm rounded-3 overflow-hidden border-0">
+                            <InputGroup.Text className="bg-white border-0 ps-3">
+                              <MdPeople className="text-orange" size={18} />
+                            </InputGroup.Text>
+                            <Form.Control
+                              type="number"
+                              name="guest_count"
+                              className="border-0 py-2"
+                              value={formData.guest_count}
+                              onChange={handleChange}
+                              min={1}
+                              required
+                              placeholder="0"
+                            />
+                          </InputGroup>
+                        </Form.Group>
+                      </Col>
 
-                        <Col md={6}>
-                            <Form.Group>
-                                <Form.Label className="small text-muted mb-1">Fecha</Form.Label>
-                                <InputGroup className="shadow-sm rounded-3 overflow-hidden border-0">
-                                    <InputGroup.Text className="bg-white border-0 ps-3">
-                                        <BiCalendar className="text-orange" size={18} />
-                                    </InputGroup.Text>
-                                    <Form.Control
-                                        type="date"
-                                        name="reservation_date"
-                                        className="border-0 py-2"
-                                        value={formData.reservation_date}
-                                        onChange={handleChange}
-                                        min={getMinDate()}
-                                        required
-                                    />
-                                </InputGroup>
-                            </Form.Group>
-                        </Col>
+                      <Col md={6}>
+                        <Form.Group>
+                          <Form.Label className="small text-muted mb-1">Fecha</Form.Label>
+                          <InputGroup className="shadow-sm rounded-3 overflow-hidden border-0">
+                            <InputGroup.Text className="bg-white border-0 ps-3">
+                              <BiCalendar className="text-orange" size={18} />
+                            </InputGroup.Text>
+                            <Form.Control
+                              type="date"
+                              name="reservation_date"
+                              className="border-0 py-2"
+                              value={formData.reservation_date}
+                              onChange={handleChange}
+                              min={getMinDate()}
+                              required
+                            />
+                          </InputGroup>
+                        </Form.Group>
+                      </Col>
 
-                        <Col md={6}>
-                            <Form.Group>
-                                <Form.Label className="small text-muted mb-1">Hora</Form.Label>
-                                <InputGroup className="shadow-sm rounded-3 overflow-hidden border-0">
-                                    <InputGroup.Text className="bg-white border-0 ps-3">
-                                        <BiTimeFive className="text-orange" size={18} />
-                                    </InputGroup.Text>
-                                    <Form.Control
-                                        type="time"
-                                        name="reservation_time"
-                                        className="border-0 py-2"
-                                        value={formData.reservation_time}
-                                        onChange={handleChange}
-                                        min={getMinTime()}
-                                        max="23:59"
-                                        required
-                                    />
-                                </InputGroup>
-                            </Form.Group>
-                        </Col>
+                      <Col md={6}>
+                        <Form.Group>
+                          <Form.Label className="small text-muted mb-1">Hora</Form.Label>
+                          <InputGroup className="shadow-sm rounded-3 overflow-hidden border-0">
+                            <InputGroup.Text className="bg-white border-0 ps-3">
+                              <BiTimeFive className="text-orange" size={18} />
+                            </InputGroup.Text>
+                            <Form.Control
+                              type="time"
+                              name="reservation_time"
+                              className="border-0 py-2"
+                              value={formData.reservation_time}
+                              onChange={handleChange}
+                              min={getMinTime()}
+                              max="23:59"
+                              required
+                            />
+                          </InputGroup>
+                        </Form.Group>
+                      </Col>
                     </Row>
                   </div>
 
@@ -507,8 +498,8 @@ function NewReservationForm({ onSuccess }) {
                               onClick={() => setFormData((prev) => ({ ...prev, table_id: String(table.id) }))}
                               className={`p-3 rounded-3 border text-center cursor-pointer transition-all ${
                                 isActive 
-                                    ? "border-orange bg-white text-orange shadow-sm" 
-                                    : "border-light bg-white text-muted hover-shadow"
+                                  ? "border-orange bg-white text-orange shadow-sm" 
+                                  : "border-light bg-white text-muted hover-shadow"
                               }`}
                               style={{ 
                                 cursor: 'pointer',
@@ -526,27 +517,27 @@ function NewReservationForm({ onSuccess }) {
                       </div>
                     ) : (
                         <p className="text-muted small fst-italic">
-                            Completa los campos de arriba para ver las mesas disponibles.
+                          Completa los campos de arriba para ver las mesas disponibles.
                         </p>
                     )}
                   </div>
 
                   <Form.Group className="mb-4">
                     <Form.Label className="small text-muted mb-1">Notas adicionales (opcional)</Form.Label>
-                     <InputGroup className="shadow-sm rounded-3 overflow-hidden border-0">
-                        <InputGroup.Text className="bg-white border-0 ps-3 align-items-start pt-2">
-                             <BiNote className="text-orange" size={18} />
-                        </InputGroup.Text>
-                        <Form.Control
-                            as="textarea"
-                            rows={2}
-                            name="special_requirements"
-                            className="border-0 py-2"
-                            value={formData.special_requirements}
-                            onChange={handleChange}
-                            placeholder="Ej: Aniversario, alergias, requerimientos de accesibilidad..."
-                        />
-                     </InputGroup>
+                    <InputGroup className="shadow-sm rounded-3 overflow-hidden border-0">
+                      <InputGroup.Text className="bg-white border-0 ps-3 align-items-start pt-2">
+                        <BiNote className="text-orange" size={18} />
+                      </InputGroup.Text>
+                      <Form.Control
+                        as="textarea"
+                        rows={2}
+                        name="special_requirements"
+                        className="border-0 py-2"
+                        value={formData.special_requirements}
+                        onChange={handleChange}
+                        placeholder="Ej: Aniversario, alergias, requerimientos de accesibilidad..."
+                      />
+                    </InputGroup>
                   </Form.Group>
 
                   <div className="d-flex justify-content-end pt-3 border-top">
@@ -579,7 +570,6 @@ function NewReservationForm({ onSuccess }) {
         </Col>
       </Row>
 
-      {/* --- MODAL DE ZONA --- */}
       <Modal
         show={showZoneModal && !!selectedZone}
         onHide={() => setShowZoneModal(false)}
@@ -587,31 +577,31 @@ function NewReservationForm({ onSuccess }) {
         contentClassName="border-0 rounded-4 overflow-hidden"
       >
         <div className="position-relative bg-light">
-             <button
-                onClick={() => setShowZoneModal(false)}
-                className="position-absolute top-0 end-0 m-3 btn btn-light rounded-circle shadow-sm d-flex align-items-center justify-content-center"
-                style={{ width: 32, height: 32, zIndex: 10, border: 'none', opacity: 0.9 }}
-            >
-                <MdClose size={18} />
-            </button>
+          <button
+            onClick={() => setShowZoneModal(false)}
+            className="position-absolute top-0 end-0 m-3 btn btn-light rounded-circle shadow-sm d-flex align-items-center justify-content-center"
+            style={{ width: 32, height: 32, zIndex: 10, border: 'none', opacity: 0.9 }}
+          >
+            <MdClose size={18} />
+          </button>
 
-             {selectedZone && getZoneImageUrl(selectedZone.image_url) ? (
-                 <div style={{ width: "100%", height: "200px" }}>
-                    <img
-                        src={getZoneImageUrl(selectedZone.image_url)}
-                        alt={selectedZone.name}
-                        className="w-100 h-100"
-                        style={{ objectFit: "cover" }}
-                    />
-                 </div>
-             ) : (
-                <div 
-                    className="d-flex align-items-center justify-content-center bg-secondary bg-opacity-10 text-secondary"
-                    style={{ width: "100%", height: "160px" }}
-                >
-                     <MdOutlineTableBar size={48} opacity={0.5} />
-                </div>
-             )}
+          {selectedZone && getZoneImageUrl(selectedZone.image_url) ? (
+            <div style={{ width: "100%", height: "200px" }}>
+              <img
+                src={getZoneImageUrl(selectedZone.image_url)}
+                alt={selectedZone.name}
+                className="w-100 h-100"
+                style={{ objectFit: "cover" }}
+              />
+            </div>
+          ) : (
+            <div 
+              className="d-flex align-items-center justify-content-center bg-secondary bg-opacity-10 text-secondary"
+              style={{ width: "100%", height: "160px" }}
+            >
+              <MdOutlineTableBar size={48} opacity={0.5} />
+            </div>
+          )}
         </div>
 
         <Modal.Body className="p-4">

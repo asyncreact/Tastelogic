@@ -4,7 +4,6 @@ import { Container, Tabs, Tab, Card } from "react-bootstrap";
 import NewReservationForm from "../components/NewReservationForm";
 import ReservationHistory from "../components/ReservationHistory";
 
-// Iconos estilo App
 import { IoCalendarNumberOutline } from "react-icons/io5";
 import { MdHistory, MdAddCircleOutline } from "react-icons/md";
 
@@ -14,16 +13,12 @@ function Reservations() {
   return (
     <div className="bg-light min-vh-100 pb-5">
       <Container className="py-4" style={{ maxWidth: "1280px" }}>
-        
-        {/* === ENCABEZADO CENTRADO === */}
-        {/* Se agregó 'justify-content-center' */}
+
         <div className="d-flex flex-wrap justify-content-center align-items-center mb-5 gap-3">
-          {/* Caja de Icono Principal con degradado naranja */}
           <div
             className="d-flex align-items-center justify-content-center rounded-3 shadow-sm icon-orange"
             style={{ width: 56, height: 56 }}
           >
-            {/* Icono de calendario */}
             <IoCalendarNumberOutline size={28} />
           </div>
           <div>
@@ -34,8 +29,6 @@ function Reservations() {
           </div>
         </div>
 
-        {/* === CONTENEDOR DE PESTAÑAS (Estilo Tarjeta Centrada) === */}
-        {/* Se agregó 'mx-auto' y maxWidth para alinear con el encabezado */}
         <Card className="border-0 shadow-sm rounded-4 overflow-hidden mx-auto" style={{ maxWidth: "1200px" }}>
           <Card.Header className="bg-white border-bottom-0 p-0">
             <Tabs
@@ -64,7 +57,6 @@ function Reservations() {
           </Card.Header>
 
           <Card.Body className="p-4 d-flex justify-content-center">
-            {/* Renderizado Condicional del Contenido */}
             {activeTab === "new" && (
               <div className="animate-fade-in w-100" style={{ maxWidth: "800px" }}>
                 <NewReservationForm onSuccess={() => setActiveTab("history")} />

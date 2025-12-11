@@ -1,7 +1,6 @@
 // src/components/MenuItemCard.jsx
 import { useState } from "react";
 import { Card, Button, Modal, Row, Col } from "react-bootstrap";
-// Agregamos iconos útiles para el detalle
 import { BiImage, BiTimeFive, BiDish } from "react-icons/bi";
 import { MdClose } from "react-icons/md"; 
 import { useOrder } from "../hooks/useOrder";
@@ -70,7 +69,6 @@ function MenuItemCard({ item }) {
 
   return (
     <>
-      {/* --- TU CARD ORIGINAL (Sin cambios) --- */}
       <Card
         className={`border-0 shadow-sm mb-3 ${
           isUnavailable ? "bg-light text-muted" : ""
@@ -191,14 +189,12 @@ function MenuItemCard({ item }) {
         </Card.Body>
       </Card>
 
-      {/* --- MODAL ACTUALIZADO CON ICONOS ICON-ORANGE --- */}
       <Modal 
         show={showModal} 
         onHide={handleCloseModal} 
         centered
         contentClassName="border-0 rounded-4 overflow-hidden" 
       >
-        {/* Encabezado con Imagen "Hero" */}
         <div className="position-relative bg-light">
           <button
             onClick={handleCloseModal}
@@ -243,35 +239,33 @@ function MenuItemCard({ item }) {
           </p>
 
           <Row className="g-3">
-             {item.estimated_prep_time && (
-                <Col xs={6}>
-                    <div className="d-flex align-items-center p-2 rounded-3 bg-light">
-                        {/* ICONO TIEMPO CON FONDO NARANJA GRADIENTE */}
-                        <div 
-                          className="icon-orange me-2 rounded-circle" 
-                          style={{ width: 32, height: 32 }}
-                        >
-                          <BiTimeFive size={18} />
-                        </div>
-                        <span className="small text-dark fw-semibold">{item.estimated_prep_time} min</span>
-                    </div>
-                </Col>
-             )}
-             
-             {item.ingredients && (
-                <Col xs={12}>
-                    <div className="d-flex align-items-start p-2 rounded-3 bg-light">
-                        {/* ICONO INGREDIENTES CON FONDO NARANJA GRADIENTE */}
-                        <div 
-                          className="icon-orange me-2 mt-1 flex-shrink-0 rounded-circle" 
-                          style={{ width: 32, height: 32 }}
-                        >
-                          <BiDish size={18} />
-                        </div>
-                        <span className="small text-dark pt-1">{item.ingredients}</span>
-                    </div>
-                </Col>
-             )}
+            {item.estimated_prep_time && (
+              <Col xs={6}>
+                <div className="d-flex align-items-center p-2 rounded-3 bg-light">
+                  <div 
+                    className="icon-orange me-2 rounded-circle" 
+                    style={{ width: 32, height: 32 }}
+                  >
+                    <BiTimeFive size={18} />
+                  </div>
+                  <span className="small text-dark fw-semibold">{item.estimated_prep_time} min</span>
+                </div>
+              </Col>
+            )}
+            
+            {item.ingredients && (
+              <Col xs={12}>
+                <div className="d-flex align-items-start p-2 rounded-3 bg-light">
+                  <div 
+                    className="icon-orange me-2 mt-1 flex-shrink-0 rounded-circle" 
+                    style={{ width: 32, height: 32 }}
+                  >
+                    <BiDish size={18} />
+                  </div>
+                  <span className="small text-dark pt-1">{item.ingredients}</span>
+                </div>
+              </Col>
+            )}
           </Row>
 
           {isUnavailable && (

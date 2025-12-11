@@ -9,11 +9,20 @@ import {
   Button,
   Card,
   Spinner,
+  InputGroup,
 } from "react-bootstrap";
 import { resetPassword } from "../api/auth";
 import Swal from "sweetalert2";
 import withReactContent from "sweetalert2-react-content";
-import { Eye, EyeSlash } from "react-bootstrap-icons";
+
+import { 
+  MdLockReset, 
+  MdLock, 
+  MdKey, 
+  MdVisibility, 
+  MdVisibilityOff, 
+  MdArrowBack 
+} from "react-icons/md";
 
 const MySwal = withReactContent(Swal);
 
@@ -37,11 +46,8 @@ function ResetPassword() {
     }));
   };
 
-  const togglePasswordVisibility = () =>
-    setShowPassword((prev) => !prev);
-
-  const toggleConfirmPasswordVisibility = () =>
-    setShowConfirmPassword((prev) => !prev);
+  const togglePasswordVisibility = () => setShowPassword((prev) => !prev);
+  const toggleConfirmPasswordVisibility = () => setShowConfirmPassword((prev) => !prev);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -55,10 +61,11 @@ function ResetPassword() {
 
     if (formData.password !== formData.confirmPassword) {
       MySwal.fire({
-        title: "ERROR",
+        title: "Error de validación",
         text: "Las contraseñas no coinciden",
-        icon: "error",
-        confirmButtonText: "CORREGIR",
+        icon: "warning",
+        confirmButtonText: "Corregir",
+        confirmButtonColor: "#ff7a18",
       });
       return;
     }
@@ -81,21 +88,19 @@ function ResetPassword() {
 
       Toast.fire({
         icon: "success",
-        title: "CONTRASEÑA ACTUALIZADA",
+        title: "Contraseña actualizada exitosamente",
       });
 
       navigate("/login");
     } catch (err) {
       const errorData = err.response?.data || {};
-      const errorMessage =
-        errorData.message || "Error al restablecer la contraseña";
-
+      const errorMessage = errorData.message || "Error al restablecer la contraseña";
       let errorDetailsHtml = "";
+
       if (errorData.details && Array.isArray(errorData.details)) {
         const listItems = errorData.details
           .map((d) => {
-            const msg =
-              typeof d === "object" ? d.mensaje || d.message : d;
+            const msg = typeof d === "object" ? d.mensaje || d.message : d;
             return `<li style="margin-bottom: 4px;">${msg}</li>`;
           })
           .join("");
@@ -110,13 +115,15 @@ function ResetPassword() {
       }
 
       MySwal.fire({
-        title: "ERROR",
+        title: "No se pudo actualizar",
         text: !errorDetailsHtml ? errorMessage : undefined,
         html: errorDetailsHtml
           ? `<div>${errorMessage}</div>${errorDetailsHtml}`
           : undefined,
         icon: "error",
-        confirmButtonText: "CERRAR",
+        confirmButtonText: "Cerrar",
+        confirmButtonColor: "#ef4444",
+        width: errorDetailsHtml ? "450px" : undefined,
       });
     } finally {
       setLoading(false);
@@ -124,78 +131,95 @@ function ResetPassword() {
   };
 
   return (
-    <div className="d-flex align-items-center justify-content-center min-vh-100 position-relative bg-light">
+    <div className="bg-light min-vh-100 d-flex align-items-center justify-content-center animate-fade-in py-5">
       <Container>
         <Row className="justify-content-center">
           <Col xs={12} sm={10} md={6} lg={5} xl={4}>
-            <Card>
-              <Card.Body className="p-4">
+            <Card className="border-0 shadow-lg rounded-4 overflow-hidden">
+              <Card.Body className="p-4 p-md-5">
+                
+                {/* Encabezado */}
                 <div className="text-center mb-4">
-                  <h2 className="fw-bold mb-1">TasteLogic</h2>
-                  <p className="text-muted mb-0">NUEVA CONTRASEÑA</p>
+                  <div
+                    className="d-flex align-items-center justify-content-center rounded-circle mx-auto mb-3 icon-orange shadow-sm"
+                    style={{ width: 70, height: 70 }}
+                  >
+                    <MdLockReset size={32} />
+                  </div>
+                  <h2 className="fw-bold text-dark mb-1">Nueva Contraseña</h2>
+                  <p className="text-muted small">Crea una contraseña segura para tu cuenta</p>
                 </div>
 
                 <Form noValidate validated={validated} onSubmit={handleSubmit}>
+                  
+                  {/* Nueva Contraseña */}
                   <Form.Group className="mb-3" controlId="formPassword">
-                    <Form.Label>Nueva contraseña</Form.Label>
-                    <div className="position-relative">
+                    <Form.Label className="small text-muted ms-1 mb-1">Nueva contraseña</Form.Label>
+                    <InputGroup className="shadow-sm rounded-3 overflow-hidden border-0">
+                      <InputGroup.Text className="bg-white border-0 ps-3">
+                        <MdLock className="text-orange" size={20} />
+                      </InputGroup.Text>
                       <Form.Control
                         type={showPassword ? "text" : "password"}
                         name="password"
+                        className="border-0 py-2 fw-medium"
                         placeholder="Mínimo 8 caracteres"
                         value={formData.password}
                         onChange={handleChange}
                         required
                         minLength={8}
+                        style={{ fontSize: '0.95rem' }}
                       />
-                      <button
-                        type="button"
+                      <Button 
+                        variant="white" 
+                        className="bg-white border-0 text-muted pe-3"
                         onClick={togglePasswordVisibility}
-                        className="btn btn-link p-0 border-0 position-absolute top-50 end-0 translate-middle-y me-2"
-                        style={{ textDecoration: "none" }}
+                        type="button"
                       >
-                        {showPassword ? <Eye size={18} /> : <EyeSlash size={18} />}
-                      </button>
-                    </div>
-                    <Form.Control.Feedback type="invalid">
+                        {showPassword ? <MdVisibilityOff size={18} /> : <MdVisibility size={18} />}
+                      </Button>
+                    </InputGroup>
+                    <Form.Control.Feedback type="invalid" className="small ps-1">
                       Mínimo 8 caracteres.
                     </Form.Control.Feedback>
                   </Form.Group>
 
-                  <Form.Group className="mb-3" controlId="formConfirmPassword">
-                    <Form.Label>Confirmar contraseña</Form.Label>
-                    <div className="position-relative">
+                  {/* Confirmar Contraseña */}
+                  <Form.Group className="mb-4" controlId="formConfirmPassword">
+                    <Form.Label className="small text-muted ms-1 mb-1">Confirmar contraseña</Form.Label>
+                    <InputGroup className="shadow-sm rounded-3 overflow-hidden border-0">
+                      <InputGroup.Text className="bg-white border-0 ps-3">
+                        <MdKey className="text-orange" size={20} />
+                      </InputGroup.Text>
                       <Form.Control
                         type={showConfirmPassword ? "text" : "password"}
                         name="confirmPassword"
+                        className="border-0 py-2 fw-medium"
                         placeholder="Repite la contraseña"
                         value={formData.confirmPassword}
                         onChange={handleChange}
                         required
                         minLength={8}
+                        style={{ fontSize: '0.95rem' }}
                       />
-                      <button
-                        type="button"
+                      <Button 
+                        variant="white" 
+                        className="bg-white border-0 text-muted pe-3"
                         onClick={toggleConfirmPasswordVisibility}
-                        className="btn btn-link p-0 border-0 position-absolute top-50 end-0 translate-middle-y me-2"
-                        style={{ textDecoration: "none" }}
+                        type="button"
                       >
-                        {showConfirmPassword ? (
-                          <Eye size={18} />
-                        ) : (
-                          <EyeSlash size={18} />
-                        )}
-                      </button>
-                    </div>
-                    <Form.Control.Feedback type="invalid">
+                        {showConfirmPassword ? <MdVisibilityOff size={18} /> : <MdVisibility size={18} />}
+                      </Button>
+                    </InputGroup>
+                    <Form.Control.Feedback type="invalid" className="small ps-1">
                       Las contraseñas deben coincidir.
                     </Form.Control.Feedback>
                   </Form.Group>
 
                   <Button
                     type="submit"
-                    variant="dark"
-                    className="w-100 mt-2"
+                    variant="primary"
+                    className="w-100 rounded-pill py-2 fw-bold shadow-sm"
                     disabled={loading}
                   >
                     {loading ? (
@@ -207,19 +231,21 @@ function ResetPassword() {
                           role="status"
                           className="me-2"
                         />
-                        ACTUALIZANDO...
+                        Actualizando...
                       </>
                     ) : (
-                      "CAMBIAR CONTRASEÑA"
+                      "ACTUALIZAR CONTRASEÑA"
                     )}
                   </Button>
 
-                  <div className="text-center mt-3">
+                  {/* Footer Volver */}
+                  <div className="text-center mt-4 pt-2">
                     <Link
                       to="/login"
-                      className="fw-semibold small text-decoration-none"
+                      className="d-inline-flex align-items-center fw-semibold small text-decoration-none text-muted hover-orange"
                     >
-                      VOLVER A INICIAR SESIÓN
+                      <MdArrowBack className="me-1" />
+                      Volver a Iniciar Sesión
                     </Link>
                   </div>
                 </Form>
