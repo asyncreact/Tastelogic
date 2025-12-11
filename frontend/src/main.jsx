@@ -8,6 +8,7 @@ import { MenuProvider } from "./context/MenuContext";
 import { OrderProvider } from "./context/OrderContext";
 import { ReservationProvider } from "./context/ReservationContext";
 import { TableProvider } from "./context/TableContext";
+import { AiProvider } from "./context/AiContext";
 import App from "./App";
 
 import "bootstrap/dist/css/bootstrap.min.css";
@@ -35,7 +36,6 @@ const randomRedGradient =
 
 document.documentElement.style.setProperty("--btn-red-1", randomRedGradient);
 
-
 createRoot(document.getElementById("root")).render(
   <StrictMode>
     <BrowserRouter>
@@ -45,7 +45,9 @@ createRoot(document.getElementById("root")).render(
             <OrderProvider>
               <ReservationProvider>
                 <TableProvider>
-                  <App />
+                  <AiProvider>
+                    <App />
+                  </AiProvider>
                 </TableProvider>
               </ReservationProvider>
             </OrderProvider>

@@ -1,4 +1,3 @@
-// src/components/AppNavbar.jsx
 import { useState, useMemo } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
@@ -39,7 +38,14 @@ function AppNavbar() {
   }, [cart]);
 
   return (
-    <nav className="navbar">
+    <nav
+      className="navbar"
+      style={{
+        position: "sticky",
+        top: 0,
+        zIndex: 1000,
+      }}
+    >
       <div className="navbar-container">
         <div className="navbar-left">
           <Link to="/" className="navbar-logo" onClick={closeMenu}>
@@ -149,13 +155,9 @@ function AppNavbar() {
               </button>
             </>
           ) : (
-            <>
-              <div className="user-menu">
-                <button className="user-button">
-                  Visitante
-                </button>
-              </div>
-            </>
+            <div className="user-menu">
+              <button className="user-button">Visitante</button>
+            </div>
           )}
 
           <button

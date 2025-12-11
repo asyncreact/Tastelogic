@@ -1,4 +1,3 @@
-// src/components/AdminNavbar.jsx
 import { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
@@ -32,7 +31,14 @@ function AdminNavbar() {
   const closeMenu = () => setIsMenuOpen(false);
 
   return (
-    <nav className="navbar admin-navbar">
+    <nav
+      className="navbar admin-navbar"
+      style={{
+        position: "sticky",
+        top: 0,
+        zIndex: 1000,
+      }}
+    >
       <div className="navbar-container">
         <div className="navbar-left">
           <Link

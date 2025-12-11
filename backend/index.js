@@ -12,8 +12,9 @@ import userRoutes from "./src/routes/user.routes.js";
 import menuRoutes from "./src/routes/menu.routes.js";
 import zoneRoutes from "./src/routes/zone.routes.js";
 import tableRoutes from "./src/routes/table.routes.js";
-import reservationRoutes from "./src/routes/reservation.routes.js"
-import orderRoutes from "./src/routes/order.routes.js"
+import reservationRoutes from "./src/routes/reservation.routes.js";
+import orderRoutes from "./src/routes/order.routes.js";
+import iaRoutes from "./src/routes/ai.routes.js"; // ← NUEVO
 import { errorHandler } from "./src/middleware/errorHandler.middleware.js";
 
 dotenv.config();
@@ -37,10 +38,12 @@ app.use((req, res, next) => {
 
 /* MIDDLEWARE - CORS */
 
-app.use(cors({
-  origin: [process.env.FRONTEND_URL, "http://localhost:5173"],
-  credentials: true,
-}));
+app.use(
+  cors({
+    origin: [process.env.FRONTEND_URL, "http://localhost:5173"],
+    credentials: true,
+  })
+);
 
 /* MIDDLEWARE - LOGGING */
 
@@ -74,6 +77,7 @@ app.use("/api/zones", zoneRoutes);
 app.use("/api/tables", tableRoutes);
 app.use("/api/reservations", reservationRoutes);
 app.use("/api/orders", orderRoutes);
+app.use("/api/ai", iaRoutes); // ← NUEVO
 
 /* MIDDLEWARE - ERROR HANDLER */
 

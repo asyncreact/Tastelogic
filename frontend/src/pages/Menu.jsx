@@ -64,55 +64,84 @@ function Menu() {
     });
   }, [items, searchTerm, selectedCategory, categoryById]);
 
-  const visibleCategories = useMemo(() => {
-    return categories.filter((cat) =>
-      filteredItems.some(
-        (item) => String(item.category_id) === String(cat.id)
-      )
-    );
-  }, [categories, filteredItems]);
+  const visibleCategories = useMemo(
+    () =>
+      categories.filter((cat) =>
+        filteredItems.some(
+          (item) => String(item.category_id) === String(cat.id)
+        )
+      ),
+    [categories, filteredItems]
+  );
+
+  const itemsInCart = cart.reduce((total, item) => total + item.quantity, 0);
 
   if (loading) {
     return (
       <Container className="min-vh-100 d-flex justify-content-center align-items-center">
-        <Spinner animation="border" />
+        <Spinner animation="border" variant="primary" />
       </Container>
     );
   }
 
-  const itemsInCart = cart.reduce((total, item) => total + item.quantity, 0);
+  // color naranja base
+  const orange = "#ff7a18";
 
   return (
-    <Container className="py-4">
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <div className="d-flex align-items-center gap-2">
-          <MdOutlineFastfood size={24} />
+    <Container className="py-4" style={{ maxWidth: "1280px" }}>
+      {/* ENCABEZADO */}
+      <div className="d-flex flex-wrap justify-content-between align-items-center mb-5 gap-3">
+        <div className="d-flex align-items-center">
+          <div
+            className="d-flex align-items-center justify-content-center rounded-3 me-3 shadow-sm"
+            style={{
+              width: 56,
+              height: 56,
+              backgroundColor: orange,
+              color: "white",
+            }}
+          >
+            <MdOutlineFastfood size={28} />
+          </div>
           <div>
-            <h2 className="h4 mb-0">Menú</h2>
-            <small>
-              Explora los platos disponibles y añade lo que desees a tu pedido.
+            <h2 className="h4 mb-0 fw-bold text-dark">Menú</h2>
+            <small className="text-muted">
+              Explora y añade platos a tu pedido.
             </small>
           </div>
         </div>
 
         {itemsInCart > 0 && (
-          <div className="small d-flex align-items-center gap-1">
-            <RiShoppingBag4Line size={18} />
-            <span>
-              {itemsInCart} ítem{itemsInCart > 1 ? "s" : ""} en tu bolsa
-            </span>
+          <div className="bg-white border rounded-pill ps-2 pe-4 py-2 shadow-sm d-flex align-items-center gap-3">
+            <div
+              className="d-flex align-items-center justify-content-center rounded-circle"
+              style={{ width: 36, height: 36, backgroundColor: orange, color: "white" }}
+            >
+              <RiShoppingBag4Line size={18} />
+            </div>
+            <div className="d-flex flex-column" style={{ lineHeight: "1.2" }}>
+              <span className="fw-bold text-dark small">Tu Bolsa</span>
+              <span
+                className="text-muted small"
+                style={{ fontSize: "0.75rem" }}
+              >
+                {itemsInCart} ítem{itemsInCart > 1 ? "s" : ""}
+              </span>
+            </div>
           </div>
         )}
       </div>
 
-      <Row className="mb-4 g-3">
+      {/* BÚSQUEDA Y FILTROS */}
+      <Row className="mb-5 g-3">
         <Col md={8}>
-          <InputGroup>
-            <InputGroup.Text>
-              <BiSearchAlt />
+          <InputGroup className="shadow-sm rounded-3 overflow-hidden border-0">
+            <InputGroup.Text className="bg-white border-0 ps-3">
+              <BiSearchAlt style={{ color: orange }} size={20} />
             </InputGroup.Text>
             <Form.Control
               type="search"
+              className="border-0 py-2"
               placeholder="Buscar plato, ingrediente o categoría..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -121,6 +150,7 @@ function Menu() {
         </Col>
         <Col md={4}>
           <Form.Select
+            className="border-0 shadow-sm py-2 rounded-3 text-secondary fw-semibold"
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
           >
@@ -134,19 +164,32 @@ function Menu() {
         </Col>
       </Row>
 
+      {/* ERRORES */}
       {error && (
         <Row className="mb-3">
           <Col>
-            <Alert variant="danger" className="mb-0">
+            <Alert
+              variant="danger"
+              className="mb-0 rounded-3 border-0 shadow-sm"
+            >
               {error}
             </Alert>
           </Col>
         </Row>
       )}
 
+      {/* LISTADO */}
       {filteredItems.length === 0 ? (
-        <Alert variant="light" className="text-center border-0">
-          No se encontraron resultados.
+        <Alert
+          variant="light"
+          className="text-center border-0 bg-transparent py-5"
+        >
+          <div className="mb-2" style={{ color: orange, opacity: 0.6 }}>
+            <BiSearchAlt size={48} />
+          </div>
+          <p className="h6 text-muted">
+            No se encontraron resultados para tu búsqueda.
+          </p>
         </Alert>
       ) : visibleCategories.length === 0 ? (
         <Alert variant="light" className="border-0">
@@ -155,10 +198,16 @@ function Menu() {
       ) : (
         visibleCategories.map((category) => (
           <div key={category.id} className="mb-5">
-            <h4 className="h5 mb-3 d-flex align-items-center gap-2">
-              <BiCategory />
-              <span>{category.name}</span>
-            </h4>
+            {/* Cabecera de Categoría en naranja */}
+            <div className="d-flex align-items-center mb-4 border-bottom pb-3">
+              <div
+                className="d-flex align-items-center justify-content-center rounded-3 me-3 shadow-sm"
+                style={{ width: 42, height: 42, backgroundColor: orange, color: "white" }}
+              >
+                <BiCategory size={22} />
+              </div>
+              <h4 className="h5 mb-0 fw-bold text-dark">{category.name}</h4>
+            </div>
 
             <Row className="g-4">
               {filteredItems
@@ -166,8 +215,10 @@ function Menu() {
                   (item) => String(item.category_id) === String(category.id)
                 )
                 .map((item) => (
-                  <Col key={item.id} xs={12} md={4}>
-                    <MenuItemCard item={item} />
+                  <Col key={item.id} xs={12} md={6} lg={4} xl={3}>
+                    <div className="h-100">
+                      <MenuItemCard item={item} />
+                    </div>
                   </Col>
                 ))}
             </Row>

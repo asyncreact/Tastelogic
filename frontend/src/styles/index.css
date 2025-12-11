@@ -153,3 +153,20 @@ span.badge,
   background-color: #ffffff !important;
   color: #111827 !important;
 }
+
+/* Agrega esto a tu index.css para la paginación */
+.custom-pagination .page-item.active .page-link {
+  background-image: var(--btn-orange-1) !important;
+  border-color: transparent !important;
+  color: white !important;
+}
+.custom-pagination .page-link {
+  color: #ff7a18; /* Texto naranja cuando no está activo */
+  border: none;
+  background: transparent;
+  font-weight: 600;
+}
+.custom-pagination .page-link:hover {
+  background-color: #fff3e0;
+  color: #e65100;
+}
