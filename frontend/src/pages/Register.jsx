@@ -275,7 +275,7 @@ function Register() {
                   {/* Botón Registrar */}
                   <Button
                     type="submit"
-                    variant="primary" // Usa tu gradiente naranja
+                    variant="primary"
                     className="w-100 rounded-pill py-2 fw-bold shadow-sm"
                     disabled={loading}
                   >
@@ -308,7 +308,6 @@ function Register() {
                     </p>
                   </div>
 
-                  {/* === LINK "CONTINUAR COMO VISITANTE" (ABAJO CENTRADO) === */}
                   <div className="text-center pt-2 border-top">
                     <Link 
                       to="/dashboard" 
