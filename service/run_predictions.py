@@ -23,7 +23,6 @@ def run_for_next_hours(hours_ahead=24, commit_every=200, statement_timeout_ms=60
     total_upserts = 0
 
     try:
-        # Evita que una consulta se quede colgada “para siempre”
         cur = conn.cursor()
         cur.execute("SET statement_timeout = %s;", (statement_timeout_ms,))
         cur.close()

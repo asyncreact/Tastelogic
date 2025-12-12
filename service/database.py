@@ -13,9 +13,7 @@ db_config = {
     "password": os.getenv("DB_PASSWORD", "tastelogic_business"),
     "port": int(os.getenv("DB_PORT", "5432")),
     "connect_timeout": int(os.getenv("DB_CONNECT_TIMEOUT", "10")),
-    # Render normalmente requiere SSL cuando conectas externamente
     "sslmode": os.getenv("DB_SSLMODE", "require"),
-    # Útil para diagnosticar en pg_stat_activity
     "application_name": os.getenv("DB_APP_NAME", "run_predictions"),
 }
 
