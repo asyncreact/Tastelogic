@@ -1,21 +1,16 @@
 /* src/index.css */
 
-/* =========================================
-   1. VARIABLES Y CONFIGURACIÓN BASE
-   ========================================= */
+/*1. VARIABLES Y CONFIGURACIÓN BASE*/
 
 :root {
-  /* Gradientes Naranjas (Marca Principal) */
   --btn-orange-1: linear-gradient(135deg, #ff7a18 0%, #ffb347 100%);
   --btn-orange-2: linear-gradient(135deg, #ff6a00 0%, #ffcc33 100%);
   --btn-orange-3: linear-gradient(135deg, #ff8c42 0%, #ff5f6d 100%);
 
-  /* Gradientes Rojos (Peligro/Acción Negativa) */
   --btn-red-1: linear-gradient(135deg, #ef4444 0%, #f97373 100%);
   --btn-red-2: linear-gradient(135deg, #dc2626 0%, #fb923c 100%);
   --btn-red-3: linear-gradient(135deg, #b91c1c 0%, #f97316 100%);
 
-  /* Colores Planos Auxiliares */
   --text-active: #ff7a18;
   --text-inactive: #9CA3AF;
   --orange-primary: #ff7a18;
@@ -28,11 +23,8 @@ body {
   background-color: #f9fafb;
 }
 
-/* =========================================
-   2. BOTONES (Primary, Secondary, Danger)
-   ========================================= */
+/*2. BOTONES (Primary, Secondary, Danger)*/
 
-/* Estilos base compartidos para animaciones */
 .btn-primary,
 .btn-secondary,
 .btn-danger,
@@ -47,7 +39,6 @@ body {
     box-shadow 0.2s ease;
 }
 
-/* --- Primary & Secondary (Naranja) --- */
 .btn-primary,
 .btn-secondary {
   background-image: var(--btn-orange-1);
@@ -69,7 +60,6 @@ body {
   box-shadow: 0 4px 10px rgba(255, 122, 24, 0.25);
 }
 
-/* --- Danger & Red (Rojo) --- */
 .btn-danger,
 .btn-red {
   background-image: var(--btn-red-1);
@@ -91,7 +81,6 @@ body {
   box-shadow: 0 4px 10px rgba(239, 68, 68, 0.25);
 }
 
-/* Botón Blanco Personalizado (Usado en Modals) */
 .btn-white {
   background-color: #ffffff;
   border: 1px solid #e5e7eb;
@@ -103,9 +92,7 @@ body {
   color: #111827;
 }
 
-/* =========================================
-   3. TABS / PESTAÑAS (Estilo Flat Naranja)
-   ========================================= */
+/*3. TABS / PESTAÑAS (Estilo Flat Naranja) */
 
 .nav-tabs {
   border-bottom: 2px solid #f0f0f0;
@@ -132,9 +119,7 @@ body {
   box-shadow: 0 3px 0 0 var(--text-active); 
 }
 
-/* =========================================
-   4. PAGINACIÓN
-   ========================================= */
+/*4. PAGINACIÓN*/
 
 .custom-pagination .page-item.active .page-link {
   background-image: var(--btn-orange-1) !important;
@@ -162,9 +147,7 @@ body {
   color: #e65100;
 }
 
-/* =========================================
-   5. BADGES (Estilo Limpio/Blanco)
-   ========================================= */
+/*5. BADGES (Estilo Limpio/Blanco)*/
 
 .badge {
   font-weight: 600;
@@ -183,7 +166,6 @@ body {
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
 }
 
-/* Sobrescritura forzada de colores Bootstrap en Badges */
 .badge.bg-primary,
 .badge.bg-info,
 .badge.bg-secondary,
@@ -200,11 +182,8 @@ body {
   padding: 0.25em 0.6em;
 }
 
-/* =========================================
-   6. UTILIDADES Y COMPONENTES
-   ========================================= */
+/* 6. UTILIDADES Y COMPONENTES*/
 
-/* Caja para iconos con gradiente */
 .icon-orange {
   background-image: var(--btn-orange-1);
   color: #ffffff;
@@ -214,23 +193,19 @@ body {
   border-radius: 0.75rem; 
 }
 
-/* Texto color naranja marca */
 .text-orange {
   color: var(--orange-primary) !important;
 }
 
-/* Fondo naranja sutil (para selecciones activas) */
 .bg-orange-subtle {
   background-color: #fff7ed !important;
   color: #9a3412 !important;
 }
 
-/* Bordes punteados (Estilo Factura) */
 .border-dashed {
   border-style: dashed !important;
 }
 
-/* Utilidades de interacción */
 .cursor-pointer {
   cursor: pointer;
 }
@@ -244,7 +219,6 @@ body {
   transform: translateY(-2px);
 }
 
-/* Animación de entrada suave */
 .animate-fade-in {
   animation: fadeIn 0.4s ease-out forwards;
 }

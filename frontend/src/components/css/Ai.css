@@ -1,0 +1,36 @@
+.hero-card-container {
+  min-height: 400px; 
+}
+
+.custom-hero-carousel .carousel-control-prev,
+.custom-hero-carousel .carousel-control-next {
+  width: 5% !important;
+  z-index: 10; 
+  opacity: 0.5;
+}
+
+.custom-hero-carousel .carousel-control-prev {
+  left: 0 !important;
+  justify-content: flex-start; 
+}
+
+.custom-hero-carousel .carousel-control-next {
+  right: 0 !important;
+  justify-content: flex-end; 
+}
+
+.custom-hero-carousel .carousel-control-prev:hover,
+.custom-hero-carousel .carousel-control-next:hover {
+  opacity: 0.9;
+}
+
+.custom-hero-carousel .carousel-control-prev-icon,
+.custom-hero-carousel .carousel-control-next-icon {
+  width: 3rem; 
+  height: 3rem;
+  filter: invert(0.3) sepia(0) saturate(1) hue-rotate(0deg) brightness(0.4) contrast(1);
+}
+
+.custom-hero-carousel .carousel-indicators {
+  margin-bottom: 1rem;
+}

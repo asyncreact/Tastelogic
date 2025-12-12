@@ -1,18 +1,16 @@
 // src/components/Ai.jsx
 import { useEffect, useContext, useMemo, useState } from "react";
 import { Row, Col, Card, Badge, Pagination, Carousel } from "react-bootstrap";
-
 import {
   MdLocalFireDepartment,
   MdRecommend,
   MdTrendingUp,
 } from "react-icons/md";
 import { BiStar } from "react-icons/bi";
-
 import { AiContext } from "../context/AiContext";
 import { useMenu } from "../hooks/useMenu";
-
 import MenuItemCard from "./MenuItemCard";
+import "./css/Ai.css";
 
 function Ai() {
   const {
@@ -107,61 +105,83 @@ function Ai() {
   return (
     <>
       {todayTopItems.length > 0 && (
-        <Card className="border-0 shadow-sm rounded-4 mb-4">
-          <Card.Body className="p-4">
-            <div className="d-flex align-items-center mb-4">
-              <div
-                className="icon-orange me-3"
-                style={{ width: 56, height: 56 }}
+        <Card className="border-0 shadow-sm rounded-4 mb-5 overflow-hidden hero-card-container">
+          <div style={{ backgroundColor: "#fcfcfc" }}> 
+            <Card.Body className="p-0">
+              <Carousel
+                variant="dark"
+                indicators={todayTopItems.length > 1}
+                controls={todayTopItems.length > 1}
+                interval={5000}
+                className="custom-hero-carousel h-100"
               >
-                <MdLocalFireDepartment size={28} />
-              </div>
-              <div>
-                <small className="text-uppercase text-warning fw-bold d-block">
-                  Top del día
-                </small>
-                <small className="text-muted">
-                  Los platos más pedidos recientemente.
-                </small>
-              </div>
-            </div>
+                {todayTopItems.map((item, index) => (
+                  <Carousel.Item key={item.id} className="h-100">
+                    <div className="p-4 py-lg-5 px-lg-5 h-100 d-flex align-items-center">
+                      <Row className="align-items-center g-4 w-100 mx-0">
+                        <Col md={6} lg={7} className="text-start ps-lg-5">
+                          <div className="d-inline-flex align-items-center mb-3 bg-white px-3 py-2 rounded-pill shadow-sm border">
+                            <MdLocalFireDepartment className="text-danger me-2" size={20} />
+                            <span className="fw-bold text-dark small text-uppercase ls-1">
+                              Top del día #{index + 1}
+                            </span>
+                          </div>
+                          
+                          <h2 className="display-5 fw-bolder mb-3 text-dark" style={{ letterSpacing: '-1px' }}>
+                            {item.name || "Plato destacado"}
+                          </h2>
+                          
+                          <p className="lead text-muted mb-4 fs-5" style={{ maxWidth: "90%", fontWeight: "400" }}>
+                            {item.description || "Delicioso plato recomendado."}
+                          </p>
 
-            <Carousel
-              variant="dark"
-              indicators={todayTopItems.length > 1}
-              controls={todayTopItems.length > 1}
-              interval={4000}
-              className="pb-2"
-            >
-              {todayTopItems.map((item) => (
-                <Carousel.Item key={item.id}>
-                  <Row className="justify-content-center">
-                    <Col md={8} lg={5}>
-                      <MenuItemCard item={item} />
-                    </Col>
-                  </Row>
-                </Carousel.Item>
-              ))}
-            </Carousel>
-          </Card.Body>
+                          <div className="d-flex align-items-center gap-3">
+                             <Badge bg="light" text="dark" className="px-3 py-2 fw-normal rounded-2 border">
+                                MÁS VENDIDO HOY
+                             </Badge>
+                             <span className="text-muted small fw-semibold">
+                               <BiStar className="text-warning mb-1 me-1" size={18} /> Recomendado por la IA
+                             </span>
+                          </div>
+                        </Col>
+
+                        <Col md={6} lg={5} className="pe-lg-5">
+                          <div className="position-relative" style={{ zIndex: 1 }}>
+                             
+                             <MenuItemCard item={item} />
+                          </div>
+                        </Col>
+                      </Row>
+                    </div>
+                  </Carousel.Item>
+                ))}
+              </Carousel>
+            </Card.Body>
+          </div>
         </Card>
       )}
 
       <Row className="g-4">
         <Col lg={8}>
           <Card className="border-0 shadow-sm rounded-4 mb-4">
-            <Card.Header className="bg-white pt-4 px-4 card-section-header">
+            <Card.Header className="bg-white pt-4 px-4 card-section-header border-0">
               <div className="d-flex align-items-center justify-content-between">
                 <div className="d-flex align-items-center">
                   <div
-                    className="icon-orange me-3"
-                    style={{ width: 48, height: 48 }}
+                    className="icon-container me-3 d-flex align-items-center justify-content-center shadow-sm rounded-circle"
+                    style={{ 
+                      width: 48, 
+                      height: 48, 
+                      backgroundImage: 'var(--btn-orange-1)',
+                      color: '#fff', // Icono blanco
+                      boxShadow: '0 4px 10px rgba(255, 122, 24, 0.3)'
+                    }}
                   >
-                    <MdTrendingUp size={28} />
+                    <MdTrendingUp size={24} />
                   </div>
                   <div>
                     <h5 className="fw-bold mb-0 text-dark h6">Tendencias</h5>
-                    <small className="text-muted">Lo más vendido</small>
+                    <small className="text-muted">Lo más vendido globalmente</small>
                   </div>
                 </div>
                 <div>
@@ -174,7 +194,6 @@ function Ai() {
 
             <Card.Body className="p-4">
               {loading && <p>Cargando menú...</p>}
-
               {topSoldItems.length > 0 ? (
                 <>
                   <Row className="g-3 mb-3">
@@ -183,7 +202,7 @@ function Ai() {
                         <MenuItemCard
                           item={item}
                           highlightBadge={
-                            <Badge bg="warning" text="dark">
+                            <Badge bg="warning" text="dark" className="rounded-1">
                               Popular
                             </Badge>
                           }
@@ -196,18 +215,12 @@ function Ai() {
                     <Pagination className="justify-content-center custom-pagination mb-0">
                       <Pagination.Prev
                         disabled={popularPage === 1}
-                        onClick={() =>
-                          setPopularPage((p) => Math.max(1, p - 1))
-                        }
+                        onClick={() => setPopularPage((p) => Math.max(1, p - 1))}
                       />
                       <Pagination.Item active>{popularPage}</Pagination.Item>
                       <Pagination.Next
                         disabled={popularPage === getTotalPages(topSoldItems)}
-                        onClick={() =>
-                          setPopularPage((p) =>
-                            Math.min(getTotalPages(topSoldItems), p + 1)
-                          )
-                        }
+                        onClick={() => setPopularPage((p) => Math.min(getTotalPages(topSoldItems), p + 1))}
                       />
                     </Pagination>
                   )}
@@ -219,12 +232,18 @@ function Ai() {
           </Card>
 
           <Card className="border-0 shadow-sm rounded-4">
-            <Card.Header className="bg-white pt-4 px-4 card-section-header">
+            <Card.Header className="bg-white pt-4 px-4 card-section-header border-0">
               <div className="d-flex align-items-center justify-content-between">
                 <div className="d-flex align-items-center">
                   <div
-                    className="icon-orange me-3"
-                    style={{ width: 48, height: 48 }}
+                    className="icon-container me-3 d-flex align-items-center justify-content-center shadow-sm rounded-circle"
+                    style={{ 
+                      width: 48, 
+                      height: 48, 
+                      backgroundImage: 'var(--btn-orange-1)',
+                      color: '#fff',
+                      boxShadow: '0 4px 10px rgba(255, 122, 24, 0.3)' 
+                    }}
                   >
                     <BiStar size={24} />
                   </div>
@@ -250,7 +269,7 @@ function Ai() {
                     <Col md={6} key={item.id}>
                       <MenuItemCard
                         item={item}
-                        highlightBadge={<Badge bg="info">Season</Badge>}
+                        highlightBadge={<Badge bg="info" className="text-white rounded-1">Season</Badge>}
                         SeasonBadge
                       />
                     </Col>
@@ -273,11 +292,7 @@ function Ai() {
                   <Pagination.Item active>{seasonPage}</Pagination.Item>
                   <Pagination.Next
                     disabled={seasonPage === getTotalPages(seasonTopItems)}
-                    onClick={() =>
-                      setSeasonPage((p) =>
-                        Math.min(getTotalPages(seasonTopItems), p + 1)
-                      )
-                    }
+                    onClick={() => setSeasonPage((p) => Math.min(getTotalPages(seasonTopItems), p + 1))}
                   />
                 </Pagination>
               )}
@@ -286,18 +301,24 @@ function Ai() {
         </Col>
 
         <Col lg={4}>
-          <Card className="border-0 shadow-sm rounded-4">
-            <Card.Header className="bg-white pt-4 px-4 card-section-header">
+          <Card className="border-0 shadow-sm rounded-4 h-100">
+            <Card.Header className="bg-white pt-4 px-4 card-section-header border-0">
               <div className="d-flex align-items-center">
                 <div
-                  className="icon-orange me-3"
-                  style={{ width: 48, height: 48 }}
+                  className="icon-container me-3 d-flex align-items-center justify-content-center shadow-sm rounded-circle"
+                  style={{ 
+                    width: 48, 
+                    height: 48, 
+                    backgroundImage: 'var(--btn-orange-1)',
+                    color: '#fff',
+                    boxShadow: '0 4px 10px rgba(255, 122, 24, 0.3)'
+                  }}
                 >
-                  <MdRecommend size={26} />
+                  <MdRecommend size={24} />
                 </div>
                 <div>
                   <h5 className="fw-bold mb-0 h6">Sugeridos</h5>
-                  <small className="text-muted">Para ti</small>
+                  <small className="text-muted">Selección de la IA</small>
                 </div>
               </div>
             </Card.Header>
