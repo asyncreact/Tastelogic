@@ -7,17 +7,16 @@ from dotenv import load_dotenv
 load_dotenv()
 
 db_config = {
-    "host": os.getenv("DB_HOST", "localhost"),
+    "host": os.getenv("DB_HOST", "127.0.0.1"),
     "dbname": os.getenv("DB_NAME", "tastelogic"),
     "user": os.getenv("DB_USER", "tastelogic_business"),
     "password": os.getenv("DB_PASSWORD", "tastelogic_business"),
     "port": int(os.getenv("DB_PORT", "5432")),
+    "connect_timeout": int(os.getenv("DB_CONNECT_TIMEOUT", "5")),
 }
-
 
 def get_connection():
     return psycopg2.connect(**db_config)
-
 
 def insert_prediction(
     menu_item_id: int,
@@ -25,8 +24,13 @@ def insert_prediction(
     predicted_quantity: int,
     confidence_score: float,
     model_version: str,
+    conn=None,               
 ) -> int:
-    conn = get_connection()
+    own_conn = False
+    if conn is None:
+        conn = get_connection()
+        own_conn = True
+
     cur = conn.cursor()
 
     sql = """
@@ -34,9 +38,7 @@ def insert_prediction(
         (menu_item_id, prediction_date, prediction_hour, day_of_week, season,
          predicted_quantity, confidence_score, model_version)
         VALUES (
-            %s,
-            %s,
-            %s,
+            %s, %s, %s,
             EXTRACT(DOW FROM %s),
             CASE
                 WHEN EXTRACT(MONTH FROM %s) IN (12,1,2) THEN 'winter'
@@ -44,9 +46,7 @@ def insert_prediction(
                 WHEN EXTRACT(MONTH FROM %s) IN (6,7,8) THEN 'summer'
                 ELSE 'fall'
             END,
-            %s,
-            %s,
-            %s
+            %s, %s, %s
         )
         ON CONFLICT (menu_item_id, prediction_date, prediction_hour)
         DO UPDATE SET
@@ -64,10 +64,7 @@ def insert_prediction(
             menu_item_id,
             dt.date(),
             dt.hour,
-            dt,
-            dt,
-            dt,
-            dt,
+            dt, dt, dt, dt,
             predicted_quantity,
             confidence_score,
             model_version,
@@ -75,7 +72,10 @@ def insert_prediction(
     )
 
     prediction_id = cur.fetchone()[0]
-    conn.commit()
     cur.close()
-    conn.close()
+
+    if own_conn:
+        conn.commit()
+        conn.close()
+
     return prediction_id
