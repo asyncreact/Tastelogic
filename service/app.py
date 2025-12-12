@@ -1,3 +1,4 @@
+from typing import List
 from fastapi import FastAPI
 from pydantic import BaseModel
 from datetime import datetime
@@ -14,21 +15,25 @@ class PredictRequest(BaseModel):
     datetime_str: str
 
 @app.post("/predict")
-def predict_demand(req: PredictRequest):
-    dt = datetime.fromisoformat(req.datetime_str)
-    features = build_features(menu_item_id=req.menu_item_id, dt=dt)
-    y_pred, confidence = predict_quantity(model, features)
+def predict_demand(reqs: List[PredictRequest]):
+    results = []
+    for req in reqs:
+        dt = datetime.fromisoformat(req.datetime_str)
+        features = build_features(menu_item_id=req.menu_item_id, dt=dt)
+        y_pred, confidence = predict_quantity(model, features)
 
-    pred_id = insert_prediction(
-        menu_item_id=req.menu_item_id,
-        dt=dt,
-        predicted_quantity=int(round(y_pred)),
-        confidence_score=confidence,
-        model_version="v1",
-    )
+        pred_id = insert_prediction(
+            menu_item_id=req.menu_item_id,
+            dt=dt,
+            predicted_quantity=int(round(y_pred)),
+            confidence_score=confidence,
+            model_version="v1",
+        )
 
-    return {
-        "prediction_id": pred_id,
-        "predicted_quantity": int(round(y_pred)),
-        "confidence_score": confidence,
-    }
+        results.append({
+            "menu_item_id": req.menu_item_id,
+            "prediction_id": pred_id,
+            "predicted_quantity": int(round(y_pred)),
+            "confidence_score": confidence,
+        })
+    return results

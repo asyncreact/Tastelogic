@@ -1,11 +1,12 @@
-import psycopg2
-from datetime import datetime
 import os
+from datetime import datetime
+
+import psycopg2
 from dotenv import load_dotenv
 
 load_dotenv()
 
-DB_CONFIG = {
+db_config = {
     "host": os.getenv("DB_HOST", "localhost"),
     "dbname": os.getenv("DB_NAME", "tastelogic"),
     "user": os.getenv("DB_USER", "tastelogic_business"),
@@ -13,15 +14,21 @@ DB_CONFIG = {
     "port": int(os.getenv("DB_PORT", "5432")),
 }
 
-def get_connection():
-    return psycopg2.connect(**DB_CONFIG)
 
-def insert_prediction(menu_item_id: int, dt: datetime,
-                      predicted_quantity: int,
-                      confidence_score: float,
-                      model_version: str):
+def get_connection():
+    return psycopg2.connect(**db_config)
+
+
+def insert_prediction(
+    menu_item_id: int,
+    dt: datetime,
+    predicted_quantity: int,
+    confidence_score: float,
+    model_version: str,
+) -> int:
     conn = get_connection()
     cur = conn.cursor()
+
     sql = """
         INSERT INTO public.demand_predictions
         (menu_item_id, prediction_date, prediction_hour, day_of_week, season,
@@ -41,25 +48,34 @@ def insert_prediction(menu_item_id: int, dt: datetime,
             %s,
             %s
         )
+        ON CONFLICT (menu_item_id, prediction_date, prediction_hour)
+        DO UPDATE SET
+            day_of_week = EXCLUDED.day_of_week,
+            season = EXCLUDED.season,
+            predicted_quantity = EXCLUDED.predicted_quantity,
+            confidence_score = EXCLUDED.confidence_score,
+            model_version = EXCLUDED.model_version
         RETURNING id;
     """
+
     cur.execute(
         sql,
         (
             menu_item_id,
             dt.date(),
             dt.hour,
-            dt.date(),
-            dt.date(),
-            dt.date(),
-            dt.date(),
+            dt,
+            dt,
+            dt,
+            dt,
             predicted_quantity,
             confidence_score,
             model_version,
         ),
     )
-    pred_id = cur.fetchone()[0]
+
+    prediction_id = cur.fetchone()[0]
     conn.commit()
     cur.close()
     conn.close()
-    return pred_id
+    return prediction_id
