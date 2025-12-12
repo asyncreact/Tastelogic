@@ -1,0 +1,10 @@
+#Backend
+npm run dev
+
+#frontend
+npm run dev
+
+#service
+1.python train.py
+
+2.python run_predictions.py

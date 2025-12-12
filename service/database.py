@@ -12,11 +12,17 @@ db_config = {
     "user": os.getenv("DB_USER", "tastelogic_business"),
     "password": os.getenv("DB_PASSWORD", "tastelogic_business"),
     "port": int(os.getenv("DB_PORT", "5432")),
-    "connect_timeout": int(os.getenv("DB_CONNECT_TIMEOUT", "5")),
+    "connect_timeout": int(os.getenv("DB_CONNECT_TIMEOUT", "10")),
+    # Render normalmente requiere SSL cuando conectas externamente
+    "sslmode": os.getenv("DB_SSLMODE", "require"),
+    # Útil para diagnosticar en pg_stat_activity
+    "application_name": os.getenv("DB_APP_NAME", "run_predictions"),
 }
+
 
 def get_connection():
     return psycopg2.connect(**db_config)
+
 
 def insert_prediction(
     menu_item_id: int,
@@ -24,7 +30,7 @@ def insert_prediction(
     predicted_quantity: int,
     confidence_score: float,
     model_version: str,
-    conn=None,               
+    conn=None,
 ) -> int:
     own_conn = False
     if conn is None:
@@ -34,28 +40,27 @@ def insert_prediction(
     cur = conn.cursor()
 
     sql = """
-        INSERT INTO public.demand_predictions
+    INSERT INTO public.demand_predictions
         (menu_item_id, prediction_date, prediction_hour, day_of_week, season,
          predicted_quantity, confidence_score, model_version)
-        VALUES (
-            %s, %s, %s,
-            EXTRACT(DOW FROM %s),
-            CASE
-                WHEN EXTRACT(MONTH FROM %s) IN (12,1,2) THEN 'winter'
-                WHEN EXTRACT(MONTH FROM %s) IN (3,4,5) THEN 'spring'
-                WHEN EXTRACT(MONTH FROM %s) IN (6,7,8) THEN 'summer'
-                ELSE 'fall'
-            END,
-            %s, %s, %s
-        )
-        ON CONFLICT (menu_item_id, prediction_date, prediction_hour)
-        DO UPDATE SET
-            day_of_week = EXCLUDED.day_of_week,
-            season = EXCLUDED.season,
-            predicted_quantity = EXCLUDED.predicted_quantity,
-            confidence_score = EXCLUDED.confidence_score,
-            model_version = EXCLUDED.model_version
-        RETURNING id;
+    VALUES
+        (%s, %s, %s,
+         EXTRACT(DOW FROM %s),
+         CASE
+           WHEN EXTRACT(MONTH FROM %s) IN (12,1,2) THEN 'winter'
+           WHEN EXTRACT(MONTH FROM %s) IN (3,4,5) THEN 'spring'
+           WHEN EXTRACT(MONTH FROM %s) IN (6,7,8) THEN 'summer'
+           ELSE 'fall'
+         END,
+         %s, %s, %s)
+    ON CONFLICT (menu_item_id, prediction_date, prediction_hour)
+    DO UPDATE SET
+        day_of_week = EXCLUDED.day_of_week,
+        season = EXCLUDED.season,
+        predicted_quantity = EXCLUDED.predicted_quantity,
+        confidence_score = EXCLUDED.confidence_score,
+        model_version = EXCLUDED.model_version
+    RETURNING id;
     """
 
     cur.execute(
@@ -64,7 +69,8 @@ def insert_prediction(
             menu_item_id,
             dt.date(),
             dt.hour,
-            dt, dt, dt, dt,
+            dt,
+            dt, dt, dt,
             predicted_quantity,
             confidence_score,
             model_version,
