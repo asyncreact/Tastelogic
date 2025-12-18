@@ -1,3 +1,5 @@
+npm install
+
 #Backend
 npm run dev
 
@@ -8,3 +10,5 @@ npm run dev
 1.python train.py
 
 2.python run_predictions.py
+
+
